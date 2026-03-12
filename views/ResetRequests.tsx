@@ -1,0 +1,1075 @@
+
+import React, { useState, useMemo, useRef } from 'react';
+import * as XLSX from 'xlsx';
+import { useDebounce } from '../src/hooks/useDebounce';
+import { ResetRequest, RequestStatus, LogEntry, SiteSettings, UserRole, Personnel, RequestPriority } from '../types';
+
+interface ResetRequestsProps {
+  requests: ResetRequest[];
+  setRequests: React.Dispatch<React.SetStateAction<ResetRequest[]>>;
+  showToast: (msg: string, type?: 'success' | 'error') => void;
+  addNotification: (title: string, body: string, type: 'request' | 'system' | 'personnel', refId?: string) => void;
+  addLog?: (aktivitas: LogEntry['aktivitas'], keterangan: string) => void;
+  siteSettings: SiteSettings;
+  setSiteSettings: React.Dispatch<React.SetStateAction<SiteSettings>>;
+  currentUser: Personnel;
+}
+
+const ResetRequests: React.FC<ResetRequestsProps> = ({ 
+  requests, 
+  setRequests, 
+  showToast, 
+  addNotification, 
+  addLog,
+  siteSettings,
+  setSiteSettings,
+  currentUser
+}) => {
+  const isSuperAdmin = currentUser.role === UserRole.SUPERADMIN;
+  const isAdminPolres = currentUser.role === UserRole.ADMIN;
+  const isUser = currentUser.role === UserRole.USER;
+  const isAnyAdmin = isSuperAdmin || isAdminPolres || isUser;
+  const isDarkMode = siteSettings.darkMode;
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState('Semua');
+  const [filterPriority, setFilterPriority] = useState('Semua');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  
+  const [appliedFilters, setAppliedFilters] = useState({
+    search: '',
+    status: 'Semua',
+    priority: 'Semua',
+    start: '',
+    end: ''
+  });
+
+  const debouncedSearch = useDebounce(appliedFilters.search, 500);
+
+  const [selectedReq, setSelectedReq] = useState<ResetRequest | null>(null);
+  const [viewingReq, setViewingReq] = useState<ResetRequest | null>(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [showWeakWarning, setShowWeakWarning] = useState(false);
+  const [showDetailPassword, setShowDetailPassword] = useState(false);
+  const getPasswordStrength = (pass: string) => {
+    if (!pass) return 0;
+    let score = 0;
+    if (pass.length >= 8) score += 25;
+    if (/[A-Z]/.test(pass)) score += 25;
+    if (/[0-9]/.test(pass)) score += 25;
+    if (/[!@#$%^&*(),.?":{}|<>]/.test(pass)) score += 25;
+    return score;
+  };
+
+  const passwordStrength = useMemo(() => getPasswordStrength(newPassword), [newPassword]);
+
+  // State untuk Input Manual
+  const [isManualModalOpen, setIsManualModalOpen] = useState(false);
+  const [manualForm, setManualForm] = useState({
+    nama: '',
+    pangkat: '',
+    nrp: '',
+    jabatan: '',
+    kesatuan: !isSuperAdmin ? currentUser.kesatuan : '',
+    catatan: ''
+  });
+
+  // Helper untuk Label Status Dinamis
+  const getStatusLabel = (status: RequestStatus) => {
+    if (status === RequestStatus.MENUNGGU) {
+      return isSuperAdmin ? 'Diterima' : 'Terkirim';
+    }
+    if (status === RequestStatus.DIPROSES) return 'Di Proses';
+    if (status === RequestStatus.SELESAI) return 'Selesai';
+    if (status === RequestStatus.DITOLAK) return 'Ditolak';
+    return status;
+  };
+
+  const [isEditHeaderModalOpen, setIsEditHeaderModalOpen] = useState(false);
+  const [headerForm, setHeaderForm] = useState({
+    title: siteSettings.requestsTitle || 'Manajemen Reset Password',
+    subtitle: siteSettings.requestsSubtitle || 'PANTAU DAN EKSEKUSI PERMOHONAN AKSES PERSONEL'
+  });
+
+  const handleSaveHeader = () => {
+    setSiteSettings(prev => ({
+      ...prev,
+      requestsTitle: headerForm.title,
+      requestsSubtitle: headerForm.subtitle
+    }));
+    setIsEditHeaderModalOpen(false);
+  };
+
+  const stats = useMemo(() => {
+    const relevant = requests.filter(r => isSuperAdmin || r.kesatuan === currentUser.kesatuan);
+    const total = relevant.length;
+    const pending = relevant.filter(r => r.status === RequestStatus.MENUNGGU).length;
+    const processing = relevant.filter(r => r.status === RequestStatus.DIPROSES).length;
+    const urgent = relevant.filter(r => r.prioritas === RequestPriority.MENDESAK && r.status !== RequestStatus.SELESAI).length;
+    
+    const today = new Date().toISOString().split('T')[0];
+    const completedToday = relevant.filter(r => 
+      r.status === RequestStatus.SELESAI && 
+      new Date(r.updatedAt || 0).toISOString().split('T')[0] === today
+    ).length;
+
+    return { total, pending, processing, completedToday, urgent };
+  }, [requests, isAdminPolres, currentUser.kesatuan]);
+
+  const filteredRequests = useMemo(() => {
+    return requests.filter(req => {
+      if (!isSuperAdmin && req.kesatuan !== currentUser.kesatuan) return false;
+
+      const search = debouncedSearch.toLowerCase().trim();
+      const matchesSearch = search === '' || 
+        (req.nama || '').toLowerCase().includes(search) ||
+        (req.nrp || '').includes(search) ||
+        (req.jabatan || '').toLowerCase().includes(search) ||
+        (req.id || '').toLowerCase().includes(search);
+      
+      const matchesStatus = appliedFilters.status === 'Semua' || req.status === appliedFilters.status;
+      const matchesPriority = appliedFilters.priority === 'Semua' || req.prioritas === appliedFilters.priority;
+
+      let matchesDate = true;
+      if (appliedFilters.start || appliedFilters.end) {
+        const reqDate = new Date(req.createdAt).setHours(0,0,0,0);
+        if (appliedFilters.start) {
+          const start = new Date(appliedFilters.start).setHours(0,0,0,0);
+          if (reqDate < start) matchesDate = false;
+        }
+        if (appliedFilters.end) {
+          const end = new Date(appliedFilters.end).setHours(23,59,59,999);
+          if (reqDate > end) matchesDate = false;
+        }
+      }
+
+      return matchesSearch && matchesStatus && matchesPriority && matchesDate;
+    }).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+  }, [requests, appliedFilters, isAdminPolres, currentUser.kesatuan]);
+
+  const handleApplyFilter = () => {
+    setAppliedFilters({
+      search: searchTerm,
+      status: filterStatus,
+      priority: filterPriority,
+      start: startDate,
+      end: endDate
+    });
+  };
+
+  const handleResetFilter = () => {
+    setSearchTerm('');
+    setFilterStatus('Semua');
+    setFilterPriority('Semua');
+    setStartDate('');
+    setEndDate('');
+    setAppliedFilters({ search: '', status: 'Semua', priority: 'Semua', start: '', end: '' });
+  };
+
+  const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.checked) {
+      setSelectedIds(filteredRequests.map(r => r.id));
+    } else {
+      setSelectedIds([]);
+    }
+  };
+
+  const handleSelectOne = (id: string) => {
+    setSelectedIds(prev => 
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
+  const handleBulkDelete = () => {
+    if (selectedIds.length === 0) return;
+    if (window.confirm(`Hapus ${selectedIds.length} permintaan terpilih?`)) {
+      setRequests(prev => prev.filter(r => !selectedIds.includes(r.id)));
+      showToast(`${selectedIds.length} permintaan berhasil dihapus`);
+      addLog?.('Hapus Data', `Menghapus massal ${selectedIds.length} permintaan reset`);
+      setSelectedIds([]);
+    }
+  };
+
+  const handleBulkProcess = () => {
+    if (selectedIds.length === 0) return;
+    setRequests(prev => prev.map(r => 
+      selectedIds.includes(r.id) && r.status === RequestStatus.MENUNGGU 
+        ? { ...r, status: RequestStatus.DIPROSES } 
+        : r
+    ));
+    showToast(`${selectedIds.length} permintaan ditandai sedang diproses`);
+    addLog?.('Update Data', `Memproses massal ${selectedIds.length} permintaan reset`);
+    setSelectedIds([]);
+  };
+
+  const exportExcel = () => {
+    const dataToExport = filteredRequests.map(r => ({
+      'Waktu Request': new Date(r.createdAt).toLocaleString('id-ID'),
+      'Nama': r.nama,
+      'Pangkat': r.pangkat,
+      'NRP/NIP': r.nrp,
+      'Kesatuan': r.kesatuan,
+      'Jabatan': r.jabatan,
+      'Status': getStatusLabel(r.status),
+      'Password Baru': r.reset_password || '-'
+    }));
+    
+    const ws = XLSX.utils.json_to_sheet(dataToExport);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Permintaan Reset");
+    XLSX.writeFile(wb, `permintaan_reset_${Date.now()}.xlsx`);
+  };
+
+  const handleImportExcel = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const bstr = event.target?.result;
+        const wb = XLSX.read(bstr, { type: 'binary' });
+        const wsname = wb.SheetNames[0];
+        const ws = wb.Sheets[wsname];
+        const data = XLSX.utils.sheet_to_json(ws) as any[];
+
+        const newRequests: ResetRequest[] = data.map((item, idx) => ({
+          id: `IMP-${Date.now()}-${idx}`,
+          nama: item.Nama || item.nama || 'Tanpa Nama',
+          pangkat: item.Pangkat || item.pangkat || '-',
+          nrp: String(item.NRP || item.nrp || '00000000'),
+          jabatan: item.Jabatan || item.jabatan || '-',
+          kesatuan: isAdminPolres ? currentUser.kesatuan : (item.Kesatuan || item.kesatuan || 'Polda Jatim'),
+          waktu_iso: new Date().toISOString(),
+          status: RequestStatus.MENUNGGU,
+          alasan: 'Import Data Massal',
+          createdAt: Date.now(),
+        }));
+
+        setRequests(prev => [...newRequests, ...prev]);
+        showToast(`${newRequests.length} data berhasil diimport`);
+        addLog?.('Sistem', `Melakukan import massal sebanyak ${newRequests.length} data`);
+      } catch (err) {
+        showToast('Gagal memproses file Excel', 'error');
+      }
+    };
+    reader.readAsBinaryString(file);
+    e.target.value = ''; // Reset input
+  };
+
+  const handleManualSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!manualForm.nama || !manualForm.nrp || !manualForm.kesatuan) {
+      showToast('Mohon lengkapi Nama, NRP, dan Kesatuan', 'error');
+      return;
+    }
+
+    const newReq: ResetRequest = {
+      id: `REQ-MAN-${Math.floor(1000 + Math.random() * 8999)}`,
+      nama: manualForm.nama.trim(),
+      pangkat: manualForm.pangkat.trim(),
+      nrp: manualForm.nrp.trim(),
+      jabatan: manualForm.jabatan.trim(),
+      kesatuan: manualForm.kesatuan.trim(),
+      catatan: manualForm.catatan.trim(),
+      waktu_iso: new Date().toISOString(),
+      status: RequestStatus.MENUNGGU,
+      alasan: 'Input Manual Admin',
+      createdAt: Date.now()
+    };
+
+    setRequests(prev => [newReq, ...prev]);
+    showToast(`Permintaan untuk ${manualForm.nama} berhasil ditambahkan secara manual`);
+    addLog?.('Sistem', `Menambah permintaan reset manual: ${manualForm.nama}`);
+    setIsManualModalOpen(false);
+    setManualForm({
+      nama: '',
+      pangkat: '',
+      nrp: '',
+      jabatan: '',
+      kesatuan: !isSuperAdmin ? currentUser.kesatuan : '',
+      catatan: ''
+    });
+  };
+
+  const handleStartProcess = (reqId: string) => {
+    setRequests(prev => prev.map(r => 
+      r.id === reqId ? { ...r, status: RequestStatus.DIPROSES } : r
+    ));
+    showToast('Permintaan ditandai sedang diproses');
+    addLog?.('Reset Password', `Memulai proses reset password untuk permintaan ID: ${reqId}`);
+  };
+
+  const checkPasswordStrength = (pass: string) => {
+    // Kriteria Lemah: kurang dari 8 karakter ATAU tidak ada angka ATAU tidak ada simbol
+    const hasNumber = /\d/.test(pass);
+    const hasSymbol = /[!@#$%^&*(),.?":{}|<>]/.test(pass);
+    return pass.length >= 8 && hasNumber && hasSymbol;
+  };
+
+  const executeReset = (bypassWarning = false) => {
+    if (!selectedReq) return;
+    if (!newPassword.trim()) {
+      showToast('Password tidak boleh kosong', 'error');
+      return;
+    }
+
+    const isStrong = checkPasswordStrength(newPassword);
+    if (!isStrong && !bypassWarning) {
+      setShowWeakWarning(true);
+      return;
+    }
+    
+    setRequests(prev => prev.map(r => 
+      r.id === selectedReq?.id ? { 
+        ...r, 
+        status: RequestStatus.SELESAI, 
+        updatedAt: Date.now(),
+        reset_password: newPassword,
+        reset_info: { by: currentUser.nama, at_iso: new Date().toISOString(), password_set: true }
+      } : r
+    ));
+    showToast(`Password untuk ${selectedReq?.nama} berhasil diperbarui`);
+    addLog?.('Reset Password', `Menyelesaikan permintaan reset password: ${selectedReq.nama}`);
+    setSelectedReq(null);
+    setNewPassword('');
+    setShowWeakWarning(false);
+  };
+
+  return (
+    <main className={`p-6 md:p-10 space-y-8 max-w-full mx-auto min-h-screen font-sans print:bg-white print:p-0 animate-in fade-in duration-500 transition-colors duration-300 ${isDarkMode ? 'bg-slate-950' : 'bg-slate-50'}`}>
+      
+      {/* Judul Laporan Khusus Print - Sesuai Gambar */}
+      <div className={`hidden print:block mb-8 border-b-[3px] pb-8 ${isDarkMode ? 'border-white' : 'border-slate-900'}`}>
+        <h1 className={`text-3xl font-black uppercase tracking-tight leading-none ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>LAPORAN REKAPITULASI PERMINTAAN RESET PASSWORD</h1>
+        <p className={`text-[11px] font-bold mt-3 uppercase tracking-widest ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+          SISTEM ADMINISTRASI {siteSettings.name.toUpperCase()} | DICETAK: {new Date().toLocaleDateString('id-ID')}, {new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+        </p>
+      </div>
+
+      {/* Header & Export Buttons */}
+      <div className="flex flex-col xl:flex-row xl:items-start justify-between gap-6 print:hidden">
+        <div className="flex items-center gap-6">
+          <div className={`w-16 h-16 rounded-[1.5rem] flex items-center justify-center shadow-2xl ${isDarkMode ? 'bg-sky-600 text-white shadow-sky-900/20' : 'bg-slate-900 text-white shadow-slate-200'}`}>
+             <span className="material-symbols-outlined text-3xl">lock_reset</span>
+          </div>
+          <div className="group relative">
+            <h1 className={`text-3xl font-black tracking-tighter leading-none ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+              {siteSettings.requestsTitle || 'Manajemen Reset Password'}
+            </h1>
+            <p className="text-xs text-slate-400 font-bold mt-2 uppercase tracking-[0.15em]">
+              {siteSettings.requestsSubtitle || 'Pantau dan eksekusi permohonan akses personel'}
+            </p>
+            {isSuperAdmin && (
+              <button 
+                onClick={() => {
+                  setHeaderForm({
+                    title: siteSettings.requestsTitle || 'Manajemen Reset Password',
+                    subtitle: siteSettings.requestsSubtitle || 'PANTAU DAN EKSEKUSI PERMOHONAN AKSES PERSONEL'
+                  });
+                  setIsEditHeaderModalOpen(true);
+                }}
+                className="absolute -right-8 top-0 p-1 opacity-0 group-hover:opacity-100 transition-opacity text-sky-500 hover:text-sky-600"
+              >
+                <span className="material-symbols-outlined text-sm">edit</span>
+              </button>
+            )}
+          </div>
+        </div>
+        
+        <div className="flex flex-wrap items-center gap-3">
+          {isAnyAdmin && (
+            <>
+              <button 
+                onClick={() => setIsManualModalOpen(true)}
+                className="flex items-center gap-3 px-6 py-4 bg-blue-600 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-blue-700 transition-all shadow-xl shadow-blue-100 active:scale-[0.97]"
+              >
+                <span className="material-symbols-outlined text-xl">add_circle</span>
+                Tambah Manual
+              </button>
+              <button 
+                onClick={() => fileInputRef.current?.click()}
+                className="flex items-center gap-3 px-6 py-4 bg-emerald-600 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-100 active:scale-[0.97]"
+              >
+                <span className="material-symbols-outlined text-xl">upload_file</span>
+                Import Excel
+              </button>
+              <input type="file" ref={fileInputRef} className="hidden" accept=".xlsx, .xls" onChange={handleImportExcel} />
+              <div className={`w-px h-10 mx-3 hidden xl:block ${isDarkMode ? 'bg-slate-800' : 'bg-slate-200'}`}></div>
+            </>
+          )}
+
+          <button onClick={exportExcel} className={`flex items-center gap-3 px-5 py-4 border rounded-2xl text-[11px] font-black transition-all shadow-sm active:scale-[0.97] ${isDarkMode ? 'bg-slate-900 border-slate-800 text-slate-400 hover:bg-slate-800' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+            <span className="material-symbols-outlined text-emerald-500">table_view</span>
+            Export XLS
+          </button>
+          <button onClick={() => window.print()} className={`flex items-center gap-3 px-5 py-4 border rounded-2xl text-[11px] font-black transition-all shadow-sm active:scale-[0.97] ${isDarkMode ? 'bg-slate-900 border-slate-800 text-slate-400 hover:bg-slate-800' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+            <span className="material-symbols-outlined text-rose-500">picture_as_pdf</span>
+            PDF
+          </button>
+        </div>
+      </div>
+
+      {/* Statistical Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 print:hidden">
+        {[
+          { label: 'Total Request', value: stats.total, sub: 'Seluruh pengajuan', icon: 'list_alt', color: 'blue' },
+          { label: isSuperAdmin ? 'Status: Diterima' : 'Status: Terkirim', value: stats.pending, sub: 'Butuh verifikasi segera', icon: 'hourglass_empty', color: 'amber' },
+          { label: 'Status: Diproses', value: stats.processing, sub: 'Sedang dalam pengerjaan', icon: 'sync', color: 'indigo' },
+          { label: 'Status: Selesai', value: stats.completedToday, sub: 'Berhasil hari ini', icon: 'verified', color: 'emerald' },
+          { label: 'Prioritas Mendesak', value: stats.urgent, sub: 'Butuh tindakan cepat', icon: 'priority_high', color: 'rose' }
+        ].map((stat, i) => (
+          <div key={i} className={`p-8 rounded-[2rem] border shadow-sm flex items-start justify-between group hover:shadow-xl transition-all duration-300 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
+            <div className="space-y-2">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{stat.label}</p>
+              <h4 className={`text-4xl font-black tracking-tighter ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{stat.value}</h4>
+              <p className="text-[10px] font-bold text-slate-400 mt-3">{stat.sub}</p>
+            </div>
+            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-transform group-hover:rotate-12 shadow-inner ${isDarkMode ? `bg-${stat.color}-500/10 text-${stat.color}-400` : `bg-${stat.color}-50 text-${stat.color}-500`}`}>
+              <span className="material-symbols-outlined text-3xl">{stat.icon}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Filter Bar */}
+      <div className={`p-6 rounded-[2rem] border shadow-sm flex flex-col xl:flex-row items-center gap-4 print:hidden transition-colors duration-300 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
+        <div className="relative flex-1 w-full">
+          <span className="material-symbols-outlined absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 text-2xl">search</span>
+          <input 
+            type="text" 
+            placeholder="Cari berdasarkan Nama, NRP, atau Kesatuan..." 
+            className={`w-full pl-14 pr-6 py-4 border rounded-2xl text-sm font-bold transition-all placeholder:text-slate-300 focus:outline-none focus:ring-4 focus:ring-blue-500/10 ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-100 text-slate-700'}`}
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+        
+        <div className="flex flex-wrap items-center gap-3 w-full xl:w-auto">
+          <select 
+            className={`px-6 py-4 border rounded-2xl text-xs font-black outline-none min-w-[150px] cursor-pointer transition-all uppercase tracking-widest ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+          >
+            <option value="Semua">Status: Semua</option>
+            <option value={RequestStatus.MENUNGGU}>{isSuperAdmin ? 'Status: Diterima' : 'Status: Terkirim'}</option>
+            <option value={RequestStatus.DIPROSES}>Status: Di Proses</option>
+            <option value={RequestStatus.SELESAI}>Status: Selesai</option>
+            <option value={RequestStatus.DITOLAK}>Status: Ditolak</option>
+          </select>
+
+          <select 
+            className={`px-6 py-4 border rounded-2xl text-xs font-black outline-none min-w-[150px] cursor-pointer transition-all uppercase tracking-widest ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+            value={filterPriority}
+            onChange={(e) => setFilterPriority(e.target.value)}
+          >
+            <option value="Semua">Prioritas: Semua</option>
+            <option value="NORMAL">Normal</option>
+            <option value="PENTING">Penting</option>
+            <option value="MENDESAK">Mendesak</option>
+          </select>
+
+          <div className="flex items-center gap-3">
+            <div className="flex flex-col gap-1">
+              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Mulai</span>
+              <input 
+                type="date" 
+                className={`px-4 py-3 border rounded-2xl text-[10px] font-black outline-none uppercase ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-white border-slate-200 text-slate-600'}`} 
+                value={startDate} 
+                onChange={(e) => setStartDate(e.target.value)} 
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Selesai</span>
+              <input 
+                type="date" 
+                className={`px-4 py-3 border rounded-2xl text-[10px] font-black outline-none uppercase ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-white border-slate-200 text-slate-600'}`} 
+                value={endDate} 
+                onChange={(e) => setEndDate(e.target.value)} 
+              />
+            </div>
+          </div>
+
+          <button onClick={handleApplyFilter} className="px-8 py-4 bg-sky-600 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest hover:bg-sky-700 transition-all active:scale-[0.97] shadow-lg shadow-sky-900/20">
+            Terapkan
+          </button>
+          <button onClick={handleResetFilter} className={`px-5 py-4 border rounded-2xl font-black text-[11px] transition-all uppercase tracking-widest ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-500 hover:bg-slate-700' : 'bg-white border-slate-200 text-slate-400 hover:bg-slate-50'}`}>
+            Reset
+          </button>
+        </div>
+      </div>
+
+      {/* Bulk Actions Bar */}
+      {selectedIds.length > 0 && (
+        <div className={`p-4 rounded-2xl border flex items-center justify-between animate-in slide-in-from-top-4 duration-300 ${isDarkMode ? 'bg-blue-600/10 border-blue-500/30' : 'bg-blue-50 border-blue-100'}`}>
+          <div className="flex items-center gap-4">
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isDarkMode ? 'bg-blue-500 text-white' : 'bg-blue-600 text-white'}`}>
+              <span className="material-symbols-outlined">check_circle</span>
+            </div>
+            <div>
+              <p className={`text-sm font-black ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{selectedIds.length} Permintaan Terpilih</p>
+              <p className="text-[10px] font-bold text-blue-500 uppercase tracking-widest">Aksi Massal Tersedia</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={handleBulkProcess}
+              className="px-6 py-3 bg-blue-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-700 transition-all"
+            >
+              Proses Massal
+            </button>
+            <button 
+              onClick={handleBulkDelete}
+              className="px-6 py-3 bg-rose-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-rose-700 transition-all"
+            >
+              Hapus Massal
+            </button>
+            <button 
+              onClick={() => setSelectedIds([])}
+              className={`px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${isDarkMode ? 'text-slate-400 hover:bg-slate-800' : 'text-slate-500 hover:bg-white'}`}
+            >
+              Batal
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Requests Table */}
+      <div className={`rounded-[2.5rem] border shadow-sm overflow-hidden print:border-[1pt] print:border-slate-300 print:rounded-3xl transition-colors duration-300 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className={`border-b-2 text-[11px] font-black uppercase tracking-widest print:bg-slate-50 print:text-slate-900 transition-colors duration-300 ${isDarkMode ? 'bg-slate-800/50 border-slate-800 text-slate-500' : 'bg-slate-50/50 border-slate-100 text-slate-400'}`}>
+                <th className="px-8 py-6 text-center w-16 print:hidden">
+                  <input 
+                    type="checkbox" 
+                    className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                    checked={selectedIds.length === filteredRequests.length && filteredRequests.length > 0}
+                    onChange={handleSelectAll}
+                  />
+                </th>
+                <th className="px-8 py-6 text-center w-16">NO.</th>
+                <th className="px-8 py-6">WAKTU REQUEST</th>
+                <th className="px-8 py-6">PERSONEL</th>
+                <th className="px-8 py-6">KESATUAN</th>
+                <th className="px-8 py-6 text-center">STATUS</th>
+                <th className="px-8 py-6 text-center">PRIORITAS</th>
+                <th className="px-8 py-6 text-center print:table-cell hidden">PASSWORD BARU</th>
+                <th className="px-8 py-6 text-center print:hidden">AKSI</th>
+              </tr>
+            </thead>
+            <tbody className={`divide-y transition-colors duration-300 ${isDarkMode ? 'divide-slate-800' : 'divide-slate-50'} print:divide-slate-200`}>
+              {filteredRequests.map((req, index) => (
+                <tr key={req.id} className={`transition-colors group ${isDarkMode ? 'hover:bg-slate-800/30' : 'hover:bg-slate-50/30'}`}>
+                  <td className="px-8 py-8 text-center print:hidden">
+                    <input 
+                      type="checkbox" 
+                      className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                      checked={selectedIds.includes(req.id)}
+                      onChange={() => handleSelectOne(req.id)}
+                    />
+                  </td>
+                  <td className={`px-8 py-8 text-center text-sm font-black print:text-slate-900 ${isDarkMode ? 'text-slate-600' : 'text-slate-400'}`}>{index + 1}</td>
+                  <td className="px-8 py-8">
+                    <div className={`text-sm font-black print:text-slate-900 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>{new Date(req.createdAt).toLocaleDateString('id-ID')}</div>
+                    <div className="text-[11px] text-slate-400 font-bold mt-1 uppercase tracking-widest print:text-slate-500">{new Date(req.createdAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</div>
+                  </td>
+                  <td className="px-8 py-8">
+                    <div className={`text-base font-black uppercase tracking-tight print:text-slate-900 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{req.nama}</div>
+                    <div className="flex items-center gap-2 mt-1">
+                       <span className="text-[11px] text-slate-400 font-bold uppercase tracking-widest print:text-slate-500">{req.pangkat}</span>
+                       <span className={`w-1 h-1 rounded-full print:bg-slate-300 ${isDarkMode ? 'bg-slate-700' : 'bg-slate-200'}`}></span>
+                       <span className={`text-[11px] font-black font-mono print:text-slate-600 ${isDarkMode ? 'text-slate-500' : 'text-slate-500'}`}>{req.nrp}</span>
+                    </div>
+                  </td>
+                  <td className="px-8 py-8">
+                    <span className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase flex items-center gap-2 w-fit transition-all print:bg-transparent print:p-0 print:text-slate-900 print:font-black ${isDarkMode ? 'bg-slate-800 text-slate-400 group-hover:bg-sky-600 group-hover:text-white' : 'bg-slate-100 text-slate-500 group-hover:bg-slate-900 group-hover:text-white'}`}>
+                      <span className="material-symbols-outlined text-sm print:text-base">account_balance</span>
+                      {req.kesatuan}
+                    </span>
+                  </td>
+                  <td className="px-8 py-8 text-center">
+                    <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest print:bg-transparent print:p-0 print:text-xs print:font-black ${
+                      req.status === RequestStatus.MENUNGGU ? (isDarkMode ? 'bg-amber-500/10 text-amber-400' : 'bg-amber-50 text-amber-600') :
+                      req.status === RequestStatus.DIPROSES ? (isDarkMode ? 'bg-blue-500/10 text-blue-400' : 'bg-blue-50 text-blue-600') : 
+                      req.status === RequestStatus.DITOLAK ? (isDarkMode ? 'bg-rose-500/10 text-rose-400' : 'bg-rose-50 text-rose-600') :
+                      (isDarkMode ? 'bg-emerald-500/10 text-emerald-400' : 'bg-emerald-50 text-emerald-600')
+                    } ${
+                      req.status === RequestStatus.MENUNGGU ? 'print:text-amber-600' :
+                      req.status === RequestStatus.DIPROSES ? 'print:text-blue-600' : 
+                      req.status === RequestStatus.DITOLAK ? 'print:text-rose-600' : 'print:text-emerald-600'
+                    }`}>
+                      <span className={`w-2 h-2 rounded-full ${req.status === RequestStatus.MENUNGGU ? 'bg-amber-500' : req.status === RequestStatus.DIPROSES ? 'bg-blue-500' : req.status === RequestStatus.DITOLAK ? 'bg-rose-500' : 'bg-emerald-500'} print:hidden`}></span>
+                      {getStatusLabel(req.status)}
+                    </span>
+                  </td>
+                  <td className="px-8 py-8 text-center">
+                    <span className={`text-[10px] font-black uppercase px-3 py-1 rounded-lg ${
+                      req.prioritas === RequestPriority.MENDESAK ? (isDarkMode ? 'bg-rose-500/10 text-rose-400' : 'bg-rose-100 text-rose-600') :
+                      req.prioritas === RequestPriority.PENTING ? (isDarkMode ? 'bg-amber-500/10 text-amber-400' : 'bg-amber-100 text-amber-600') :
+                      (isDarkMode ? 'bg-slate-800 text-slate-500' : 'bg-slate-100 text-slate-400')
+                    }`}>
+                      {req.prioritas || 'NORMAL'}
+                    </span>
+                  </td>
+                  <td className={`px-8 py-8 text-center print:table-cell hidden font-mono text-xs font-black uppercase ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+                    {req.reset_password || '-'}
+                  </td>
+                  <td className="px-8 py-8 text-center print:hidden">
+                    <div className="flex items-center justify-center gap-3">
+                      <button 
+                        onClick={() => { setViewingReq(req); setShowDetailPassword(false); }}
+                        className={`px-5 py-3 border-2 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 shadow-sm ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-400 hover:border-sky-500 hover:text-sky-400' : 'bg-white border-slate-100 text-slate-600 hover:border-blue-500 hover:text-blue-600'}`}
+                      >
+                        <span className="material-symbols-outlined text-base">visibility</span>
+                        Detail
+                      </button>
+                      
+                      {isAnyAdmin && (
+                        <>
+                          {req.status === RequestStatus.MENUNGGU && (
+                             <button 
+                                onClick={() => handleStartProcess(req.id)}
+                                className="px-5 py-3 bg-indigo-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-700 transition-all flex items-center gap-2 shadow-xl shadow-indigo-900/20"
+                             >
+                               <span className="material-symbols-outlined text-base">play_arrow</span>
+                               Mulai
+                             </button>
+                          )}
+                          {req.status === RequestStatus.DIPROSES && (
+                             <button 
+                                onClick={() => { setSelectedReq(req); setNewPassword(''); setShowWeakWarning(false); }}
+                                className={`px-5 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 shadow-xl ${isDarkMode ? 'bg-white text-slate-900 hover:bg-sky-400 hover:text-white shadow-white/5' : 'bg-slate-900 text-white hover:bg-blue-600 shadow-slate-200'}`}
+                             >
+                               <span className="material-symbols-outlined text-base">flash_on</span>
+                               Selesai
+                             </button>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {filteredRequests.length === 0 && (
+                <tr>
+                  <td colSpan={11} className="px-8 py-32 text-center">
+                    <div className="flex flex-col items-center gap-4 opacity-30">
+                       <span className="material-symbols-outlined text-6xl">database_off</span>
+                       <p className="text-sm font-black text-slate-400 uppercase tracking-widest">Tidak ada data ditemukan</p>
+                    </div>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* MODAL DETAIL */}
+      {viewingReq && (
+        <div className="fixed inset-0 z-[150] flex items-center justify-center p-6 bg-slate-900/70 backdrop-blur-xl animate-in fade-in duration-300">
+           <div className={`rounded-[3rem] w-full max-w-xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 transition-colors duration-300 ${isDarkMode ? 'bg-slate-900 border border-slate-800' : 'bg-white'}`}>
+              <div className={`p-10 border-b flex items-center justify-between transition-colors duration-300 ${isDarkMode ? 'bg-slate-800/50 border-slate-800' : 'bg-slate-50/30 border-slate-50'}`}>
+                 <div>
+                    <h3 className={`text-2xl font-black leading-none ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Rincian Permohonan</h3>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-3">ID TIKET: {viewingReq.id}</p>
+                 </div>
+                 <button onClick={() => setViewingReq(null)} className={`p-3 rounded-full transition-all ${isDarkMode ? 'text-slate-400 hover:bg-slate-800' : 'text-slate-400 hover:bg-rose-50 hover:text-rose-500'}`}>
+                    <span className="material-symbols-outlined">close</span>
+                 </button>
+              </div>
+
+              <div className="p-10 space-y-10 overflow-y-auto max-h-[70vh]">
+                 <div className="grid grid-cols-2 gap-8">
+                    <div>
+                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Status Saat Ini</p>
+                       <span className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${
+                          viewingReq.status === RequestStatus.MENUNGGU ? (isDarkMode ? 'bg-amber-500/10 text-amber-400' : 'bg-amber-50 text-amber-600') :
+                          viewingReq.status === RequestStatus.DIPROSES ? (isDarkMode ? 'bg-blue-500/10 text-blue-400' : 'bg-blue-50 text-blue-600') : 
+                          viewingReq.status === RequestStatus.DITOLAK ? (isDarkMode ? 'bg-rose-500/10 text-rose-400' : 'bg-rose-50 text-rose-600') :
+                          (isDarkMode ? 'bg-emerald-500/10 text-emerald-400' : 'bg-emerald-50 text-emerald-600')
+                       }`}>
+                          {getStatusLabel(viewingReq.status)}
+                       </span>
+                    </div>
+                    <div>
+                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Waktu Pengajuan</p>
+                       <p className={`text-sm font-black ${isDarkMode ? 'text-slate-200' : 'text-slate-800'}`}>{new Date(viewingReq.createdAt).toLocaleString('id-ID')}</p>
+                    </div>
+                 </div>
+
+                 <div className="space-y-6">
+                    <div className={`p-6 rounded-[2rem] border flex items-center gap-6 transition-colors duration-300 ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-100'}`}>
+                       <div className={`w-16 h-16 rounded-[1.5rem] shadow-sm flex items-center justify-center border transition-colors duration-300 ${isDarkMode ? 'bg-slate-700 border-slate-600 text-slate-400' : 'bg-white border-slate-100 text-slate-400'}`}>
+                          <span className="material-symbols-outlined text-3xl">person</span>
+                       </div>
+                       <div>
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Nama Lengkap</p>
+                          <h4 className={`text-xl font-black uppercase leading-none ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{viewingReq.nama}</h4>
+                          <p className="text-xs font-bold text-slate-500 mt-2">{viewingReq.pangkat} / {viewingReq.nrp}</p>
+                       </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-6">
+                       <div className={`p-5 border rounded-2xl transition-colors duration-300 ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'}`}>
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Jabatan</p>
+                          <p className={`text-xs font-black ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>{viewingReq.jabatan}</p>
+                       </div>
+                       <div className={`p-5 border rounded-2xl transition-colors duration-300 ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'}`}>
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Kesatuan</p>
+                          <p className="text-xs font-black text-blue-600 uppercase">{viewingReq.kesatuan}</p>
+                       </div>
+                    </div>
+
+                    <div className={`p-6 rounded-2xl space-y-3 transition-colors duration-300 ${isDarkMode ? 'bg-slate-800' : 'bg-slate-50'}`}>
+                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Catatan / Alasan</p>
+                       <p className={`text-sm font-bold italic leading-relaxed ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>"{viewingReq.catatan || 'Tidak ada catatan tambahan yang dilampirkan.'}"</p>
+                    </div>
+
+                    {viewingReq.dokumen_kta && (
+                      <div className={`p-6 rounded-2xl space-y-3 transition-colors duration-300 ${isDarkMode ? 'bg-slate-800' : 'bg-slate-50'}`}>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Dokumen KTA</p>
+                        <div className="rounded-xl overflow-hidden border border-slate-700">
+                          <img src={viewingReq.dokumen_kta} alt="KTA" className="w-full h-auto" />
+                        </div>
+                      </div>
+                    )}
+                 </div>
+
+                 {/* PASSWORD SECTION FOR FINISHED REQUESTS */}
+                 {viewingReq.status === RequestStatus.SELESAI && (
+                    <div className={`p-8 rounded-[2.5rem] text-white space-y-6 shadow-2xl transition-colors duration-300 ${isDarkMode ? 'bg-emerald-950 shadow-emerald-900/20' : 'bg-emerald-900 shadow-emerald-100'}`}>
+                       <div className="flex items-center gap-3">
+                          <span className="material-symbols-outlined text-emerald-400">verified_user</span>
+                          <h5 className="text-[11px] font-black uppercase tracking-[0.2em]">Password Baru Personel</h5>
+                       </div>
+                       <div className="relative group">
+                          <input 
+                             type={showDetailPassword ? "text" : "password"} 
+                             readOnly 
+                             className={`w-full border px-6 py-5 rounded-2xl text-2xl font-mono font-black text-white tracking-[0.3em] outline-none transition-colors duration-300 ${isDarkMode ? 'bg-emerald-900/50 border-emerald-800/50' : 'bg-emerald-800/50 border-emerald-700/50'}`}
+                             value={viewingReq.reset_password || '******'}
+                          />
+                          <button 
+                             onClick={() => setShowDetailPassword(!showDetailPassword)}
+                             className="absolute right-5 top-1/2 -translate-y-1/2 text-emerald-300 hover:text-white transition-all"
+                          >
+                             <span className="material-symbols-outlined">{showDetailPassword ? 'visibility_off' : 'visibility'}</span>
+                          </button>
+                       </div>
+                       <div className="flex items-center justify-between text-[9px] font-black text-emerald-300 uppercase tracking-widest">
+                          <span>Direset oleh: {viewingReq.reset_info?.by}</span>
+                          <span>Waktu: {viewingReq.updatedAt ? new Date(viewingReq.updatedAt).toLocaleDateString() : '-'}</span>
+                       </div>
+                    </div>
+                 )}
+              </div>
+
+              <div className="p-10 pt-0">
+                 <button onClick={() => setViewingReq(null)} className={`w-full py-5 rounded-[2rem] font-black text-xs uppercase tracking-widest transition-all shadow-xl ${isDarkMode ? 'bg-white text-slate-900 hover:bg-slate-200 shadow-white/5' : 'bg-slate-900 text-white hover:bg-slate-800 shadow-slate-200'}`}>
+                    Tutup Detail
+                 </button>
+              </div>
+           </div>
+        </div>
+      )}
+
+      {/* MODAL INPUT MANUAL (KHUSUS ADMIN) */}
+      {isManualModalOpen && (
+        <div className="fixed inset-0 z-[160] flex items-center justify-center p-6 bg-slate-900/70 backdrop-blur-xl animate-in fade-in duration-300">
+          <div className={`rounded-[3rem] w-full max-w-xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 transition-colors duration-300 ${isDarkMode ? 'bg-slate-900 border border-slate-800' : 'bg-white'}`}>
+            <div className={`p-10 border-b flex items-center justify-between transition-colors duration-300 ${isDarkMode ? 'bg-slate-800/50 border-slate-800' : 'bg-slate-50/30 border-slate-100'}`}>
+              <div className="flex items-center gap-4">
+                 <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${isDarkMode ? 'bg-blue-500/10 text-blue-400' : 'bg-blue-50 text-blue-600'}`}>
+                    <span className="material-symbols-outlined text-3xl">person_add</span>
+                 </div>
+                 <div>
+                    <h3 className={`font-black text-xl uppercase tracking-tight leading-none ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>Input Pengajuan Manual</h3>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-2">Buat tiket reset password baru</p>
+                 </div>
+              </div>
+              <button onClick={() => setIsManualModalOpen(false)} className={`p-3 rounded-full transition-all ${isDarkMode ? 'text-slate-400 hover:bg-slate-800 hover:text-white' : 'text-slate-400 hover:bg-rose-50 hover:text-rose-500'}`}>
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+            
+            <form onSubmit={handleManualSubmit} className="p-10 space-y-8 overflow-y-auto max-h-[calc(100vh-250px)] scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700">
+               <div className="grid grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Nama Personel</label>
+                    <input 
+                      type="text" 
+                      className={`w-full px-6 py-4 border rounded-2xl text-sm font-bold transition-all outline-none ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white focus:bg-slate-700' : 'bg-slate-50 border-slate-200 focus:bg-white'}`} 
+                      placeholder="Nama Lengkap"
+                      value={manualForm.nama}
+                      onChange={(e) => setManualForm({...manualForm, nama: e.target.value})}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">NRP / NIP</label>
+                    <input 
+                      type="text" 
+                      className={`w-full px-6 py-4 border rounded-2xl text-sm font-bold transition-all outline-none ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white focus:bg-slate-700' : 'bg-slate-50 border-slate-200 focus:bg-white'}`} 
+                      placeholder="8 Digit NRP"
+                      value={manualForm.nrp}
+                      onChange={(e) => setManualForm({...manualForm, nrp: e.target.value})}
+                      required
+                    />
+                  </div>
+               </div>
+               <div className="grid grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Pangkat</label>
+                    <input 
+                      type="text" 
+                      className={`w-full px-6 py-4 border rounded-2xl text-sm font-bold transition-all outline-none ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white focus:bg-slate-700' : 'bg-slate-50 border-slate-200 focus:bg-white'}`} 
+                      placeholder="Contoh: Briptu"
+                      value={manualForm.pangkat}
+                      onChange={(e) => setManualForm({...manualForm, pangkat: e.target.value})}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Jabatan</label>
+                    <input 
+                      type="text" 
+                      className={`w-full px-6 py-4 border rounded-2xl text-sm font-bold transition-all outline-none ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white focus:bg-slate-700' : 'bg-slate-50 border-slate-200 focus:bg-white'}`} 
+                      placeholder="Unit Kerja"
+                      value={manualForm.jabatan}
+                      onChange={(e) => setManualForm({...manualForm, jabatan: e.target.value})}
+                    />
+                  </div>
+               </div>
+               <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Kesatuan</label>
+                  <input 
+                    type="text" 
+                    className={`w-full px-6 py-4 border rounded-2xl text-sm font-black transition-all outline-none ${
+                      isAdminPolres 
+                        ? (isDarkMode ? 'bg-slate-800/50 border-slate-800 text-slate-500' : 'bg-slate-100 border-slate-100 text-slate-500') 
+                        : (isDarkMode ? 'bg-slate-800 border-slate-700 text-white focus:bg-slate-700' : 'bg-slate-50 border-slate-200 focus:bg-white')
+                    }`}
+                    value={manualForm.kesatuan}
+                    onChange={(e) => !isAdminPolres && setManualForm({...manualForm, kesatuan: e.target.value})}
+                    readOnly={isAdminPolres}
+                    required
+                  />
+                  {isAdminPolres && <p className="text-[9px] font-bold text-blue-500 uppercase mt-2 italic px-1">* Terkunci: Hanya untuk unit {currentUser.kesatuan}</p>}
+               </div>
+               <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Keterangan / Catatan</label>
+                  <textarea 
+                    className={`w-full px-6 py-4 border rounded-2xl text-sm font-bold h-32 resize-none outline-none transition-all ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white focus:border-blue-500' : 'bg-white border-slate-200 focus:border-blue-500'}`}
+                    placeholder="Contoh: Permohonan langsung di loket..."
+                    value={manualForm.catatan}
+                    onChange={(e) => setManualForm({...manualForm, catatan: e.target.value})}
+                  />
+               </div>
+               <div className="pt-8 flex items-center justify-end gap-4 border-t border-slate-100 dark:border-slate-800">
+                  <button 
+                    type="button" 
+                    onClick={() => setIsManualModalOpen(false)}
+                    className={`px-8 py-4 rounded-2xl font-black transition-all text-xs uppercase tracking-widest ${isDarkMode ? 'text-slate-400 hover:bg-slate-800' : 'text-slate-500 hover:bg-slate-100'}`}
+                  >
+                    Batal
+                  </button>
+                  <button 
+                    type="submit"
+                    className="px-10 py-4 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-blue-700 shadow-2xl shadow-blue-200/20 transition-all active:scale-95"
+                  >
+                    Kirim Pengajuan
+                  </button>
+               </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {selectedReq && isSuperAdmin && (
+        <div className="fixed inset-0 z-[170] flex items-center justify-center p-6 bg-slate-900/70 backdrop-blur-xl animate-in fade-in duration-300">
+          <div className={`rounded-[3rem] w-full max-w-md overflow-hidden shadow-2xl animate-in zoom-in-95 transition-colors duration-300 ${isDarkMode ? 'bg-slate-900 border border-slate-800' : 'bg-white'}`}>
+            <div className={`p-10 border-b flex items-center justify-between transition-colors duration-300 ${isDarkMode ? 'bg-slate-800/50 border-slate-800' : 'bg-slate-50/30 border-slate-50'}`}>
+              <div className="flex items-center gap-4">
+                 <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${isDarkMode ? 'bg-blue-500/10 text-blue-400' : 'bg-blue-50 text-blue-600'}`}>
+                    <span className="material-symbols-outlined text-3xl">key</span>
+                 </div>
+                 <div>
+                    <h3 className={`font-black text-xl uppercase tracking-tight leading-none ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>Eksekusi Reset</h3>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-2">Update password personel</p>
+                 </div>
+              </div>
+              <button onClick={() => { setSelectedReq(null); setShowWeakWarning(false); }} className={`p-3 rounded-full transition-all ${isDarkMode ? 'text-slate-400 hover:bg-slate-800 hover:text-white' : 'text-slate-400 hover:bg-rose-50 hover:text-rose-500'}`}>
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+            <div className="p-10 space-y-8 overflow-y-auto max-h-[calc(100vh-200px)] scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700">
+              <div className={`p-6 rounded-[2rem] border space-y-2 text-center transition-colors duration-300 ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-100'}`}>
+                <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Target Personel</div>
+                <div className={`text-lg font-black uppercase ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{selectedReq.nama}</div>
+                <div className="text-xs font-bold text-slate-400 uppercase tracking-widest">{selectedReq.nrp} — {selectedReq.kesatuan}</div>
+              </div>
+              
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Password Baru</label>
+                  <div className="relative">
+                    <input 
+                      type="text" 
+                      className={`w-full px-8 py-5 border-2 rounded-3xl font-black placeholder:text-slate-200 focus:outline-none transition-all text-center text-xl tracking-widest ${
+                        showWeakWarning 
+                          ? 'border-amber-400' 
+                          : (isDarkMode ? 'bg-slate-800 border-slate-700 text-white focus:border-blue-500' : 'bg-white border-slate-100 text-slate-800 focus:border-blue-500')
+                      }`}
+                      placeholder="Contoh: Polri#2026"
+                      value={newPassword}
+                      onChange={(e) => {
+                        setNewPassword(e.target.value);
+                        if (showWeakWarning) setShowWeakWarning(false);
+                      }}
+                      autoFocus
+                    />
+                    {newPassword && (
+                      <div className="mt-4 px-2">
+                        <div className="flex justify-between items-center mb-1">
+                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Kekuatan Password</span>
+                          <span className={`text-[10px] font-black uppercase ${
+                            passwordStrength <= 25 ? 'text-rose-500' :
+                            passwordStrength <= 50 ? 'text-amber-500' :
+                            passwordStrength <= 75 ? 'text-blue-500' : 'text-emerald-500'
+                          }`}>
+                            {passwordStrength <= 25 ? 'Sangat Lemah' :
+                             passwordStrength <= 50 ? 'Lemah' :
+                             passwordStrength <= 75 ? 'Kuat' : 'Sangat Kuat'}
+                          </span>
+                        </div>
+                        <div className={`h-1.5 w-full rounded-full overflow-hidden ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`}>
+                          <div 
+                            className={`h-full transition-all duration-500 ${
+                              passwordStrength <= 25 ? 'bg-rose-500' :
+                              passwordStrength <= 50 ? 'bg-amber-500' :
+                              passwordStrength <= 75 ? 'bg-blue-500' : 'bg-emerald-500'
+                            }`}
+                            style={{ width: `${passwordStrength}%` }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* WARNING PASSWORD LEMAH */}
+                {showWeakWarning && (
+                  <div className={`p-5 border rounded-2xl animate-in fade-in zoom-in-95 ${isDarkMode ? 'bg-amber-900/20 border-amber-900/50' : 'bg-amber-50 border-amber-200'}`}>
+                    <div className="flex items-start gap-3">
+                      <span className="material-symbols-outlined text-amber-500 text-xl">warning</span>
+                      <div>
+                        <p className={`text-xs font-black uppercase tracking-tight ${isDarkMode ? 'text-amber-400' : 'text-amber-800'}`}>Password Terlalu Lemah</p>
+                        <p className={`text-[10px] font-bold mt-1 leading-relaxed ${isDarkMode ? 'text-amber-500/80' : 'text-amber-600'}`}>
+                          Password minimal 8 karakter dan mengandung kombinasi angka serta simbol untuk keamanan maksimal.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex gap-2 mt-4">
+                      <button 
+                        onClick={() => executeReset(true)}
+                        className="flex-1 py-2.5 bg-amber-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-amber-600 transition-all"
+                      >
+                        Lanjut
+                      </button>
+                      <button 
+                        onClick={() => setShowWeakWarning(false)}
+                        className={`flex-1 py-2.5 border rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${isDarkMode ? 'bg-slate-800 border-amber-900/50 text-amber-400 hover:bg-slate-700' : 'bg-white border-amber-200 text-amber-600 hover:bg-amber-100'}`}
+                      >
+                        Perbaiki
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="pt-8 flex items-center justify-end gap-4 border-t border-slate-100 dark:border-slate-800">
+                <button 
+                  onClick={() => { setSelectedReq(null); setShowWeakWarning(false); }}
+                  className={`px-8 py-4 rounded-2xl font-black transition-all text-xs uppercase tracking-widest ${isDarkMode ? 'text-slate-400 hover:bg-slate-800' : 'text-slate-500 hover:bg-slate-100'}`}
+                >
+                  Batal
+                </button>
+                {!showWeakWarning && (
+                  <button 
+                    onClick={() => executeReset(false)}
+                    className="px-10 py-4 bg-emerald-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-emerald-700 shadow-2xl shadow-emerald-200/20 transition-all active:scale-95 flex items-center gap-2"
+                  >
+                    <span className="material-symbols-outlined text-xl">send</span>
+                    Selesaikan Reset
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Edit Header (Super Admin Only) */}
+      {isEditHeaderModalOpen && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className={`w-full max-w-md rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 ${isDarkMode ? 'bg-slate-900 border border-slate-800' : 'bg-white'}`}>
+            <div className="p-8 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+              <h3 className={`text-xl font-black tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Edit Judul Halaman</h3>
+              <button onClick={() => setIsEditHeaderModalOpen(false)} className="p-2 text-slate-400 hover:text-rose-500 transition-colors">
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+            <div className="p-8 space-y-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Judul Utama</label>
+                <input 
+                  type="text"
+                  value={headerForm.title}
+                  onChange={(e) => setHeaderForm(prev => ({ ...prev, title: e.target.value }))}
+                  className={`w-full px-5 py-4 rounded-2xl border-2 font-bold transition-all focus:ring-4 focus:ring-sky-500/10 outline-none ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white focus:border-sky-500' : 'bg-slate-50 border-slate-100 text-slate-900 focus:border-blue-500'}`}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Sub-Judul</label>
+                <textarea 
+                  value={headerForm.subtitle}
+                  onChange={(e) => setHeaderForm(prev => ({ ...prev, subtitle: e.target.value }))}
+                  rows={3}
+                  className={`w-full px-5 py-4 rounded-2xl border-2 font-bold transition-all focus:ring-4 focus:ring-sky-500/10 outline-none resize-none ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white focus:border-sky-500' : 'bg-slate-50 border-slate-100 text-slate-900 focus:border-blue-500'}`}
+                />
+              </div>
+              <button 
+                onClick={handleSaveHeader}
+                className="w-full py-5 bg-sky-600 text-white rounded-2xl font-black uppercase tracking-widest hover:bg-sky-700 transition-all shadow-xl shadow-sky-900/20"
+              >
+                Simpan Perubahan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        @media print {
+          @page { size: landscape; margin: 1cm; }
+          body { background: white !important; color: black !important; }
+          main { padding: 0 !important; margin: 0 !important; max-width: 100% !important; }
+          table { width: 100% !important; border-collapse: collapse !important; font-size: 8pt !important; }
+          th, td { border: 0.5pt solid #cbd5e1 !important; padding: 10pt !important; vertical-align: middle !important; }
+          th { background-color: #f8fafc !important; font-weight: 900 !important; }
+          .print\\:hidden { display: none !important; }
+          .print\\:block { display: block !important; }
+          .print\\:table-cell { display: table-cell !important; }
+          .print\\:divide-slate-200 > * + * { border-top-width: 1pt !important; border-color: #e2e8f0 !important; }
+          .print\\:divide-slate-200 tr { border-bottom: 0.5pt solid #cbd5e1 !important; }
+        }
+      `}</style>
+    </main>
+  );
+};
+
+export default ResetRequests;

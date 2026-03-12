@@ -1,0 +1,234 @@
+
+import React, { useState, useMemo } from 'react';
+import * as XLSX from 'xlsx';
+import { LogEntry, SiteSettings } from '../types';
+
+interface LogsProps {
+  logs: LogEntry[];
+  showToast?: (msg: string) => void;
+  siteSettings?: SiteSettings;
+}
+
+const Logs: React.FC<LogsProps> = ({ logs, showToast, siteSettings }) => {
+  const isDarkMode = siteSettings?.darkMode;
+  const [searchTerm, setSearchTerm] = useState('');
+  const [typeFilter, setTypeFilter] = useState('Semua');
+  
+  // State untuk filter tanggal
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+
+  const filteredLogs = useMemo(() => {
+    return logs.filter(log => {
+      const matchesSearch = 
+        log.user.nama.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        log.aktivitas.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        log.keterangan.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      const matchesType = typeFilter === 'Semua' || log.aktivitas === typeFilter;
+      
+      let matchesDate = true;
+      if (startDate || endDate) {
+        const logTime = log.waktu;
+        if (startDate) {
+          const start = new Date(startDate).setHours(0, 0, 0, 0);
+          if (logTime < start) matchesDate = false;
+        }
+        if (endDate) {
+          const end = new Date(endDate).setHours(23, 59, 59, 999);
+          if (logTime > end) matchesDate = false;
+        }
+      }
+      
+      return matchesSearch && matchesType && matchesDate;
+    }).sort((a, b) => b.waktu - a.waktu);
+  }, [logs, searchTerm, typeFilter, startDate, endDate]);
+
+  const exportCSV = () => {
+    const headers = ['Waktu', 'User', 'Role', 'Aktivitas', 'Keterangan', 'IP Address'];
+    const rows = filteredLogs.map(l => [
+      new Date(l.waktu).toLocaleString('id-ID'),
+      l.user.nama,
+      l.user.role,
+      l.aktivitas,
+      l.keterangan,
+      l.ipAddress
+    ]);
+    
+    const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+    const csvContent = XLSX.utils.sheet_to_csv(ws);
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `log_aktivitas_${Date.now()}.csv`;
+    link.click();
+    showToast?.('Log diekspor ke CSV');
+  };
+
+  const exportExcel = () => {
+    const headers = ['Waktu', 'User', 'Role', 'Aktivitas', 'Keterangan', 'IP Address'];
+    const rows = filteredLogs.map(l => [
+      new Date(l.waktu).toLocaleString('id-ID'),
+      l.user.nama,
+      l.user.role,
+      l.aktivitas,
+      l.keterangan,
+      l.ipAddress
+    ]);
+    
+    const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Sistem Log");
+    XLSX.writeFile(wb, `log_aktivitas_${Date.now()}.xls`, { bookType: 'xls' });
+    showToast?.('Log diekspor ke Excel (.xls)');
+  };
+
+  return (
+    <main className="p-6 md:p-10 space-y-8 max-w-[1600px] mx-auto print:p-0">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 print:hidden">
+        <div>
+          <h1 className={`text-3xl font-extrabold tracking-tight ${isDarkMode ? 'text-white' : 'text-[#1e293b]'}`}>Log Aktivitas</h1>
+          <p className="text-sm text-slate-500 font-medium mt-1">Audit aktivitas sistem dan riwayat tindakan administrator</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="flex items-center gap-2">
+            <button onClick={exportCSV} className={`flex items-center gap-2 px-4 py-2 border rounded-lg text-sm font-bold transition-colors shadow-sm ${
+              isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+            }`}>
+              <span className="material-symbols-outlined text-blue-600 text-xl">description</span>
+              CSV
+            </button>
+            <button onClick={exportExcel} className={`flex items-center gap-2 px-4 py-2 border rounded-lg text-sm font-bold transition-colors shadow-sm ${
+              isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+            }`}>
+              <span className="material-symbols-outlined text-emerald-600 text-xl">table_view</span>
+              XLS
+            </button>
+            <button onClick={() => window.print()} className={`flex items-center gap-2 px-4 py-2 border rounded-lg text-sm font-bold transition-colors shadow-sm ${
+              isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+            }`}>
+              <span className="material-symbols-outlined text-rose-600 text-xl">picture_as_pdf</span>
+              PDF
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* FILTER PANEL LOG */}
+      <div className={`p-4 rounded-2xl shadow-sm border flex flex-col lg:flex-row items-center gap-3 print:hidden transition-colors duration-300 ${
+        isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'
+      }`}>
+        <div className="relative flex-1 w-full min-w-[280px]">
+          <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-xl">search</span>
+          <input 
+            type="text" 
+            placeholder="Cari nama, tipe, keterangan..." 
+            className={`w-full pl-12 pr-4 py-2.5 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/10 text-sm font-bold transition-colors ${
+              isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-700'
+            }`}
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+        
+        <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
+          <select 
+            className={`px-4 py-2.5 border rounded-xl text-sm font-bold focus:outline-none min-w-[150px] transition-colors ${
+              isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-600'
+            }`}
+            value={typeFilter}
+            onChange={(e) => setTypeFilter(e.target.value)}
+          >
+            <option value="Semua">Tipe: Semua</option>
+            <option value="Reset Password">Reset Password</option>
+            <option value="Login">Login</option>
+            <option value="Sistem">Sistem</option>
+          </select>
+
+          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-colors ${
+            isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-200'
+          }`}>
+            <span className="text-[10px] font-black text-slate-400 uppercase">Dari:</span>
+            <input 
+              type="date" 
+              className={`bg-transparent border-none text-xs font-bold outline-none ${isDarkMode ? 'text-white' : 'text-slate-600'}`}
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+            />
+          </div>
+
+          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-colors ${
+            isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-200'
+          }`}>
+            <span className="text-[10px] font-black text-slate-400 uppercase">Hingga:</span>
+            <input 
+              type="date" 
+              className={`bg-transparent border-none text-xs font-bold outline-none ${isDarkMode ? 'text-white' : 'text-slate-600'}`}
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+            />
+          </div>
+
+          <button 
+            onClick={() => { setSearchTerm(''); setTypeFilter('Semua'); setStartDate(''); setEndDate(''); }}
+            className={`px-6 py-2.5 border rounded-xl font-bold text-sm transition-all ${
+              isDarkMode ? 'border-slate-700 text-slate-400 hover:bg-slate-800' : 'border-slate-200 text-slate-500 hover:bg-slate-50'
+            }`}
+          >
+            Reset
+          </button>
+        </div>
+      </div>
+
+      <div className={`rounded-2xl shadow-sm border overflow-hidden print:border-none print:shadow-none transition-colors duration-300 ${
+        isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'
+      }`}>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className={`border-b transition-colors ${isDarkMode ? 'bg-slate-800/50 border-slate-800' : 'bg-slate-50/50 border-slate-100'}`}>
+                <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-widest">Waktu</th>
+                <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-widest">Admin/User</th>
+                <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-widest text-center">Aktivitas</th>
+                <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-widest">Keterangan</th>
+                <th className="px-6 py-4 text-[11px] font-black text-slate-400 uppercase tracking-widest">IP Address</th>
+              </tr>
+            </thead>
+            <tbody className={`divide-y transition-colors ${isDarkMode ? 'divide-slate-800' : 'divide-slate-50'}`}>
+              {filteredLogs.map((log) => (
+                <tr key={log.id} className={`transition-colors ${isDarkMode ? 'hover:bg-slate-800/40' : 'hover:bg-slate-50/50'}`}>
+                  <td className="px-6 py-5 text-nowrap">
+                    <div className={`text-sm font-bold ${isDarkMode ? 'text-slate-200' : 'text-slate-800'}`}>{new Date(log.waktu).toLocaleDateString('id-ID')}</div>
+                    <div className="text-[10px] text-slate-400 font-bold">{new Date(log.waktu).toLocaleTimeString('id-ID')}</div>
+                  </td>
+                  <td className="px-6 py-5">
+                    <div className={`text-sm font-black ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>{log.user.nama}</div>
+                    <div className="text-[10px] text-slate-400 font-bold">{log.user.role}</div>
+                  </td>
+                  <td className="px-6 py-5 text-center">
+                    <span className={`inline-flex px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                      log.aktivitas === 'Reset Password' ? (isDarkMode ? 'bg-emerald-500/10 text-emerald-400' : 'bg-emerald-50 text-emerald-600') :
+                      log.aktivitas === 'Login' ? (isDarkMode ? 'bg-blue-500/10 text-blue-400' : 'bg-blue-50 text-blue-600') :
+                      log.aktivitas === 'Sistem' ? (isDarkMode ? 'bg-slate-800 text-slate-400' : 'bg-slate-100 text-slate-600') : (isDarkMode ? 'bg-amber-500/10 text-amber-400' : 'bg-amber-50 text-amber-600')
+                    }`}>
+                      {log.aktivitas}
+                    </span>
+                  </td>
+                  <td className={`px-6 py-5 text-sm font-bold ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>{log.keterangan}</td>
+                  <td className={`px-6 py-5 text-sm font-bold font-mono ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>{log.ipAddress}</td>
+                </tr>
+              ))}
+              {filteredLogs.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="px-6 py-12 text-center text-slate-400 italic">Data log tidak ditemukan untuk filter ini.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  );
+};
+
+export default Logs;

@@ -1,0 +1,116 @@
+
+{
+  "personnel": [
+    {
+      "id": "P1",
+      "nama": "Andi Saputra",
+      "pangkat": "Briptu",
+      "nrp": "95120345",
+      "jabatan": "Penyidik Pembantu",
+      "kesatuan": "Polres A",
+      "email": "andi.saputra@polri.go.id",
+      "status": "Aktif",
+      "role": "user",
+      "passwordPlain": "User!95120345"
+    },
+    {
+      "id": "P2",
+      "nama": "Dewi Wulandari",
+      "pangkat": "Aipda",
+      "nrp": "88010562",
+      "jabatan": "Kaur Regident",
+      "kesatuan": "Polres B",
+      "email": "dewi.w@polri.go.id",
+      "status": "Aktif",
+      "role": "user",
+      "passwordPlain": "User!88010562"
+    },
+    {
+      "id": "P3",
+      "nama": "Bripka Wahyu",
+      "pangkat": "Bripka",
+      "nrp": "89050122",
+      "jabatan": "Administrator IT",
+      "kesatuan": "Polda Jatim",
+      "email": "wahyu.h@polri.go.id",
+      "status": "Aktif",
+      "role": "admin",
+      "passwordPlain": "admin!1234"
+    },
+    {
+      "id": "P4",
+      "nama": "Admin",
+      "pangkat": "Kompol",
+      "nrp": "00000001",
+      "jabatan": "Super Admin",
+      "kesatuan": "Polda Jatim",
+      "email": "admin@polri.go.id",
+      "status": "Aktif",
+      "role": "admin",
+      "passwordPlain": "admin!1234"
+    },
+    {
+      "id": "P5",
+      "nama": "Testing",
+      "pangkat": "Brigadir",
+      "nrp": "99999999",
+      "jabatan": "User Testing",
+      "kesatuan": "Polres Malang",
+      "email": "testing@polri.go.id",
+      "status": "Aktif",
+      "role": "user",
+      "passwordPlain": "user!1234"
+    }
+  ],
+  "requests": [
+    {
+      "id": "REQ-001",
+      "nama": "Andi Saputra",
+      "pangkat": "Briptu",
+      "nrp": "95120345",
+      "jabatan": "Penyidik Pembantu",
+      "kesatuan": "Polres A",
+      "waktu_iso": "2024-02-10T08:00:00.000Z",
+      "status": "Di Proses",
+      "alasan": "Lupa Password",
+      "catatan": "",
+      "createdAt": 1707552000000
+    },
+    {
+      "id": "REQ-002",
+      "nama": "Dewi Wulandari",
+      "pangkat": "Aipda",
+      "nrp": "88010562",
+      "jabatan": "Kaur Regident",
+      "kesatuan": "Polres B",
+      "waktu_iso": "2024-02-10T09:30:00.000Z",
+      "status": "Terkirim",
+      "alasan": "Akun Terkunci",
+      "catatan": "",
+      "createdAt": 1707557400000
+    }
+  ],
+  "logs": [
+    {
+      "id": "L1",
+      "waktu": 1770634402000,
+      "user": { "nama": "Bripka Wahyu", "role": "Admin Utama", "initials": "BW" },
+      "aktivitas": "Reset Password",
+      "keterangan": "Melakukan reset password untuk Andi Saputra (95120345)",
+      "ipAddress": "192.168.1.104"
+    },
+    {
+      "id": "L2",
+      "waktu": 1770630802000,
+      "user": { "nama": "Siti Jamilah", "role": "Super Admin", "initials": "SJ" },
+      "aktivitas": "Login",
+      "keterangan": "Admin berhasil login ke dashboard",
+      "ipAddress": "10.12.33.15"
+    }
+  ],
+  "systemActivities": [
+    { "id": 1, "text": "Backup database berhasil dilakukan otomatis.", "time": "03:00 AM", "type": "success" },
+    { "id": 2, "text": "Pembaruan sistem keamanan v2.4 diterapkan.", "time": "Kemarin", "type": "info" },
+    { "id": 3, "text": "Audit log mingguan siap diunduh.", "time": "10 Okt", "type": "warning" }
+  ]
+}
