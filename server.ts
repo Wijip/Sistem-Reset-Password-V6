@@ -26,13 +26,23 @@ const DB_NAME = process.env.DB_NAME || 'polda_jatim_reset';
 async function initializeDatabase() {
   let connection;
   try {
-    // 1. Connect without database to check/create it
+    // 1. Connect without database to check existence
     connection = await mysql.createConnection(dbConfig);
-    await connection.query(`CREATE DATABASE IF NOT EXISTS \`${DB_NAME}\``);
+    
+    const [databases]: any = await connection.query(`SHOW DATABASES LIKE '${DB_NAME}'`);
+    
+    if (databases.length > 0) {
+      console.log(`[DATABASE] Database '${DB_NAME}' ditemukan. Menggunakan data yang ada.`);
+    } else {
+      console.log(`[DATABASE] Database '${DB_NAME}' tidak ditemukan. Membuat database baru...`);
+      await connection.query(`CREATE DATABASE \`${DB_NAME}\``);
+    }
     await connection.end();
 
-    // 2. Connect with database to create tables
+    // 2. Connect with database to ensure tables exist
     const pool = mysql.createPool({ ...dbConfig, database: DB_NAME });
+
+    console.log('[DATABASE] Memeriksa struktur tabel...');
 
     // Table: Personnel
     await pool.query(`
@@ -93,19 +103,20 @@ async function initializeDatabase() {
       )
     `);
 
-    // Insert Default SuperAdmin if not exists
-    const [rows]: any = await pool.query('SELECT * FROM personnel WHERE nrp = ?', ['12345678']);
-    if (rows.length === 0) {
+    // Insert Default SuperAdmin ONLY if personnel table is empty
+    const [rows]: any = await pool.query('SELECT COUNT(*) as count FROM personnel');
+    if (rows[0].count === 0) {
+      console.log('[DATABASE] Menambahkan data Super Admin default...');
       await pool.query(`
         INSERT INTO personnel (id, nama, pangkat, nrp, jabatan, kesatuan, email, role, password)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, ['P-1', 'Super Admin Polda', 'AKBP', '12345678', 'Kasubdit Tekinfo', 'Bid Tik Polda Jatim', 'admin@polri.go.id', 'SUPERADMIN', 'admin123']);
     }
 
-    console.log('Database and Tables initialized successfully');
+    console.log('[DATABASE] Inisialisasi selesai. Sistem siap digunakan.');
     return pool;
   } catch (error) {
-    console.error('Database initialization failed:', error);
+    console.error('[DATABASE] Gagal menginisialisasi database:', error);
     process.exit(1);
   }
 }
