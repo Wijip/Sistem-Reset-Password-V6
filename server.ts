@@ -73,14 +73,29 @@ async function initializeDatabase() {
         nrp VARCHAR(50),
         jabatan VARCHAR(255),
         kesatuan VARCHAR(255),
+        kontak_person VARCHAR(255),
         waktu_iso VARCHAR(100),
         status ENUM('MENUNGGU', 'DIPROSES', 'SELESAI', 'DITOLAK') DEFAULT 'MENUNGGU',
         alasan TEXT,
+        catatan TEXT,
         dokumen_kta TEXT,
         prioritas VARCHAR(50),
-        createdAt BIGINT
+        createdAt BIGINT,
+        updatedAt BIGINT,
+        reset_password VARCHAR(255),
+        reset_info TEXT
       )
     `);
+
+    // Ensure all columns exist for reset_requests
+    const [columns]: any = await pool.query(`SHOW COLUMNS FROM reset_requests`);
+    const columnNames = columns.map((c: any) => c.Field);
+    
+    if (!columnNames.includes('kontak_person')) await pool.query('ALTER TABLE reset_requests ADD COLUMN kontak_person VARCHAR(255)');
+    if (!columnNames.includes('catatan')) await pool.query('ALTER TABLE reset_requests ADD COLUMN catatan TEXT');
+    if (!columnNames.includes('updatedAt')) await pool.query('ALTER TABLE reset_requests ADD COLUMN updatedAt BIGINT');
+    if (!columnNames.includes('reset_password')) await pool.query('ALTER TABLE reset_requests ADD COLUMN reset_password VARCHAR(255)');
+    if (!columnNames.includes('reset_info')) await pool.query('ALTER TABLE reset_requests ADD COLUMN reset_info TEXT');
 
     // Table: Logs
     await pool.query(`
@@ -178,12 +193,7 @@ async function startServer() {
 
   // API Routes
   app.get('/api/personnel', async (_req: any, res: any) => {
-    const [rows] = await pool.query('SELECT * FROM personnel');
-    res.json(rows);
-  });
-
-  app.get('/api/personnel', async (_req: any, res: any) => {
-    const [rows] = await pool.query('SELECT * FROM personnel ORDER BY nama ASC');
+    const [rows]: any = await pool.query('SELECT * FROM personnel ORDER BY nama ASC');
     res.json(rows);
   });
 
@@ -215,45 +225,97 @@ async function startServer() {
 
   app.post('/api/login', async (req: any, res: any) => {
     const { email, password } = req.body;
-    console.log(`[LOGIN] Attempt for email: ${email}`);
+    if (!email || !password) {
+      return res.status(400).json({ success: false, message: 'Email dan Password wajib diisi' });
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanPassword = password.trim();
+
+    console.log(`[LOGIN] Attempt for email: ${cleanEmail}`);
     
-    const [rows]: any = await pool.query(
-      'SELECT * FROM personnel WHERE email = ? AND password = ?', 
-      [email.trim(), password.trim()]
-    );
-    
-    if (rows.length > 0) {
-      console.log(`[LOGIN] Success for: ${rows[0].nama}`);
-      res.json({ success: true, user: rows[0] });
-    } else {
-      console.log(`[LOGIN] Failed for email: ${email}`);
-      res.status(401).json({ success: false, message: 'Email atau Password salah' });
+    try {
+      const [rows]: any = await pool.query(
+        'SELECT * FROM personnel WHERE LOWER(email) = ? AND password = ?', 
+        [cleanEmail, cleanPassword]
+      );
+      
+      if (rows.length > 0) {
+        console.log(`[LOGIN] Success for: ${rows[0].nama}`);
+        // Don't send password back to client
+        const { password: _, ...userWithoutPassword } = rows[0];
+        res.json({ success: true, user: userWithoutPassword });
+      } else {
+        console.log(`[LOGIN] Failed for email: ${cleanEmail} - Invalid credentials`);
+        res.status(401).json({ success: false, message: 'Email atau Password salah' });
+      }
+    } catch (error) {
+      console.error('[LOGIN] Database error:', error);
+      res.status(500).json({ success: false, message: 'Terjadi kesalahan pada server' });
     }
   });
 
   app.get('/api/requests', async (_req: any, res: any) => {
-    const [rows] = await pool.query('SELECT * FROM reset_requests ORDER BY createdAt DESC');
-    res.json(rows);
+    const [rows]: any = await pool.query('SELECT * FROM reset_requests ORDER BY createdAt DESC');
+    const parsedRows = rows.map((r: any) => ({
+      ...r,
+      reset_info: r.reset_info ? JSON.parse(r.reset_info) : undefined
+    }));
+    res.json(parsedRows);
   });
 
   app.post('/api/requests', async (req: any, res: any) => {
-    const reqData = req.body;
-    await pool.query(`
-      INSERT INTO reset_requests (id, nama, pangkat, nrp, jabatan, kesatuan, waktu_iso, status, alasan, dokumen_kta, prioritas, createdAt)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `, [reqData.id, reqData.nama, reqData.pangkat, reqData.nrp, reqData.jabatan, reqData.kesatuan, reqData.waktu_iso, reqData.status, reqData.alasan, reqData.dokumen_kta, reqData.prioritas, reqData.createdAt]);
-    res.json({ success: true });
+    const r = req.body;
+    try {
+      await pool.query(`
+        INSERT INTO reset_requests (
+          id, nama, pangkat, nrp, jabatan, kesatuan, kontak_person, 
+          waktu_iso, status, alasan, catatan, dokumen_kta, prioritas, createdAt
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `, [
+        r.id, r.nama, r.pangkat, r.nrp, r.jabatan, r.kesatuan, r.kontak_person || null, 
+        r.waktu_iso, r.status, r.alasan, r.catatan || null, r.dokumen_kta || null, 
+        r.prioritas || 'Normal', r.createdAt
+      ]);
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Failed to create request:', error);
+      res.status(500).json({ success: false, message: 'Gagal menyimpan data ke database' });
+    }
   });
 
   app.put('/api/requests/:id', async (req: any, res: any) => {
     const { id } = req.params;
-    const { status, reset_password, admin_note } = req.body;
-    await pool.query(`
-      UPDATE reset_requests 
-      SET status = ?, reset_password = ?, admin_note = ?
-      WHERE id = ?
-    `, [status, reset_password, admin_note, id]);
-    res.json({ success: true });
+    const r = req.body;
+    
+    try {
+      // Convert reset_info to string if it's an object
+      const resetInfoStr = r.reset_info ? JSON.stringify(r.reset_info) : null;
+
+      await pool.query(`
+        UPDATE reset_requests 
+        SET status = ?, 
+            reset_password = ?, 
+            catatan = ?, 
+            updatedAt = ?, 
+            reset_info = ?,
+            prioritas = ?
+        WHERE id = ?
+      `, [
+        r.status, 
+        r.reset_password || null, 
+        r.catatan || null, 
+        r.updatedAt || null, 
+        resetInfoStr, 
+        r.prioritas || 'Normal',
+        id
+      ]);
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Failed to update request:', error);
+      res.status(500).json({ success: false, message: 'Gagal memperbarui data di database' });
+    }
   });
 
   app.delete('/api/requests/:id', async (req: any, res: any) => {
