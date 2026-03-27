@@ -19,13 +19,21 @@ const Logs: React.FC<LogsProps> = ({ logs, showToast, siteSettings }) => {
   const [endDate, setEndDate] = useState('');
 
   const filteredLogs = useMemo(() => {
+    if (!Array.isArray(logs)) return [];
+    
     return logs.filter(log => {
+      if (!log || !log.user) return false;
+
+      const nama = log.user.nama || '';
+      const aktivitas = log.aktivitas || '';
+      const keterangan = log.keterangan || '';
+
       const matchesSearch = 
-        log.user.nama.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        log.aktivitas.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        log.keterangan.toLowerCase().includes(searchTerm.toLowerCase());
+        nama.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        aktivitas.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        keterangan.toLowerCase().includes(searchTerm.toLowerCase());
       
-      const matchesType = typeFilter === 'Semua' || log.aktivitas === typeFilter;
+      const matchesType = typeFilter === 'Semua' || aktivitas === typeFilter;
       
       let matchesDate = true;
       if (startDate || endDate) {
@@ -41,18 +49,18 @@ const Logs: React.FC<LogsProps> = ({ logs, showToast, siteSettings }) => {
       }
       
       return matchesSearch && matchesType && matchesDate;
-    }).sort((a, b) => b.waktu - a.waktu);
+    }).sort((a, b) => (b.waktu || 0) - (a.waktu || 0));
   }, [logs, searchTerm, typeFilter, startDate, endDate]);
 
   const exportCSV = () => {
     const headers = ['Waktu', 'User', 'Role', 'Aktivitas', 'Keterangan', 'IP Address'];
     const rows = filteredLogs.map(l => [
-      new Date(l.waktu).toLocaleString('id-ID'),
-      l.user.nama,
-      l.user.role,
-      l.aktivitas,
-      l.keterangan,
-      l.ipAddress
+      l.waktu ? new Date(l.waktu).toLocaleString('id-ID') : '-',
+      l.user?.nama || '-',
+      l.user?.role || '-',
+      l.aktivitas || '-',
+      l.keterangan || '-',
+      l.ipAddress || '-'
     ]);
     
     const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
@@ -68,12 +76,12 @@ const Logs: React.FC<LogsProps> = ({ logs, showToast, siteSettings }) => {
   const exportExcel = () => {
     const headers = ['Waktu', 'User', 'Role', 'Aktivitas', 'Keterangan', 'IP Address'];
     const rows = filteredLogs.map(l => [
-      new Date(l.waktu).toLocaleString('id-ID'),
-      l.user.nama,
-      l.user.role,
-      l.aktivitas,
-      l.keterangan,
-      l.ipAddress
+      l.waktu ? new Date(l.waktu).toLocaleString('id-ID') : '-',
+      l.user?.nama || '-',
+      l.user?.role || '-',
+      l.aktivitas || '-',
+      l.keterangan || '-',
+      l.ipAddress || '-'
     ]);
     
     const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
@@ -198,12 +206,12 @@ const Logs: React.FC<LogsProps> = ({ logs, showToast, siteSettings }) => {
               {filteredLogs.map((log) => (
                 <tr key={log.id} className={`transition-colors ${isDarkMode ? 'hover:bg-slate-800/40' : 'hover:bg-slate-50/50'}`}>
                   <td className="px-6 py-5 text-nowrap">
-                    <div className={`text-sm font-bold ${isDarkMode ? 'text-slate-200' : 'text-slate-800'}`}>{new Date(log.waktu).toLocaleDateString('id-ID')}</div>
-                    <div className="text-[10px] text-slate-400 font-bold">{new Date(log.waktu).toLocaleTimeString('id-ID')}</div>
+                    <div className={`text-sm font-bold ${isDarkMode ? 'text-slate-200' : 'text-slate-800'}`}>{log.waktu ? new Date(log.waktu).toLocaleDateString('id-ID') : '-'}</div>
+                    <div className="text-[10px] text-slate-400 font-bold">{log.waktu ? new Date(log.waktu).toLocaleTimeString('id-ID') : '-'}</div>
                   </td>
                   <td className="px-6 py-5">
-                    <div className={`text-sm font-black ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>{log.user.nama}</div>
-                    <div className="text-[10px] text-slate-400 font-bold">{log.user.role}</div>
+                    <div className={`text-sm font-black ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>{log.user?.nama || 'Unknown'}</div>
+                    <div className="text-[10px] text-slate-400 font-bold">{log.user?.role || '-'}</div>
                   </td>
                   <td className="px-6 py-5 text-center">
                     <span className={`inline-flex px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
@@ -211,11 +219,11 @@ const Logs: React.FC<LogsProps> = ({ logs, showToast, siteSettings }) => {
                       log.aktivitas === 'Login' ? (isDarkMode ? 'bg-blue-500/10 text-blue-400' : 'bg-blue-50 text-blue-600') :
                       log.aktivitas === 'Sistem' ? (isDarkMode ? 'bg-slate-800 text-slate-400' : 'bg-slate-100 text-slate-600') : (isDarkMode ? 'bg-amber-500/10 text-amber-400' : 'bg-amber-50 text-amber-600')
                     }`}>
-                      {log.aktivitas}
+                      {log.aktivitas || 'Lainnya'}
                     </span>
                   </td>
-                  <td className={`px-6 py-5 text-sm font-bold ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>{log.keterangan}</td>
-                  <td className={`px-6 py-5 text-sm font-bold font-mono ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>{log.ipAddress}</td>
+                  <td className={`px-6 py-5 text-sm font-bold ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>{log.keterangan || '-'}</td>
+                  <td className={`px-6 py-5 text-sm font-bold font-mono ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>{log.ipAddress || '-'}</td>
                 </tr>
               ))}
               {filteredLogs.length === 0 && (

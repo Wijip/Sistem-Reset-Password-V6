@@ -325,17 +325,42 @@ async function startServer() {
   });
 
   app.get('/api/logs', async (_req: any, res: any) => {
-    const [rows] = await pool.query('SELECT * FROM logs ORDER BY waktu DESC');
-    res.json(rows);
+    try {
+      const [rows]: any = await pool.query('SELECT * FROM logs ORDER BY waktu DESC');
+      const mappedLogs = rows.map((row: any) => ({
+        id: row.id,
+        waktu: Number(row.waktu),
+        user: {
+          nama: row.user_nama,
+          role: row.user_role,
+          initials: row.user_nama ? row.user_nama.split(' ').map((n: string) => n[0]).join('').toUpperCase() : ''
+        },
+        aktivitas: row.aktivitas,
+        keterangan: row.keterangan,
+        ipAddress: row.ipAddress
+      }));
+      res.json(mappedLogs);
+    } catch (error) {
+      console.error('Failed to fetch logs:', error);
+      res.status(500).json({ success: false, message: 'Gagal mengambil data log' });
+    }
   });
 
   app.post('/api/logs', async (req: any, res: any) => {
-    const log = req.body;
-    await pool.query(`
-      INSERT INTO logs (id, waktu, user_nama, user_role, aktivitas, keterangan, ipAddress)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `, [log.id, log.waktu, log.user.nama, log.user.role, log.aktivitas, log.keterangan, log.ipAddress]);
-    res.json({ success: true });
+    try {
+      const log = req.body;
+      const userNama = log.user?.nama || 'Unknown';
+      const userRole = log.user?.role || 'Unknown';
+
+      await pool.query(`
+        INSERT INTO logs (id, waktu, user_nama, user_role, aktivitas, keterangan, ipAddress)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `, [log.id, log.waktu, userNama, userRole, log.aktivitas, log.keterangan, log.ipAddress]);
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Failed to create log:', error);
+      res.status(500).json({ success: false, message: 'Gagal menyimpan log' });
+    }
   });
 
   // OTP Logic
