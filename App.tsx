@@ -10,7 +10,6 @@ import {
   RequestStatus,
   LogEntry
 } from './types';
-import { INITIAL_PERSONNEL, INITIAL_REQUESTS, INITIAL_LOGS } from './constants';
 import Dashboard from './views/Dashboard';
 import ResetRequests from './views/ResetRequests';
 import PersonnelData from './views/PersonnelData';

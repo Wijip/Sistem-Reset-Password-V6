@@ -3,7 +3,6 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import * as XLSX from 'xlsx';
 import { useDebounce } from '../src/hooks/useDebounce';
 import { Personnel, UserRole, LogEntry, SiteSettings } from '../types';
-import { INITIAL_PERSONNEL } from '../constants';
 
 interface PersonnelDataProps {
   personnel: Personnel[];
@@ -80,14 +79,6 @@ const PersonnelData: React.FC<PersonnelDataProps> = ({ personnel, setPersonnel, 
     };
   }, [visiblePersonnel]);
 
-  const handleResetToDefault = () => {
-    if (window.confirm('Apakah Anda yakin ingin mereset data personel ke pengaturan awal? Seluruh perubahan manual akan hilang.')) {
-      setPersonnel(INITIAL_PERSONNEL);
-      showToast('Data personel telah direset ke pengaturan awal.');
-      addLog?.('Sistem', 'Mereset seluruh data personel ke pengaturan awal');
-    }
-  };
-
   const handleImport = (type: 'excel' | 'csv') => {
     setImportType(type);
     setShowImportDropdown(false);
@@ -152,9 +143,21 @@ const PersonnelData: React.FC<PersonnelDataProps> = ({ personnel, setPersonnel, 
         });
 
         if (newPersonnel.length > 0) {
-          setPersonnel(prev => [...prev, ...newPersonnel]);
-          showToast(`Berhasil mengimpor ${newPersonnel.length} data.${skippedCount > 0 ? ` (${skippedCount} data dilewati)` : ''}`);
-          addLog?.('Import Data', `Mengimpor ${newPersonnel.length} data personel via ${importType?.toUpperCase()}`);
+          // Save to API
+          Promise.all(newPersonnel.map(p => 
+            fetch('/api/personnel', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(p)
+            })
+          )).then(() => {
+            setPersonnel(prev => [...prev, ...newPersonnel]);
+            showToast(`Berhasil mengimpor ${newPersonnel.length} data.${skippedCount > 0 ? ` (${skippedCount} data dilewati)` : ''}`);
+            addLog?.('Import Data', `Mengimpor ${newPersonnel.length} data personel via ${importType?.toUpperCase()}`);
+          }).catch(err => {
+            console.error('Failed to import personnel:', err);
+            showToast('Gagal menyimpan data ke server', 'error');
+          });
         } else {
           showToast('Tidak ada data baru yang valid untuk diimpor', 'error');
         }
@@ -274,17 +277,33 @@ const PersonnelData: React.FC<PersonnelDataProps> = ({ personnel, setPersonnel, 
     }
   };
 
-  const executeAction = () => {
+  const executeAction = async () => {
     if (!actionTarget || !actionType) return;
 
-    if (actionType === 'delete') {
-      setPersonnel(prev => prev.filter(p => p.id !== actionTarget.id));
-      showToast('Data personel berhasil dihapus.');
-      addLog?.('Hapus Data', `Menghapus data personel: ${actionTarget.nama} (NRP: ${actionTarget.nrp})`);
-    } else {
-      setPersonnel(prev => prev.map(p => p.id === actionTarget.id ? { ...p, status: 'Nonaktif' } : p));
-      showToast('Status personel berhasil diubah menjadi Nonaktif.');
-      addLog?.('Update Data', `Menonaktifkan personel: ${actionTarget.nama} (NRP: ${actionTarget.nrp})`);
+    try {
+      if (actionType === 'delete') {
+        const res = await fetch(`/api/personnel/${actionTarget.id}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error('Failed to delete');
+        
+        setPersonnel(prev => prev.filter(p => p.id !== actionTarget.id));
+        showToast('Data personel berhasil dihapus.');
+        addLog?.('Hapus Data', `Menghapus data personel: ${actionTarget.nama} (NRP: ${actionTarget.nrp})`);
+      } else {
+        const updatedPerson = { ...actionTarget, status: 'Nonaktif' as const };
+        const res = await fetch(`/api/personnel/${actionTarget.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updatedPerson)
+        });
+        if (!res.ok) throw new Error('Failed to update');
+
+        setPersonnel(prev => prev.map(p => p.id === actionTarget.id ? updatedPerson : p));
+        showToast('Status personel berhasil diubah menjadi Nonaktif.');
+        addLog?.('Update Data', `Menonaktifkan personel: ${actionTarget.nama} (NRP: ${actionTarget.nrp})`);
+      }
+    } catch (error) {
+      console.error('Action failed:', error);
+      showToast('Gagal memproses permintaan ke server', 'error');
     }
 
     setActionTarget(null);
@@ -292,7 +311,7 @@ const PersonnelData: React.FC<PersonnelDataProps> = ({ personnel, setPersonnel, 
     setActionStep('choice');
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.nama || !formData.nrp) return showToast('Nama dan NRP wajib diisi', 'error');
 
@@ -302,41 +321,61 @@ const PersonnelData: React.FC<PersonnelDataProps> = ({ personnel, setPersonnel, 
       return showToast(`NRP ${trimmedNrp} sudah terdaftar dalam sistem`, 'error');
     }
 
-    if (editingId) {
-      const sanitizedData = {
-        ...formData,
-        nama: formData.nama?.trim(),
-        nrp: formData.nrp?.trim(),
-        pangkat: formData.pangkat?.trim(),
-        jabatan: formData.jabatan?.trim(),
-        kesatuan: formData.kesatuan?.trim(),
-        email: formData.email?.trim()
-      };
-      setPersonnel(prev => prev.map(p => p.id === editingId ? { ...p, ...sanitizedData as Personnel } : p));
-      showToast('Data berhasil diperbarui');
-      addLog?.('Update Data', `Memperbarui data personel: ${formData.nama} (NRP: ${formData.nrp})`);
-    } else {
-      const defaultPassword = formData.role === UserRole.SUPERADMIN ? 'superadmin!123' : formData.role === UserRole.ADMIN ? 'admin!1234' : 'user!1234';
-      
-      const newPerson: Personnel = {
-        ...(formData as Personnel),
-        nama: formData.nama?.trim() || '',
-        nrp: formData.nrp?.trim() || '',
-        pangkat: formData.pangkat?.trim() || '',
-        jabatan: formData.jabatan?.trim() || '',
-        kesatuan: formData.kesatuan?.trim() || '',
-        email: formData.email?.trim() || '',
-        id: `P-${Date.now()}`,
-        passwordPlain: defaultPassword
-      };
-      
-      setPersonnel(prev => [newPerson, ...prev]);
-      showToast(`Personel baru ditambahkan. Password default: ${defaultPassword}`);
-      addLog?.('Update Data', `Menambahkan personel baru: ${newPerson.nama} (NRP: ${newPerson.nrp})`);
+    try {
+      if (editingId) {
+        const sanitizedData = {
+          ...formData,
+          nama: formData.nama?.trim(),
+          nrp: formData.nrp?.trim(),
+          pangkat: formData.pangkat?.trim(),
+          jabatan: formData.jabatan?.trim(),
+          kesatuan: formData.kesatuan?.trim(),
+          email: formData.email?.trim()
+        };
+        
+        const res = await fetch(`/api/personnel/${editingId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(sanitizedData)
+        });
+        if (!res.ok) throw new Error('Failed to update');
+
+        setPersonnel(prev => prev.map(p => p.id === editingId ? { ...p, ...sanitizedData as Personnel } : p));
+        showToast('Data berhasil diperbarui');
+        addLog?.('Update Data', `Memperbarui data personel: ${formData.nama} (NRP: ${formData.nrp})`);
+      } else {
+        const defaultPassword = formData.role === UserRole.SUPERADMIN ? 'superadmin!123' : formData.role === UserRole.ADMIN ? 'admin!1234' : 'user!1234';
+        
+        const newPerson: Personnel = {
+          ...(formData as Personnel),
+          nama: formData.nama?.trim() || '',
+          nrp: formData.nrp?.trim() || '',
+          pangkat: formData.pangkat?.trim() || '',
+          jabatan: formData.jabatan?.trim() || '',
+          kesatuan: formData.kesatuan?.trim() || '',
+          email: formData.email?.trim() || '',
+          id: `P-${Date.now()}`,
+          password: defaultPassword
+        };
+        
+        const res = await fetch('/api/personnel', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newPerson)
+        });
+        if (!res.ok) throw new Error('Failed to create');
+
+        setPersonnel(prev => [newPerson, ...prev]);
+        showToast(`Personel baru ditambahkan. Password default: ${defaultPassword}`);
+        addLog?.('Update Data', `Menambahkan personel baru: ${newPerson.nama} (NRP: ${newPerson.nrp})`);
+      }
+      setIsModalOpen(false);
+      setEditingId(null);
+      setFormData(initialForm);
+    } catch (error) {
+      console.error('Save failed:', error);
+      showToast('Gagal menyimpan data ke server', 'error');
     }
-    setIsModalOpen(false);
-    setEditingId(null);
-    setFormData(initialForm);
   };
 
   const openAddModal = () => {
@@ -360,19 +399,6 @@ const PersonnelData: React.FC<PersonnelDataProps> = ({ personnel, setPersonnel, 
           </p>
         </div>
         <div className="flex items-center gap-3">
-          {isSuperAdmin && (
-            <button 
-              onClick={handleResetToDefault}
-              className={`px-4 py-2.5 rounded-xl font-bold text-xs transition-all flex items-center gap-2 border-2 ${
-                isDarkMode ? 'border-slate-800 text-slate-400 hover:bg-slate-800' : 'border-slate-100 text-slate-500 hover:bg-slate-50'
-              }`}
-              title="Reset ke Data Awal"
-            >
-              <span className="material-symbols-outlined text-lg">history</span>
-              Reset Data
-            </button>
-          )}
-
           {/* Import Dropdown */}
           <div className="relative" ref={dropdownRef}>
             <button 

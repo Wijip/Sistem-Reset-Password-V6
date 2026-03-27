@@ -29,6 +29,7 @@ export interface Personnel {
   emailAlias?: string;
   status: string;
   role: UserRole;
+  password?: string;
   passwordPlain?: string;
   internal?: string;
   foto?: string; // Properti baru untuk foto profil

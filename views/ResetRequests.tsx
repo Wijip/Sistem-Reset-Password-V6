@@ -183,26 +183,49 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
     );
   };
 
-  const handleBulkDelete = () => {
+  const handleBulkDelete = async () => {
     if (selectedIds.length === 0) return;
     if (window.confirm(`Hapus ${selectedIds.length} permintaan terpilih?`)) {
-      setRequests(prev => prev.filter(r => !selectedIds.includes(r.id)));
-      showToast(`${selectedIds.length} permintaan berhasil dihapus`);
-      addLog?.('Hapus Data', `Menghapus massal ${selectedIds.length} permintaan reset`);
-      setSelectedIds([]);
+      try {
+        await Promise.all(selectedIds.map(id => fetch(`/api/requests/${id}`, { method: 'DELETE' })));
+        setRequests(prev => prev.filter(r => !selectedIds.includes(r.id)));
+        showToast(`${selectedIds.length} permintaan berhasil dihapus`);
+        addLog?.('Hapus Data', `Menghapus massal ${selectedIds.length} permintaan reset`);
+        setSelectedIds([]);
+      } catch (error) {
+        console.error('Bulk delete failed:', error);
+        showToast('Gagal menghapus beberapa data dari server', 'error');
+      }
     }
   };
 
-  const handleBulkProcess = () => {
+  const handleBulkProcess = async () => {
     if (selectedIds.length === 0) return;
-    setRequests(prev => prev.map(r => 
-      selectedIds.includes(r.id) && r.status === RequestStatus.MENUNGGU 
-        ? { ...r, status: RequestStatus.DIPROSES } 
-        : r
-    ));
-    showToast(`${selectedIds.length} permintaan ditandai sedang diproses`);
-    addLog?.('Update Data', `Memproses massal ${selectedIds.length} permintaan reset`);
-    setSelectedIds([]);
+    try {
+      await Promise.all(selectedIds.map(id => {
+        const req = requests.find(r => r.id === id);
+        if (req && req.status === RequestStatus.MENUNGGU) {
+          return fetch(`/api/requests/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ...req, status: RequestStatus.DIPROSES })
+          });
+        }
+        return Promise.resolve();
+      }));
+      
+      setRequests(prev => prev.map(r => 
+        selectedIds.includes(r.id) && r.status === RequestStatus.MENUNGGU 
+          ? { ...r, status: RequestStatus.DIPROSES } 
+          : r
+      ));
+      showToast(`${selectedIds.length} permintaan ditandai sedang diproses`);
+      addLog?.('Update Data', `Memproses massal ${selectedIds.length} permintaan reset`);
+      setSelectedIds([]);
+    } catch (error) {
+      console.error('Bulk process failed:', error);
+      showToast('Gagal memperbarui status ke server', 'error');
+    }
   };
 
   const exportExcel = () => {
@@ -249,9 +272,22 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
           createdAt: Date.now(),
         }));
 
-        setRequests(prev => [...newRequests, ...prev]);
-        showToast(`${newRequests.length} data berhasil diimport`);
-        addLog?.('Sistem', `Melakukan import massal sebanyak ${newRequests.length} data`);
+        if (newRequests.length > 0) {
+          Promise.all(newRequests.map(r => 
+            fetch('/api/requests', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(r)
+            })
+          )).then(() => {
+            setRequests(prev => [...newRequests, ...prev]);
+            showToast(`${newRequests.length} data berhasil diimport`);
+            addLog?.('Sistem', `Melakukan import massal sebanyak ${newRequests.length} data`);
+          }).catch(err => {
+            console.error('Import failed:', err);
+            showToast('Gagal menyimpan data import ke server', 'error');
+          });
+        }
       } catch (err) {
         showToast('Gagal memproses file Excel', 'error');
       }
@@ -260,7 +296,7 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
     e.target.value = ''; // Reset input
   };
 
-  const handleManualSubmit = (e: React.FormEvent) => {
+  const handleManualSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!manualForm.nama || !manualForm.nrp || !manualForm.kesatuan) {
       showToast('Mohon lengkapi Nama, NRP, dan Kesatuan', 'error');
@@ -281,26 +317,53 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
       createdAt: Date.now()
     };
 
-    setRequests(prev => [newReq, ...prev]);
-    showToast(`Permintaan untuk ${manualForm.nama} berhasil ditambahkan secara manual`);
-    addLog?.('Sistem', `Menambah permintaan reset manual: ${manualForm.nama}`);
-    setIsManualModalOpen(false);
-    setManualForm({
-      nama: '',
-      pangkat: '',
-      nrp: '',
-      jabatan: '',
-      kesatuan: !isSuperAdmin ? currentUser.kesatuan : '',
-      catatan: ''
-    });
+    try {
+      const res = await fetch('/api/requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newReq)
+      });
+      if (!res.ok) throw new Error('Failed to create');
+
+      setRequests(prev => [newReq, ...prev]);
+      showToast(`Permintaan untuk ${manualForm.nama} berhasil ditambahkan secara manual`);
+      addLog?.('Sistem', `Menambah permintaan reset manual: ${manualForm.nama}`);
+      setIsManualModalOpen(false);
+      setManualForm({
+        nama: '',
+        pangkat: '',
+        nrp: '',
+        jabatan: '',
+        kesatuan: !isSuperAdmin ? currentUser.kesatuan : '',
+        catatan: ''
+      });
+    } catch (error) {
+      console.error('Manual submit failed:', error);
+      showToast('Gagal menyimpan data ke server', 'error');
+    }
   };
 
-  const handleStartProcess = (reqId: string) => {
-    setRequests(prev => prev.map(r => 
-      r.id === reqId ? { ...r, status: RequestStatus.DIPROSES } : r
-    ));
-    showToast('Permintaan ditandai sedang diproses');
-    addLog?.('Reset Password', `Memulai proses reset password untuk permintaan ID: ${reqId}`);
+  const handleStartProcess = async (reqId: string) => {
+    const req = requests.find(r => r.id === reqId);
+    if (!req) return;
+
+    try {
+      const res = await fetch(`/api/requests/${reqId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...req, status: RequestStatus.DIPROSES })
+      });
+      if (!res.ok) throw new Error('Failed to update');
+
+      setRequests(prev => prev.map(r => 
+        r.id === reqId ? { ...r, status: RequestStatus.DIPROSES } : r
+      ));
+      showToast('Permintaan ditandai sedang diproses');
+      addLog?.('Reset Password', `Memulai proses reset password untuk permintaan ID: ${reqId}`);
+    } catch (error) {
+      console.error('Start process failed:', error);
+      showToast('Gagal memperbarui status ke server', 'error');
+    }
   };
 
   const checkPasswordStrength = (pass: string) => {
@@ -310,7 +373,7 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
     return pass.length >= 8 && hasNumber && hasSymbol;
   };
 
-  const executeReset = (bypassWarning = false) => {
+  const executeReset = async (bypassWarning = false) => {
     if (!selectedReq) return;
     if (!newPassword.trim()) {
       showToast('Password tidak boleh kosong', 'error');
@@ -323,20 +386,34 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
       return;
     }
     
-    setRequests(prev => prev.map(r => 
-      r.id === selectedReq?.id ? { 
-        ...r, 
+    try {
+      const updatedReq = { 
+        ...selectedReq, 
         status: RequestStatus.SELESAI, 
         updatedAt: Date.now(),
         reset_password: newPassword,
         reset_info: { by: currentUser.nama, at_iso: new Date().toISOString(), password_set: true }
-      } : r
-    ));
-    showToast(`Password untuk ${selectedReq?.nama} berhasil diperbarui`);
-    addLog?.('Reset Password', `Menyelesaikan permintaan reset password: ${selectedReq.nama}`);
-    setSelectedReq(null);
-    setNewPassword('');
-    setShowWeakWarning(false);
+      };
+
+      const res = await fetch(`/api/requests/${selectedReq.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedReq)
+      });
+      if (!res.ok) throw new Error('Failed to update');
+
+      setRequests(prev => prev.map(r => 
+        r.id === selectedReq?.id ? updatedReq : r
+      ));
+      showToast(`Password untuk ${selectedReq?.nama} berhasil diperbarui`);
+      addLog?.('Reset Password', `Menyelesaikan permintaan reset password: ${selectedReq.nama}`);
+      setSelectedReq(null);
+      setNewPassword('');
+      setShowWeakWarning(false);
+    } catch (error) {
+      console.error('Execute reset failed:', error);
+      showToast('Gagal menyimpan hasil reset ke server', 'error');
+    }
   };
 
   return (

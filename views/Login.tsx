@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import { Personnel, LogEntry, SiteSettings } from '../types';
-import { INITIAL_PERSONNEL } from '../constants';
 
 interface LoginProps {
   onLogin: (user: Personnel) => void;

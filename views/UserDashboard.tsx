@@ -76,7 +76,7 @@ const UserDashboard: React.FC<UserDashboardProps> = ({
     }).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
   }, [requests, currentUser, searchTerm, statusFilter]);
 
-  const handleAjukanReset = () => {
+  const handleAjukanReset = async () => {
     if (!formNama.trim() || !formNRP.trim()) {
       showToast?.('Nama dan NRP wajib diisi', 'error');
       return;
@@ -98,11 +98,23 @@ const UserDashboard: React.FC<UserDashboardProps> = ({
       createdAt: Date.now()
     };
 
-    if (setRequests) {
-      setRequests(prev => [newRequest, ...prev]);
-      addNotification?.('Permintaan Reset Baru', `Personel ${formNama} mengajukan reset.`, 'request', requestId);
-      showToast?.('Permintaan reset password berhasil dikirim');
-      setIsModalOpen(false);
+    try {
+      const res = await fetch('/api/requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newRequest)
+      });
+      if (!res.ok) throw new Error('Failed to submit request');
+
+      if (setRequests) {
+        setRequests(prev => [newRequest, ...prev]);
+        addNotification?.('Permintaan Reset Baru', `Personel ${formNama} mengajukan reset.`, 'request', requestId);
+        showToast?.('Permintaan reset password berhasil dikirim');
+        setIsModalOpen(false);
+      }
+    } catch (error) {
+      console.error('Submit failed:', error);
+      showToast?.('Gagal mengirim permintaan ke server', 'error');
     }
   };
 
