@@ -54,11 +54,15 @@ async function initializeDatabase() {
         jabatan VARCHAR(255),
         kesatuan VARCHAR(255),
         email VARCHAR(255),
-        role ENUM('SUPERADMIN', 'ADMIN', 'USER') DEFAULT 'USER',
+        role ENUM('superadmin', 'admin', 'user') DEFAULT 'user',
         password VARCHAR(255) NOT NULL,
         lastLogin BIGINT
       )
     `);
+
+    // Ensure role enum is lowercase and update existing data
+    await pool.query("ALTER TABLE personnel MODIFY COLUMN role ENUM('superadmin', 'admin', 'user') DEFAULT 'user'");
+    await pool.query("UPDATE personnel SET role = LOWER(role)");
 
     // Table: Reset Requests
     await pool.query(`
@@ -105,48 +109,48 @@ async function initializeDatabase() {
 
     // --- MIGRATION DATA FROM mock-data.ts ---
     const mockPersonnel = [
-      { id: "SA1", nama: "AKBP Budiono", pangkat: "AKBP", nrp: "78010001", jabatan: "Kabid Tik", kesatuan: "Polda Jatim", email: "superadmin1@polri.go.id", role: "SUPERADMIN", password: "superadmin123" },
-      { id: "SA2", nama: "Kompol Siti Aminah", pangkat: "Kompol", nrp: "82050002", jabatan: "Kasubag Tekinfo", kesatuan: "Polda Jatim", email: "superadmin2@polri.go.id", role: "SUPERADMIN", password: "siperadmin123" },
-      { id: "SA3", nama: "URYANDUKNIS", pangkat: "Super Admin", nrp: "410804003", jabatan: "URYANDUKNIS SUBBIDTEKINFO BID TIK POLDA JATIM", kesatuan: "Polda Jatim", email: "uryanduknis.superadmin@polri.go.id", role: "SUPERADMIN", password: "pCtAi9T2221G" },
-      { id: "ADM_416409000", nama: "Polrestabes Surabaya", pangkat: "User", nrp: "416409000", jabatan: "Kasi Tik", kesatuan: "POLRESTABES SURABAYA", email: "sitikrestabessurabaya.jatim@polri.go.id", role: "USER", password: "pCtAi9T2221G" },
-      { id: "ADM_415809000", nama: "Polresta Sidoarjo", pangkat: "User", nrp: "415809000", jabatan: "Kasi Tik", kesatuan: "POLRESTA SIDOARJO", email: "sitikrestasidoarjo.jatim@polri.go.id", role: "USER", password: "B41ShY4ASw6m" },
-      { id: "ADM_414409000", nama: "Polres Malang Kota", pangkat: "User", nrp: "414409000", jabatan: "Kasi Tik", kesatuan: "POLRES MALANG KOTA", email: "sitikresmalangkota.jatim@polri.go.id", role: "USER", password: "pCtAi9T2221G" },
-      { id: "ADM_412709000", nama: "Polresta Banyuwangi", pangkat: "User", nrp: "412709000", jabatan: "Kasi Tik", kesatuan: "POLRESTA BANYUWANGI", email: "sitikrestabanyuwangi.jatim@polri.go.id", role: "USER", password: "B41ShY4ASw6m" },
-      { id: "ADM_415309000", nama: "Polres Pelabuhan Tanjung Perak", pangkat: "User", nrp: "415309000", jabatan: "Kasi Tik", kesatuan: "POLRES PELABUHAN TANJUNG PERAK", email: "sitikrespelabuhantanjungperak.jatim@polri.go.id", role: "USER", password: "pCtAi9T2221G" },
-      { id: "ADM_413309000", nama: "Polres Gresik", pangkat: "User", nrp: "413309000", jabatan: "Kasi Tik", kesatuan: "POLRES GRESIK", email: "sitikresgresik.jatim@polri.go.id", role: "USER", password: "pCtAi9T2221G" },
-      { id: "ADM_414309000", nama: "Polres Malang", pangkat: "User", nrp: "414309000", jabatan: "Kasi Tik", kesatuan: "POLRES MALANG", email: "sitikresmalang.jatim@polri.go.id", role: "USER", password: "pCtAi9T2221G" },
-      { id: "ADM_415109000", nama: "Polres Pasuruan", pangkat: "User", nrp: "415109000", jabatan: "Kasi Tik", kesatuan: "POLRES PASURUAN", email: "sitikrespasuruan.jatim@polri.go.id", role: "USER", password: "pCtAi9T2221G" },
-      { id: "ADM_415209000", nama: "Polres Pasuruan Kota", pangkat: "User", nrp: "415209000", jabatan: "Kasi Tik", kesatuan: "POLRES PASURUAN KOTA", email: "sitikrespasuruankota.jatim@polri.go.id", role: "USER", password: "pCtAi9T2221G" },
-      { id: "ADM_415509000", nama: "Polres Probolinggo", pangkat: "User", nrp: "415509000", jabatan: "Kasi Tik", kesatuan: "POLRES PROBOLINGGO", email: "sitikresprobolinggo.jatim@polri.go.id", role: "USER", password: "pCtAi9T2221G" },
-      { id: "ADM_415609000", nama: "Polres Probolinggo Kota", pangkat: "User", nrp: "415609000", jabatan: "Kasi Tik", kesatuan: "POLRES PROBOLINGGO KOTA", email: "sitikresprobolinggokota.jatim@polri.go.id", role: "USER", password: "pCtAi9T2221G" },
-      { id: "ADM_412809000", nama: "Polres Batu", pangkat: "User", nrp: "412809000", jabatan: "Kasi Tik", kesatuan: "POLRES BATU", email: "sitikresbatu.jatim@polri.go.id", role: "USER", password: "pCtAi9T2221G" },
-      { id: "ADM_413909000", nama: "Polres Lumajang", pangkat: "User", nrp: "413909000", jabatan: "Kasi Tik", kesatuan: "POLRES LUMAJANG", email: "sitikreslumajang.jatim@polri.go.id", role: "USER", password: "pCtAi9T2221G" },
-      { id: "ADM_413209000", nama: "Polres Bondowoso", pangkat: "User", nrp: "413209000", jabatan: "Kasi Tik", kesatuan: "POLRES BONDOWOSO", email: "sitikresbondowoso.jatim@polri.go.id", role: "USER", password: "pCtAi9T2221G" },
-      { id: "ADM_415909000", nama: "Polres Situbondo", pangkat: "User", nrp: "415909000", jabatan: "Kasi Tik", kesatuan: "POLRES SITUBONDO", email: "sitikressitubondo.jatim@polri.go.id", role: "USER", password: "pCtAi9T2221G" },
-      { id: "ADM_413409000", nama: "Polres Jember", pangkat: "User", nrp: "413409000", jabatan: "Kasi Tik", kesatuan: "POLRES JEMBER", email: "sitikresjember.jatim@polri.go.id", role: "USER", password: "pCtAi9T2221G" },
-      { id: "ADM_413609000", nama: "Polres Kediri", pangkat: "User", nrp: "413609000", jabatan: "Kasi Tik", kesatuan: "POLRES KEDIRI", email: "sitikreskediri.jatim@polri.go.id", role: "USER", password: "pCtAi9T2221G" },
-      { id: "ADM_413709000", nama: "Polres Kediri Kota", pangkat: "User", nrp: "413709000", jabatan: "Kasi Tik", kesatuan: "POLRES KEDIRI KOTA", email: "sitikreskedirikota.jatim@polri.go.id", role: "USER", password: "pCtAi9T2221G" },
-      { id: "ADM_416309000", nama: "Polres Tulungagung", pangkat: "User", nrp: "416309000", jabatan: "Kasi Tik", kesatuan: "POLRES TULUNGAGUNG", email: "sitikrestulungagung.jatim@polri.go.id", role: "USER", password: "pCtAi9T2221G" },
-      { id: "ADM_412909000", nama: "Polres Blitar", pangkat: "User", nrp: "412909000", jabatan: "Kasi Tik", kesatuan: "POLRES BLITAR", email: "sitikresblitar.jatim@polri.go.id", role: "USER", password: "pCtAi9T2221G" },
-      { id: "ADM_413009000", nama: "Polres Blitar Kota", pangkat: "User", nrp: "413009000", jabatan: "Kasi Tik", kesatuan: "POLRES BLITAR KOTA", email: "sitikresblitarkota.jatim@polri.go.id", role: "USER", password: "pCtAi9T2221G" },
-      { id: "ADM_416109000", nama: "Polres Trenggalek", pangkat: "User", nrp: "416109000", jabatan: "Kasi Tik", kesatuan: "POLRES TRENGGALEK", email: "sitikrestrenggalek.jatim@polri.go.id", role: "USER", password: "pCtAi9T2221G" },
-      { id: "ADM_414709000", nama: "Polres Nganjuk", pangkat: "User", nrp: "414709000", jabatan: "Kasi Tik", kesatuan: "POLRES NGANJUK", email: "sitikresnganjuk.jatim@polri.go.id", role: "USER", password: "pCtAi9T2221G" },
-      { id: "ADM_413509000", nama: "Polres Jombang", pangkat: "User", nrp: "413509000", jabatan: "Kasi Tik", kesatuan: "POLRES JOMBANG", email: "sitikresjombang.jatim@polri.go.id", role: "USER", password: "pCtAi9T2221G" },
-      { id: "ADM_414009000", nama: "Polres Madiun", pangkat: "User", nrp: "414009000", jabatan: "Kasi Tik", kesatuan: "POLRES MADIUN", email: "sitikresmadiun.jatim@polri.go.id", role: "USER", password: "pCtAi9T2221G" },
-      { id: "ADM_414109000", nama: "Polres Madiun Kota", pangkat: "User", nrp: "414109000", jabatan: "Kasi Tik", kesatuan: "POLRES MADIUN KOTA", email: "sitikresmadiunkota.jatim@polri.go.id", role: "USER", password: "pCtAi9T2221G" },
-      { id: "ADM_414809000", nama: "Polres Ngawi", pangkat: "User", nrp: "414809000", jabatan: "Kasi Tik", kesatuan: "POLRES NGAWI", email: "sitikresngawi.jatim@polri.go.id", role: "USER", password: "pCtAi9T2221G" },
-      { id: "ADM_414209000", nama: "Polres Magetan", pangkat: "User", nrp: "414209000", jabatan: "Kasi Tik", kesatuan: "POLRES MAGETAN", email: "sitikresmagetan.jatim@polri.go.id", role: "USER", password: "pCtAi9T2221G" },
-      { id: "ADM_415409000", nama: "Polres Ponorogo", pangkat: "User", nrp: "415409000", jabatan: "Kasi Tik", kesatuan: "POLRES PONOROGO", email: "sitikresponorogo.jatim@polri.go.id", role: "USER", password: "pCtAi9T2221G" },
-      { id: "ADM_414909000", nama: "Polres Pacitan", pangkat: "User", nrp: "414909000", jabatan: "Kasi Tik", kesatuan: "POLRES PACITAN", email: "sitikrespacitan.jatim@polri.go.id", role: "USER", password: "pCtAi9T2221G" },
-      { id: "ADM_413109000", nama: "Polres Bojonegoro", pangkat: "User", nrp: "413109000", jabatan: "Kasi Tik", kesatuan: "POLRES BOJONEGORO", email: "sitikresbojonegoro.jatim@polri.go.id", role: "USER", password: "pCtAi9T2221G" },
-      { id: "ADM_416209000", nama: "Polres Tuban", pangkat: "User", nrp: "416209000", jabatan: "Kasi Tik", kesatuan: "POLRES TUBAN", email: "sitikrestuban.jatim@polri.go.id", role: "USER", password: "pCtAi9T2221G" },
-      { id: "ADM_413809000", nama: "Polres Lamongan", pangkat: "User", nrp: "413809000", jabatan: "Kasi Tik", kesatuan: "POLRES LAMONGAN", email: "sitikreslamongan.jatim@polri.go.id", role: "USER", password: "pCtAi9T2221G" },
-      { id: "ADM_414509000", nama: "Polres Mojokerto", pangkat: "User", nrp: "414509000", jabatan: "Kasi Tik", kesatuan: "POLRES MOJOKERTO", email: "sitikresmojokerto.jatim@polri.go.id", role: "USER", password: "pCtAi9T2221G" },
-      { id: "ADM_414609000", nama: "Polres Mojokerto Kota", pangkat: "User", nrp: "414609000", jabatan: "Kasi Tik", kesatuan: "POLRES MOJOKERTO KOTA", email: "sitikresmojokertokota.jatim@polri.go.id", role: "USER", password: "pCtAi9T2221G" },
-      { id: "ADM_412609000", nama: "Polres Bangkalan", pangkat: "User", nrp: "412609000", jabatan: "Kasi Tik", kesatuan: "POLRES BANGKALAN", email: "sitikresbangkalan.jatim@polri.go.id", role: "USER", password: "pCtAi9T2221G" },
-      { id: "ADM_415709000", nama: "Polres Sampang", pangkat: "User", nrp: "415709000", jabatan: "Kasi Tik", kesatuan: "POLRES SAMPANG", email: "sitikressampang.jatim@polri.go.id", role: "USER", password: "pCtAi9T2221G" },
-      { id: "ADM_415009000", nama: "Polres Pamekasan", pangkat: "User", nrp: "415009000", jabatan: "Kasi Tik", kesatuan: "POLRES PAMEKASAN", email: "sitikrespamekasan.jatim@polri.go.id", role: "USER", password: "pCtAi9T2221G" },
-      { id: "ADM_416009000", nama: "Polres Sumenep", pangkat: "User", nrp: "416009000", jabatan: "Kasi Tik", kesatuan: "POLRES SUMENEP", email: "sitikressumenep.jatim@polri.go.id", role: "USER", password: "pCtAi9T2221G" }
+      { id: "SA1", nama: "AKBP Budiono", pangkat: "AKBP", nrp: "78010001", jabatan: "Kabid Tik", kesatuan: "Polda Jatim", email: "superadmin1@polri.go.id", role: "superadmin", password: "superadmin123" },
+      { id: "SA2", nama: "Kompol Siti Aminah", pangkat: "Kompol", nrp: "82050002", jabatan: "Kasubag Tekinfo", kesatuan: "Polda Jatim", email: "superadmin2@polri.go.id", role: "superadmin", password: "siperadmin123" },
+      { id: "SA3", nama: "URYANDUKNIS", pangkat: "Super Admin", nrp: "410804003", jabatan: "URYANDUKNIS SUBBIDTEKINFO BID TIK POLDA JATIM", kesatuan: "Polda Jatim", email: "uryanduknis.superadmin@polri.go.id", role: "superadmin", password: "pCtAi9T2221G" },
+      { id: "ADM_416409000", nama: "Polrestabes Surabaya", pangkat: "User", nrp: "416409000", jabatan: "Kasi Tik", kesatuan: "POLRESTABES SURABAYA", email: "sitikrestabessurabaya.jatim@polri.go.id", role: "user", password: "pCtAi9T2221G" },
+      { id: "ADM_415809000", nama: "Polresta Sidoarjo", pangkat: "User", nrp: "415809000", jabatan: "Kasi Tik", kesatuan: "POLRESTA SIDOARJO", email: "sitikrestasidoarjo.jatim@polri.go.id", role: "user", password: "B41ShY4ASw6m" },
+      { id: "ADM_414409000", nama: "Polres Malang Kota", pangkat: "User", nrp: "414409000", jabatan: "Kasi Tik", kesatuan: "POLRES MALANG KOTA", email: "sitikresmalangkota.jatim@polri.go.id", role: "user", password: "pCtAi9T2221G" },
+      { id: "ADM_412709000", nama: "Polresta Banyuwangi", pangkat: "User", nrp: "412709000", jabatan: "Kasi Tik", kesatuan: "POLRESTA BANYUWANGI", email: "sitikrestabanyuwangi.jatim@polri.go.id", role: "user", password: "B41ShY4ASw6m" },
+      { id: "ADM_415309000", nama: "Polres Pelabuhan Tanjung Perak", pangkat: "User", nrp: "415309000", jabatan: "Kasi Tik", kesatuan: "POLRES PELABUHAN TANJUNG PERAK", email: "sitikrespelabuhantanjungperak.jatim@polri.go.id", role: "user", password: "pCtAi9T2221G" },
+      { id: "ADM_413309000", nama: "Polres Gresik", pangkat: "User", nrp: "413309000", jabatan: "Kasi Tik", kesatuan: "POLRES GRESIK", email: "sitikresgresik.jatim@polri.go.id", role: "user", password: "pCtAi9T2221G" },
+      { id: "ADM_414309000", nama: "Polres Malang", pangkat: "User", nrp: "414309000", jabatan: "Kasi Tik", kesatuan: "POLRES MALANG", email: "sitikresmalang.jatim@polri.go.id", role: "user", password: "pCtAi9T2221G" },
+      { id: "ADM_415109000", nama: "Polres Pasuruan", pangkat: "User", nrp: "415109000", jabatan: "Kasi Tik", kesatuan: "POLRES PASURUAN", email: "sitikrespasuruan.jatim@polri.go.id", role: "user", password: "pCtAi9T2221G" },
+      { id: "ADM_415209000", nama: "Polres Pasuruan Kota", pangkat: "User", nrp: "415209000", jabatan: "Kasi Tik", kesatuan: "POLRES PASURUAN KOTA", email: "sitikrespasuruankota.jatim@polri.go.id", role: "user", password: "pCtAi9T2221G" },
+      { id: "ADM_415509000", nama: "Polres Probolinggo", pangkat: "User", nrp: "415509000", jabatan: "Kasi Tik", kesatuan: "POLRES PROBOLINGGO", email: "sitikresprobolinggo.jatim@polri.go.id", role: "user", password: "pCtAi9T2221G" },
+      { id: "ADM_415609000", nama: "Polres Probolinggo Kota", pangkat: "User", nrp: "415609000", jabatan: "Kasi Tik", kesatuan: "POLRES PROBOLINGGO KOTA", email: "sitikresprobolinggokota.jatim@polri.go.id", role: "user", password: "pCtAi9T2221G" },
+      { id: "ADM_412809000", nama: "Polres Batu", pangkat: "User", nrp: "412809000", jabatan: "Kasi Tik", kesatuan: "POLRES BATU", email: "sitikresbatu.jatim@polri.go.id", role: "user", password: "pCtAi9T2221G" },
+      { id: "ADM_413909000", nama: "Polres Lumajang", pangkat: "User", nrp: "413909000", jabatan: "Kasi Tik", kesatuan: "POLRES LUMAJANG", email: "sitikreslumajang.jatim@polri.go.id", role: "user", password: "pCtAi9T2221G" },
+      { id: "ADM_413209000", nama: "Polres Bondowoso", pangkat: "User", nrp: "413209000", jabatan: "Kasi Tik", kesatuan: "POLRES BONDOWOSO", email: "sitikresbondowoso.jatim@polri.go.id", role: "user", password: "pCtAi9T2221G" },
+      { id: "ADM_415909000", nama: "Polres Situbondo", pangkat: "User", nrp: "415909000", jabatan: "Kasi Tik", kesatuan: "POLRES SITUBONDO", email: "sitikressitubondo.jatim@polri.go.id", role: "user", password: "pCtAi9T2221G" },
+      { id: "ADM_413409000", nama: "Polres Jember", pangkat: "User", nrp: "413409000", jabatan: "Kasi Tik", kesatuan: "POLRES JEMBER", email: "sitikresjember.jatim@polri.go.id", role: "user", password: "pCtAi9T2221G" },
+      { id: "ADM_413609000", nama: "Polres Kediri", pangkat: "User", nrp: "413609000", jabatan: "Kasi Tik", kesatuan: "POLRES KEDIRI", email: "sitikreskediri.jatim@polri.go.id", role: "user", password: "pCtAi9T2221G" },
+      { id: "ADM_413709000", nama: "Polres Kediri Kota", pangkat: "User", nrp: "413709000", jabatan: "Kasi Tik", kesatuan: "POLRES KEDIRI KOTA", email: "sitikreskedirikota.jatim@polri.go.id", role: "user", password: "pCtAi9T2221G" },
+      { id: "ADM_416309000", nama: "Polres Tulungagung", pangkat: "User", nrp: "416309000", jabatan: "Kasi Tik", kesatuan: "POLRES TULUNGAGUNG", email: "sitikrestulungagung.jatim@polri.go.id", role: "user", password: "pCtAi9T2221G" },
+      { id: "ADM_412909000", nama: "Polres Blitar", pangkat: "User", nrp: "412909000", jabatan: "Kasi Tik", kesatuan: "POLRES BLITAR", email: "sitikresblitar.jatim@polri.go.id", role: "user", password: "pCtAi9T2221G" },
+      { id: "ADM_413009000", nama: "Polres Blitar Kota", pangkat: "User", nrp: "413009000", jabatan: "Kasi Tik", kesatuan: "POLRES BLITAR KOTA", email: "sitikresblitarkota.jatim@polri.go.id", role: "user", password: "pCtAi9T2221G" },
+      { id: "ADM_416109000", nama: "Polres Trenggalek", pangkat: "User", nrp: "416109000", jabatan: "Kasi Tik", kesatuan: "POLRES TRENGGALEK", email: "sitikrestrenggalek.jatim@polri.go.id", role: "user", password: "pCtAi9T2221G" },
+      { id: "ADM_414709000", nama: "Polres Nganjuk", pangkat: "User", nrp: "414709000", jabatan: "Kasi Tik", kesatuan: "POLRES NGANJUK", email: "sitikresnganjuk.jatim@polri.go.id", role: "user", password: "pCtAi9T2221G" },
+      { id: "ADM_413509000", nama: "Polres Jombang", pangkat: "User", nrp: "413509000", jabatan: "Kasi Tik", kesatuan: "POLRES JOMBANG", email: "sitikresjombang.jatim@polri.go.id", role: "user", password: "pCtAi9T2221G" },
+      { id: "ADM_414009000", nama: "Polres Madiun", pangkat: "User", nrp: "414009000", jabatan: "Kasi Tik", kesatuan: "POLRES MADIUN", email: "sitikresmadiun.jatim@polri.go.id", role: "user", password: "pCtAi9T2221G" },
+      { id: "ADM_414109000", nama: "Polres Madiun Kota", pangkat: "User", nrp: "414109000", jabatan: "Kasi Tik", kesatuan: "POLRES MADIUN KOTA", email: "sitikresmadiunkota.jatim@polri.go.id", role: "user", password: "pCtAi9T2221G" },
+      { id: "ADM_414809000", nama: "Polres Ngawi", pangkat: "User", nrp: "414809000", jabatan: "Kasi Tik", kesatuan: "POLRES NGAWI", email: "sitikresngawi.jatim@polri.go.id", role: "user", password: "pCtAi9T2221G" },
+      { id: "ADM_414209000", nama: "Polres Magetan", pangkat: "User", nrp: "414209000", jabatan: "Kasi Tik", kesatuan: "POLRES MAGETAN", email: "sitikresmagetan.jatim@polri.go.id", role: "user", password: "pCtAi9T2221G" },
+      { id: "ADM_415409000", nama: "Polres Ponorogo", pangkat: "User", nrp: "415409000", jabatan: "Kasi Tik", kesatuan: "POLRES PONOROGO", email: "sitikresponorogo.jatim@polri.go.id", role: "user", password: "pCtAi9T2221G" },
+      { id: "ADM_414909000", nama: "Polres Pacitan", pangkat: "User", nrp: "414909000", jabatan: "Kasi Tik", kesatuan: "POLRES PACITAN", email: "sitikrespacitan.jatim@polri.go.id", role: "user", password: "pCtAi9T2221G" },
+      { id: "ADM_413109000", nama: "Polres Bojonegoro", pangkat: "User", nrp: "413109000", jabatan: "Kasi Tik", kesatuan: "POLRES BOJONEGORO", email: "sitikresbojonegoro.jatim@polri.go.id", role: "user", password: "pCtAi9T2221G" },
+      { id: "ADM_416209000", nama: "Polres Tuban", pangkat: "User", nrp: "416209000", jabatan: "Kasi Tik", kesatuan: "POLRES TUBAN", email: "sitikrestuban.jatim@polri.go.id", role: "user", password: "pCtAi9T2221G" },
+      { id: "ADM_413809000", nama: "Polres Lamongan", pangkat: "User", nrp: "413809000", jabatan: "Kasi Tik", kesatuan: "POLRES LAMONGAN", email: "sitikreslamongan.jatim@polri.go.id", role: "user", password: "pCtAi9T2221G" },
+      { id: "ADM_414509000", nama: "Polres Mojokerto", pangkat: "User", nrp: "414509000", jabatan: "Kasi Tik", kesatuan: "POLRES MOJOKERTO", email: "sitikresmojokerto.jatim@polri.go.id", role: "user", password: "pCtAi9T2221G" },
+      { id: "ADM_414609000", nama: "Polres Mojokerto Kota", pangkat: "User", nrp: "414609000", jabatan: "Kasi Tik", kesatuan: "POLRES MOJOKERTO KOTA", email: "sitikresmojokertokota.jatim@polri.go.id", role: "user", password: "pCtAi9T2221G" },
+      { id: "ADM_412609000", nama: "Polres Bangkalan", pangkat: "User", nrp: "412609000", jabatan: "Kasi Tik", kesatuan: "POLRES BANGKALAN", email: "sitikresbangkalan.jatim@polri.go.id", role: "user", password: "pCtAi9T2221G" },
+      { id: "ADM_415709000", nama: "Polres Sampang", pangkat: "User", nrp: "415709000", jabatan: "Kasi Tik", kesatuan: "POLRES SAMPANG", email: "sitikressampang.jatim@polri.go.id", role: "user", password: "pCtAi9T2221G" },
+      { id: "ADM_415009000", nama: "Polres Pamekasan", pangkat: "User", nrp: "415009000", jabatan: "Kasi Tik", kesatuan: "POLRES PAMEKASAN", email: "sitikrespamekasan.jatim@polri.go.id", role: "user", password: "pCtAi9T2221G" },
+      { id: "ADM_416009000", nama: "Polres Sumenep", pangkat: "User", nrp: "416009000", jabatan: "Kasi Tik", kesatuan: "POLRES SUMENEP", email: "sitikressumenep.jatim@polri.go.id", role: "user", password: "pCtAi9T2221G" }
     ];
 
     // Insert Personnel ONLY if table is empty or missing these users
@@ -210,12 +214,20 @@ async function startServer() {
   });
 
   app.post('/api/login', async (req: any, res: any) => {
-    const { nrp, password } = req.body;
-    const [rows]: any = await pool.query('SELECT * FROM personnel WHERE nrp = ? AND password = ?', [nrp, password]);
+    const { email, password } = req.body;
+    console.log(`[LOGIN] Attempt for email: ${email}`);
+    
+    const [rows]: any = await pool.query(
+      'SELECT * FROM personnel WHERE email = ? AND password = ?', 
+      [email.trim(), password.trim()]
+    );
+    
     if (rows.length > 0) {
+      console.log(`[LOGIN] Success for: ${rows[0].nama}`);
       res.json({ success: true, user: rows[0] });
     } else {
-      res.status(401).json({ success: false, message: 'NRP atau Password salah' });
+      console.log(`[LOGIN] Failed for email: ${email}`);
+      res.status(401).json({ success: false, message: 'Email atau Password salah' });
     }
   });
 

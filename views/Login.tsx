@@ -10,7 +10,7 @@ interface LoginProps {
 }
 
 const Login: React.FC<LoginProps> = ({ onLogin, addLog, siteSettings }) => {
-  const [nrp, setNrp] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -28,18 +28,18 @@ const Login: React.FC<LoginProps> = ({ onLogin, addLog, siteSettings }) => {
       const res = await fetch('/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nrp, password })
+        body: JSON.stringify({ email, password })
       });
       
       const data = await res.json();
       
-      if (data.success) {
-        onLogin(data.user);
-        if (addLog) addLog('Login', `Pengguna ${data.user.nama} berhasil masuk ke sistem`);
-        setRedirectToDashboard(true);
-      } else {
-        setError(data.message || 'Akses ditolak. NRP atau kata sandi tidak valid.');
-      }
+          if (data.success) {
+            onLogin(data.user);
+            if (addLog) addLog('Login', `Pengguna ${data.user.nama} berhasil masuk ke sistem`);
+            setRedirectToDashboard(true);
+          } else {
+            setError(data.message || 'Akses ditolak. Email atau kata sandi tidak valid.');
+          }
     } catch (err) {
       setError('Terjadi kesalahan koneksi ke server.');
     } finally {
@@ -105,17 +105,17 @@ const Login: React.FC<LoginProps> = ({ onLogin, addLog, siteSettings }) => {
           <form onSubmit={handleSubmit} className="space-y-8">
             <div className="space-y-6">
               <div className="space-y-2">
-                <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">NRP Personel</label>
+                <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Email Personel</label>
                 <div className="relative group">
                   <input 
-                    type="text" 
+                    type="email" 
                     className="w-full px-6 py-4 rounded-2xl border border-slate-100 bg-slate-50/50 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 font-bold text-slate-700 placeholder:text-slate-300 transition-all pr-14"
-                    placeholder="Masukkan 8 digit NRP"
-                    value={nrp}
-                    onChange={(e) => setNrp(e.target.value)}
+                    placeholder="Masukkan Email Dinas"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     required
                   />
-                  <span className="material-symbols-outlined absolute right-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-500 transition-colors">badge</span>
+                  <span className="material-symbols-outlined absolute right-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-500 transition-colors">mail</span>
                 </div>
               </div>
 
