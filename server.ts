@@ -4,14 +4,97 @@ import cors from 'cors';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
 import dotenv from 'dotenv';
+import { Server } from 'socket.io';
+import http from 'http';
+import multer from 'multer';
+import fs from 'fs';
+import bcrypt from 'bcryptjs';
+import session from 'express-session';
+import cookieParser from 'cookie-parser';
+
+import jwt from 'jsonwebtoken';
+import nodemailer from 'nodemailer';
 
 dotenv.config();
 
 const app = express();
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"]
+  }
+});
 const PORT = 3000;
+const JWT_SECRET = process.env.JWT_SECRET || 'polda-jatim-jwt-secret-2024';
 
-app.use(cors());
+app.use(cors({
+  origin: true,
+  credentials: true
+}));
 app.use(express.json());
+app.use(cookieParser());
+
+// Nodemailer Transporter Configuration
+const transporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST || 'smtp.gmail.com',
+  port: parseInt(process.env.SMTP_PORT || '587'),
+  secure: process.env.SMTP_SECURE === 'true',
+  auth: {
+    user: process.env.SMTP_USER || 'your-email@polda-jatim.go.id',
+    pass: process.env.SMTP_PASS || 'your-app-password',
+  },
+});
+
+// Middleware to check if user is Admin or Super Admin using JWT
+const isAdmin = (req: any, res: any, next: any) => {
+  const token = req.cookies.token;
+  if (!token) {
+    return res.status(401).json({ success: false, message: 'Sesi berakhir. Silakan login kembali.' });
+  }
+
+  try {
+    const decoded: any = jwt.verify(token, JWT_SECRET);
+    if (decoded && (decoded.role === 'admin' || decoded.role === 'superadmin')) {
+      req.user = decoded;
+      next();
+    } else {
+      res.status(403).json({ success: false, message: 'Akses ditolak. Hak akses tidak cukup.' });
+    }
+  } catch (error) {
+    res.status(401).json({ success: false, message: 'Token tidak valid.' });
+  }
+};
+
+// Ensure private uploads directory exists
+const PRIVATE_UPLOAD_DIR = path.join(process.cwd(), 'private_uploads', 'kta');
+if (!fs.existsSync(PRIVATE_UPLOAD_DIR)) {
+  fs.mkdirSync(PRIVATE_UPLOAD_DIR, { recursive: true });
+}
+
+// Multer Configuration for Private Storage
+const storage = multer.diskStorage({
+  destination: (_req, _file, cb) => {
+    cb(null, PRIVATE_UPLOAD_DIR);
+  },
+  filename: (_req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({ 
+  storage: storage,
+  limits: { fileSize: 2 * 1024 * 1024 }, // 2MB limit as requested
+  fileFilter: (_req, file, cb) => {
+    const allowedMimeTypes = ['image/jpeg', 'image/png', 'application/pdf'];
+    if (allowedMimeTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Format file tidak didukung. Hanya JPEG, PNG, dan PDF yang diperbolehkan.'));
+    }
+  }
+});
 
 // Database Configuration
 const dbConfig = {
@@ -77,6 +160,7 @@ async function initializeDatabase() {
         waktu_iso VARCHAR(100),
         status ENUM('MENUNGGU', 'DIPROSES', 'SELESAI', 'DITOLAK') DEFAULT 'MENUNGGU',
         alasan TEXT,
+        alasan_penolakan TEXT,
         catatan TEXT,
         dokumen_kta TEXT,
         prioritas VARCHAR(50),
@@ -96,6 +180,7 @@ async function initializeDatabase() {
     if (!columnNames.includes('updatedAt')) await pool.query('ALTER TABLE reset_requests ADD COLUMN updatedAt BIGINT');
     if (!columnNames.includes('reset_password')) await pool.query('ALTER TABLE reset_requests ADD COLUMN reset_password VARCHAR(255)');
     if (!columnNames.includes('reset_info')) await pool.query('ALTER TABLE reset_requests ADD COLUMN reset_info TEXT');
+    if (!columnNames.includes('alasan_penolakan')) await pool.query('ALTER TABLE reset_requests ADD COLUMN alasan_penolakan TEXT');
 
     // Table: Logs
     await pool.query(`
@@ -173,10 +258,11 @@ async function initializeDatabase() {
     if (rows[0].count === 0) {
       console.log('[DATABASE] Melakukan migrasi data personel dari mock-data...');
       for (const p of mockPersonnel) {
+        const hashedPassword = await bcrypt.hash(p.password, 10);
         await pool.query(`
           INSERT INTO personnel (id, nama, pangkat, nrp, jabatan, kesatuan, email, role, password)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `, [p.id, p.nama, p.pangkat, p.nrp, p.jabatan, p.kesatuan, p.email, p.role, p.password]);
+        `, [p.id, p.nama, p.pangkat, p.nrp, p.jabatan, p.kesatuan, p.email, p.role, hashedPassword]);
       }
     }
 
@@ -192,29 +278,88 @@ async function startServer() {
   const pool = await initializeDatabase();
 
   // API Routes
-  app.get('/api/personnel', async (_req: any, res: any) => {
-    const [rows]: any = await pool.query('SELECT * FROM personnel ORDER BY nama ASC');
-    res.json(rows);
+  app.get('/api/personnel', async (req: any, res: any) => {
+    const page = parseInt(req.query.page || '1');
+    const limit = parseInt(req.query.limit || '10');
+    const offset = (page - 1) * limit;
+    const search = req.query.search || '';
+    const role = req.query.role;
+    const kesatuan = req.query.kesatuan;
+
+    let query = 'SELECT * FROM personnel';
+    let countQuery = 'SELECT COUNT(*) as count FROM personnel';
+    let params: any[] = [];
+    let whereClauses: string[] = [];
+
+    if (search) {
+      whereClauses.push('(nama LIKE ? OR nrp LIKE ? OR kesatuan LIKE ?)');
+      const s = `%${search}%`;
+      params.push(s, s, s);
+    }
+    if (role && role !== 'ALL') {
+      whereClauses.push('role = ?');
+      params.push(role);
+    }
+    if (kesatuan && kesatuan !== 'ALL') {
+      whereClauses.push('kesatuan = ?');
+      params.push(kesatuan);
+    }
+
+    if (whereClauses.length > 0) {
+      const whereStr = ' WHERE ' + whereClauses.join(' AND ');
+      query += whereStr;
+      countQuery += whereStr;
+    }
+
+    query += ' ORDER BY nama ASC LIMIT ? OFFSET ?';
+    const countParams = [...params];
+    params.push(limit, offset);
+
+    const [rows]: any = await pool.query(query, params);
+    const [totalRows]: any = await pool.query(countQuery, countParams);
+    
+    res.json({
+      data: rows,
+      total: totalRows[0].count,
+      page,
+      limit
+    });
   });
 
   app.post('/api/personnel', async (req: any, res: any) => {
     const p = req.body;
+    const hashedPassword = await bcrypt.hash(p.password || 'user!1234', 10);
     await pool.query(`
       INSERT INTO personnel (id, nama, pangkat, nrp, jabatan, kesatuan, email, role, password, status)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `, [p.id, p.nama, p.pangkat, p.nrp, p.jabatan, p.kesatuan, p.email, p.role, p.password || 'user!1234', p.status || 'Aktif']);
+    `, [p.id, p.nama, p.pangkat, p.nrp, p.jabatan, p.kesatuan, p.email, p.role, hashedPassword, p.status || 'Aktif']);
     res.json({ success: true });
   });
 
   app.put('/api/personnel/:id', async (req: any, res: any) => {
     const { id } = req.params;
     const p = req.body;
-    await pool.query(`
-      UPDATE personnel 
-      SET nama = ?, pangkat = ?, nrp = ?, jabatan = ?, kesatuan = ?, email = ?, role = ?, status = ?
-      WHERE id = ?
-    `, [p.nama, p.pangkat, p.nrp, p.jabatan, p.kesatuan, p.email, p.role, p.status, id]);
-    res.json({ success: true });
+    
+    try {
+      if (p.password) {
+        const hashedPassword = await bcrypt.hash(p.password, 10);
+        await pool.query(`
+          UPDATE personnel 
+          SET nama = ?, pangkat = ?, nrp = ?, jabatan = ?, kesatuan = ?, email = ?, role = ?, status = ?, password = ?
+          WHERE id = ?
+        `, [p.nama, p.pangkat, p.nrp, p.jabatan, p.kesatuan, p.email, p.role, p.status, hashedPassword, id]);
+      } else {
+        await pool.query(`
+          UPDATE personnel 
+          SET nama = ?, pangkat = ?, nrp = ?, jabatan = ?, kesatuan = ?, email = ?, role = ?, status = ?
+          WHERE id = ?
+        `, [p.nama, p.pangkat, p.nrp, p.jabatan, p.kesatuan, p.email, p.role, p.status, id]);
+      }
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Failed to update personnel:', error);
+      res.status(500).json({ success: false, message: 'Gagal memperbarui data personel' });
+    }
   });
 
   app.delete('/api/personnel/:id', async (req: any, res: any) => {
@@ -232,21 +377,36 @@ async function startServer() {
     const cleanEmail = email.trim().toLowerCase();
     const cleanPassword = password.trim();
 
-    console.log(`[LOGIN] Attempt for email: ${cleanEmail}`);
-    
     try {
       const [rows]: any = await pool.query(
-        'SELECT * FROM personnel WHERE LOWER(email) = ? AND password = ?', 
-        [cleanEmail, cleanPassword]
+        'SELECT * FROM personnel WHERE LOWER(email) = ?', 
+        [cleanEmail]
       );
       
       if (rows.length > 0) {
-        console.log(`[LOGIN] Success for: ${rows[0].nama}`);
-        // Don't send password back to client
-        const { password: _, ...userWithoutPassword } = rows[0];
-        res.json({ success: true, user: userWithoutPassword });
+        const user = rows[0];
+        const isMatch = await bcrypt.compare(cleanPassword, user.password);
+        
+        if (isMatch) {
+          // Don't send password back to client
+          const { password: _, ...userWithoutPassword } = user;
+          
+          // Create JWT Token
+          const token = jwt.sign(userWithoutPassword, JWT_SECRET, { expiresIn: '24h' });
+          
+          // Set HttpOnly Cookie
+          res.cookie('token', token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            maxAge: 24 * 60 * 60 * 1000 // 24 hours
+          });
+          
+          res.json({ success: true, user: userWithoutPassword });
+        } else {
+          res.status(401).json({ success: false, message: 'Email atau Password salah' });
+        }
       } else {
-        console.log(`[LOGIN] Failed for email: ${cleanEmail} - Invalid credentials`);
         res.status(401).json({ success: false, message: 'Email atau Password salah' });
       }
     } catch (error) {
@@ -255,17 +415,67 @@ async function startServer() {
     }
   });
 
-  app.get('/api/requests', async (_req: any, res: any) => {
-    const [rows]: any = await pool.query('SELECT * FROM reset_requests ORDER BY createdAt DESC');
+  app.post('/api/logout', (req: any, res: any) => {
+    res.clearCookie('token');
+    res.json({ success: true });
+  });
+
+  app.get('/api/requests', async (req: any, res: any) => {
+    const page = parseInt(req.query.page || '1');
+    const limit = parseInt(req.query.limit || '10');
+    const offset = (page - 1) * limit;
+    const status = req.query.status;
+    const priority = req.query.priority;
+    const search = req.query.search;
+
+    let query = 'SELECT * FROM reset_requests';
+    let countQuery = 'SELECT COUNT(*) as count FROM reset_requests';
+    let params: any[] = [];
+    let whereClauses: string[] = [];
+
+    if (status && status !== 'Semua') {
+      whereClauses.push('status = ?');
+      params.push(status);
+    }
+    if (priority && priority !== 'Semua') {
+      whereClauses.push('prioritas = ?');
+      params.push(priority);
+    }
+    if (search) {
+      whereClauses.push('(nama LIKE ? OR nrp LIKE ? OR kesatuan LIKE ?)');
+      const s = `%${search}%`;
+      params.push(s, s, s);
+    }
+
+    if (whereClauses.length > 0) {
+      const whereStr = ' WHERE ' + whereClauses.join(' AND ');
+      query += whereStr;
+      countQuery += whereStr;
+    }
+
+    query += ' ORDER BY createdAt DESC LIMIT ? OFFSET ?';
+    params.push(limit, offset);
+
+    const [rows]: any = await pool.query(query, params);
+    const [totalRows]: any = await pool.query(countQuery, params.slice(0, -2));
+
     const parsedRows = rows.map((r: any) => ({
       ...r,
       reset_info: r.reset_info ? JSON.parse(r.reset_info) : undefined
     }));
-    res.json(parsedRows);
+
+    res.json({
+      data: parsedRows,
+      total: totalRows[0].count,
+      page,
+      limit
+    });
   });
 
-  app.post('/api/requests', async (req: any, res: any) => {
+  app.post('/api/requests', upload.single('dokumen_kta_file'), async (req: any, res: any) => {
     const r = req.body;
+    const filename = req.file ? req.file.filename : (r.dokumen_kta || null);
+    
     try {
       await pool.query(`
         INSERT INTO reset_requests (
@@ -275,13 +485,36 @@ async function startServer() {
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [
         r.id, r.nama, r.pangkat, r.nrp, r.jabatan, r.kesatuan, r.kontak_person || null, 
-        r.waktu_iso, r.status, r.alasan, r.catatan || null, r.dokumen_kta || null, 
+        r.waktu_iso, r.status, r.alasan, r.catatan || null, filename, 
         r.prioritas || 'Normal', r.createdAt
       ]);
+
+      // Emit socket event for urgent requests
+      if (r.prioritas === 'Mendesak' || r.prioritas === 'MENDESAK') {
+        io.emit('urgent_request', {
+          id: r.id,
+          nama: r.nama,
+          nrp: r.nrp,
+          prioritas: r.prioritas
+        });
+      }
+
       res.json({ success: true });
     } catch (error) {
       console.error('Failed to create request:', error);
       res.status(500).json({ success: false, message: 'Gagal menyimpan data ke database' });
+    }
+  });
+
+  // Secure Download Route - Only accessible by Admin/Super Admin
+  app.get('/api/download/kta/:filename', isAdmin, async (req: any, res: any) => {
+    const { filename } = req.params;
+    const filePath = path.join(PRIVATE_UPLOAD_DIR, filename);
+    
+    if (fs.existsSync(filePath)) {
+      res.download(filePath);
+    } else {
+      res.status(404).send('File tidak ditemukan');
     }
   });
 
@@ -292,6 +525,13 @@ async function startServer() {
     try {
       // Convert reset_info to string if it's an object
       const resetInfoStr = r.reset_info ? JSON.stringify(r.reset_info) : null;
+      let hashedPassword = r.reset_password || null;
+
+      if (r.status === 'SELESAI' && r.reset_password) {
+        hashedPassword = await bcrypt.hash(r.reset_password, 10);
+        // Update the personnel password as well
+        await pool.query('UPDATE personnel SET password = ? WHERE nrp = ?', [hashedPassword, r.nrp]);
+      }
 
       await pool.query(`
         UPDATE reset_requests 
@@ -300,17 +540,46 @@ async function startServer() {
             catatan = ?, 
             updatedAt = ?, 
             reset_info = ?,
-            prioritas = ?
+            prioritas = ?,
+            alasan_penolakan = ?
         WHERE id = ?
       `, [
         r.status, 
-        r.reset_password || null, 
+        hashedPassword, 
         r.catatan || null, 
         r.updatedAt || null, 
         resetInfoStr, 
         r.prioritas || 'Normal',
+        r.alasan_penolakan || null,
         id
       ]);
+
+      // If status is DITOLAK, send email notification
+      if (r.status === 'DITOLAK') {
+        const [userRows]: any = await pool.query('SELECT email FROM personnel WHERE nrp = ?', [r.nrp]);
+        const userEmail = userRows.length > 0 ? userRows[0].email : null;
+        
+        if (userEmail) {
+          const mailOptions = {
+            from: process.env.SMTP_USER || 'your-email@polda-jatim.go.id',
+            to: userEmail,
+            subject: 'Permohonan Reset Password Ditolak',
+            text: `Halo ${r.nama},\n\nPermohonan reset password Anda dengan ID ${id} telah ditolak.\n\nAlasan Penolakan: ${r.alasan_penolakan}\n\nSilakan hubungi administrator jika ada pertanyaan.\n\nTerima kasih.`
+          };
+          await transporter.sendMail(mailOptions);
+        }
+      }
+
+      // Emit socket event if priority changed to urgent
+      if (r.prioritas === 'Mendesak' || r.prioritas === 'MENDESAK') {
+        io.emit('urgent_request', {
+          id: id,
+          nama: r.nama,
+          nrp: r.nrp,
+          prioritas: r.prioritas
+        });
+      }
+
       res.json({ success: true });
     } catch (error) {
       console.error('Failed to update request:', error);
@@ -351,11 +620,12 @@ async function startServer() {
       const log = req.body;
       const userNama = log.user?.nama || 'Unknown';
       const userRole = log.user?.role || 'Unknown';
+      const ipAddress = req.headers['x-forwarded-for'] || req.socket.remoteAddress || log.ipAddress || 'Unknown';
 
       await pool.query(`
         INSERT INTO logs (id, waktu, user_nama, user_role, aktivitas, keterangan, ipAddress)
         VALUES (?, ?, ?, ?, ?, ?, ?)
-      `, [log.id, log.waktu, userNama, userRole, log.aktivitas, log.keterangan, log.ipAddress]);
+      `, [log.id, log.waktu, userNama, userRole, log.aktivitas, log.keterangan, ipAddress]);
       res.json({ success: true });
     } catch (error) {
       console.error('Failed to create log:', error);
@@ -372,13 +642,31 @@ async function startServer() {
       return res.status(404).json({ success: false, message: 'NRP tidak terdaftar' });
     }
 
+    const user = rows[0];
     const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = Date.now() + (5 * 60 * 1000); // 5 minutes
 
     await pool.query('INSERT INTO otp_codes (nrp, code, expiresAt) VALUES (?, ?, ?)', [nrp, otpCode, expiresAt]);
     
-    console.log(`[SIMULASI OTP] Kode OTP untuk ${nrp} adalah: ${otpCode}`);
-    res.json({ success: true, message: 'OTP telah dikirim (Cek console server untuk simulasi)' });
+    try {
+      if (user.email) {
+        const mailOptions = {
+          from: process.env.SMTP_USER || 'your-email@polda-jatim.go.id',
+          to: user.email,
+          subject: 'Kode Verifikasi Reset Password (OTP)',
+          text: `Halo ${user.nama},\n\nKode verifikasi (OTP) Anda adalah: ${otpCode}\n\nKode ini berlaku selama 5 menit.\n\nJika Anda tidak merasa melakukan permintaan ini, silakan abaikan email ini.`
+        };
+        await transporter.sendMail(mailOptions);
+        res.json({ success: true, message: 'OTP telah dikirim ke email Anda' });
+      } else {
+        console.log(`[SIMULASI OTP] Kode OTP untuk ${nrp} adalah: ${otpCode} (User tidak memiliki email)`);
+        res.json({ success: true, message: 'OTP telah dikirim (Simulasi: Cek console server)' });
+      }
+    } catch (error) {
+      console.error('Failed to send OTP email:', error);
+      res.json({ success: true, message: 'OTP gagal dikirim via email, silakan hubungi admin. (Simulasi: Cek console server)' });
+      console.log(`[SIMULASI OTP] Kode OTP untuk ${nrp} adalah: ${otpCode}`);
+    }
   });
 
   app.post('/api/otp/verify', async (req: any, res: any) => {
@@ -412,7 +700,7 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
+  server.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on http://localhost:${PORT}`);
   });
 }

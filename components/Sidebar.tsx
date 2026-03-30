@@ -8,9 +8,18 @@ interface SidebarProps {
   setSiteSettings: React.Dispatch<React.SetStateAction<SiteSettings>>;
   currentUser: Personnel;
   onLogout: () => void;
+  hasUrgentRequest?: boolean;
+  setHasUrgentRequest?: (val: boolean) => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ siteSettings, setSiteSettings, currentUser, onLogout }) => {
+const Sidebar: React.FC<SidebarProps> = ({ 
+  siteSettings, 
+  setSiteSettings, 
+  currentUser, 
+  onLogout,
+  hasUrgentRequest = false,
+  setHasUrgentRequest
+}) => {
   const isSuperAdmin = currentUser.role === UserRole.SUPERADMIN;
   const isAdmin = currentUser.role === UserRole.ADMIN;
   const isUser = currentUser.role === UserRole.USER;
@@ -49,18 +58,32 @@ const Sidebar: React.FC<SidebarProps> = ({ siteSettings, setSiteSettings, curren
 
   return (
     <aside className={`hidden md:flex flex-col w-72 border-r h-screen sticky top-0 shadow-[10px_0_30px_-15px_rgba(0,0,0,0.03)] print:hidden transition-colors duration-300 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
-      <div className="p-8 flex items-center gap-4">
-        <div className="w-14 h-14 flex items-center justify-center">
-          {siteSettings.logo ? (
-            <img src={siteSettings.logo} alt="Logo" className="w-12 h-12 object-contain drop-shadow-md" />
-          ) : (
-            <span className={`material-symbols-outlined text-3xl ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>local_police</span>
-          )}
+      <div className="p-8 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <div className="w-14 h-14 flex items-center justify-center">
+            {siteSettings.logo ? (
+              <img src={siteSettings.logo} alt="Logo" className="w-12 h-12 object-contain drop-shadow-md" />
+            ) : (
+              <span className={`material-symbols-outlined text-3xl ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>local_police</span>
+            )}
+          </div>
+          <div className="min-w-0">
+            <div className={`text-lg font-black tracking-tighter leading-none ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{siteSettings.name}</div>
+            <div className="text-[10px] text-sky-600 font-black uppercase tracking-widest mt-1">Bid Tik Polri</div>
+          </div>
         </div>
-        <div className="min-w-0">
-          <div className={`text-lg font-black tracking-tighter leading-none ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{siteSettings.name}</div>
-          <div className="text-[10px] text-sky-600 font-black uppercase tracking-widest mt-1">Bid Tik Polri</div>
-        </div>
+        
+        {isAnyAdmin && hasUrgentRequest && (
+          <div 
+            onClick={() => setHasUrgentRequest?.(false)}
+            className="relative cursor-pointer group"
+          >
+            <div className="absolute -inset-1 bg-rose-500 rounded-full blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200 animate-pulse"></div>
+            <div className="relative w-10 h-10 bg-rose-500 text-white rounded-full flex items-center justify-center shadow-lg animate-bounce">
+              <span className="material-symbols-outlined text-xl">notifications_active</span>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="flex-1 px-4 py-4 space-y-8 overflow-y-auto scrollbar-hide">

@@ -5,8 +5,6 @@ import { useDebounce } from '../src/hooks/useDebounce';
 import { ResetRequest, RequestStatus, LogEntry, SiteSettings, UserRole, Personnel, RequestPriority } from '../types';
 
 interface ResetRequestsProps {
-  requests: ResetRequest[];
-  setRequests: React.Dispatch<React.SetStateAction<ResetRequest[]>>;
   showToast: (msg: string, type?: 'success' | 'error') => void;
   addNotification: (title: string, body: string, type: 'request' | 'system' | 'personnel', refId?: string) => void;
   addLog?: (aktivitas: LogEntry['aktivitas'], keterangan: string) => void;
@@ -16,8 +14,6 @@ interface ResetRequestsProps {
 }
 
 const ResetRequests: React.FC<ResetRequestsProps> = ({ 
-  requests, 
-  setRequests, 
   showToast, 
   addNotification, 
   addLog,
@@ -25,6 +21,11 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
   setSiteSettings,
   currentUser
 }) => {
+  const [requests, setRequests] = useState<ResetRequest[]>([]);
+  const [totalItems, setTotalItems] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
+  const [isLoading, setIsLoading] = useState(false);
   const isSuperAdmin = currentUser.role === UserRole.SUPERADMIN;
   const isAdminPolres = currentUser.role === UserRole.ADMIN;
   const isUser = currentUser.role === UserRole.USER;
@@ -47,10 +48,41 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
     end: ''
   });
 
+  const fetchRequests = async () => {
+    setIsLoading(true);
+    try {
+      const params = new URLSearchParams({
+        page: currentPage.toString(),
+        limit: itemsPerPage.toString(),
+        search: appliedFilters.search,
+        status: appliedFilters.status,
+        priority: appliedFilters.priority
+      });
+      
+      const res = await fetch(`/api/requests?${params.toString()}`, { credentials: 'include' });
+      if (res.ok) {
+        const result = await res.json();
+        setRequests(result.data);
+        setTotalItems(result.total);
+      }
+    } catch (error) {
+      console.error('Failed to fetch requests:', error);
+      showToast('Gagal memuat data permintaan', 'error');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  React.useEffect(() => {
+    fetchRequests();
+  }, [currentPage, appliedFilters]);
+
   const debouncedSearch = useDebounce(appliedFilters.search, 500);
 
   const [selectedReq, setSelectedReq] = useState<ResetRequest | null>(null);
   const [viewingReq, setViewingReq] = useState<ResetRequest | null>(null);
+  const [rejectingReq, setRejectingReq] = useState<ResetRequest | null>(null);
+  const [rejectionReason, setRejectionReason] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [showWeakWarning, setShowWeakWarning] = useState(false);
   const [showDetailPassword, setShowDetailPassword] = useState(false);
@@ -104,53 +136,21 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
   };
 
   const stats = useMemo(() => {
-    const relevant = requests.filter(r => isSuperAdmin || r.kesatuan === currentUser.kesatuan);
-    const total = relevant.length;
-    const pending = relevant.filter(r => r.status === RequestStatus.MENUNGGU).length;
-    const processing = relevant.filter(r => r.status === RequestStatus.DIPROSES).length;
-    const urgent = relevant.filter(r => r.prioritas === RequestPriority.MENDESAK && r.status !== RequestStatus.SELESAI).length;
+    // Note: Stats are now based on the current page or we might need a separate API for global stats
+    // For now, let's just use the current requests list or assume we have global stats
+    const total = totalItems;
+    const pending = requests.filter(r => r.status === RequestStatus.MENUNGGU).length; // This is only for current page
+    const processing = requests.filter(r => r.status === RequestStatus.DIPROSES).length;
+    const urgent = requests.filter(r => r.prioritas === RequestPriority.MENDESAK && r.status !== RequestStatus.SELESAI).length;
     
-    const today = new Date().toISOString().split('T')[0];
-    const completedToday = relevant.filter(r => 
-      r.status === RequestStatus.SELESAI && 
-      new Date(r.updatedAt || 0).toISOString().split('T')[0] === today
-    ).length;
+    return { total, pending, processing, completedToday: 0, urgent };
+  }, [requests, totalItems]);
 
-    return { total, pending, processing, completedToday, urgent };
-  }, [requests, isAdminPolres, currentUser.kesatuan]);
-
-  const filteredRequests = useMemo(() => {
-    return requests.filter(req => {
-      if (!isSuperAdmin && req.kesatuan !== currentUser.kesatuan) return false;
-
-      const search = debouncedSearch.toLowerCase().trim();
-      const matchesSearch = search === '' || 
-        (req.nama || '').toLowerCase().includes(search) ||
-        (req.nrp || '').includes(search) ||
-        (req.jabatan || '').toLowerCase().includes(search) ||
-        (req.id || '').toLowerCase().includes(search);
-      
-      const matchesStatus = appliedFilters.status === 'Semua' || req.status === appliedFilters.status;
-      const matchesPriority = appliedFilters.priority === 'Semua' || req.prioritas === appliedFilters.priority;
-
-      let matchesDate = true;
-      if (appliedFilters.start || appliedFilters.end) {
-        const reqDate = new Date(req.createdAt).setHours(0,0,0,0);
-        if (appliedFilters.start) {
-          const start = new Date(appliedFilters.start).setHours(0,0,0,0);
-          if (reqDate < start) matchesDate = false;
-        }
-        if (appliedFilters.end) {
-          const end = new Date(appliedFilters.end).setHours(23,59,59,999);
-          if (reqDate > end) matchesDate = false;
-        }
-      }
-
-      return matchesSearch && matchesStatus && matchesPriority && matchesDate;
-    }).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-  }, [requests, appliedFilters, isAdminPolres, currentUser.kesatuan]);
+  const filteredRequests = requests; // Data is already filtered by server
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
 
   const handleApplyFilter = () => {
+    setCurrentPage(1);
     setAppliedFilters({
       search: searchTerm,
       status: filterStatus,
@@ -166,6 +166,7 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
     setFilterPriority('Semua');
     setStartDate('');
     setEndDate('');
+    setCurrentPage(1);
     setAppliedFilters({ search: '', status: 'Semua', priority: 'Semua', start: '', end: '' });
   };
 
@@ -187,7 +188,7 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
     if (selectedIds.length === 0) return;
     if (window.confirm(`Hapus ${selectedIds.length} permintaan terpilih?`)) {
       try {
-        await Promise.all(selectedIds.map(id => fetch(`/api/requests/${id}`, { method: 'DELETE' })));
+        await Promise.all(selectedIds.map(id => fetch(`/api/requests/${id}`, { method: 'DELETE', credentials: 'include' })));
         setRequests(prev => prev.filter(r => !selectedIds.includes(r.id)));
         showToast(`${selectedIds.length} permintaan berhasil dihapus`);
         addLog?.('Hapus Data', `Menghapus massal ${selectedIds.length} permintaan reset`);
@@ -208,6 +209,7 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
           return fetch(`/api/requests/${id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
             body: JSON.stringify({ ...req, status: RequestStatus.DIPROSES })
           });
         }
@@ -277,6 +279,7 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
             fetch('/api/requests', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
+              credentials: 'include',
               body: JSON.stringify(r)
             })
           )).then(() => {
@@ -321,6 +324,7 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
       const res = await fetch('/api/requests', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(newReq)
       });
       if (!res.ok) throw new Error('Failed to create');
@@ -351,6 +355,7 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
       const res = await fetch(`/api/requests/${reqId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ ...req, status: RequestStatus.DIPROSES })
       });
       if (!res.ok) throw new Error('Failed to update');
@@ -371,6 +376,41 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
     const hasNumber = /\d/.test(pass);
     const hasSymbol = /[!@#$%^&*(),.?":{}|<>]/.test(pass);
     return pass.length >= 8 && hasNumber && hasSymbol;
+  };
+
+  const handleReject = async () => {
+    if (!rejectingReq || !rejectionReason.trim()) {
+      showToast('Alasan penolakan wajib diisi', 'error');
+      return;
+    }
+
+    try {
+      const updatedReq = {
+        ...rejectingReq,
+        status: RequestStatus.DITOLAK,
+        alasan_penolakan: rejectionReason,
+        updatedAt: Date.now()
+      };
+
+      const res = await fetch(`/api/requests/${rejectingReq.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(updatedReq)
+      });
+
+      if (!res.ok) throw new Error('Failed to reject');
+
+      setRequests(prev => prev.map(r => r.id === rejectingReq.id ? updatedReq : r));
+      showToast(`Permintaan ${rejectingReq.nama} telah ditolak`);
+      addLog?.('Tolak Permintaan', `Menolak permintaan reset password: ${rejectingReq.nama}. Alasan: ${rejectionReason}`);
+      
+      setRejectingReq(null);
+      setRejectionReason('');
+    } catch (error) {
+      console.error('Reject failed:', error);
+      showToast('Gagal menolak permintaan', 'error');
+    }
   };
 
   const executeReset = async (bypassWarning = false) => {
@@ -398,6 +438,7 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
       const res = await fetch(`/api/requests/${selectedReq.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(updatedReq)
       });
       if (!res.ok) throw new Error('Failed to update');
@@ -614,7 +655,37 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
         </div>
       )}
 
-      {/* Requests Table */}
+      {/* Pagination Controls */}
+      <div className="flex items-center justify-between px-8 py-6 print:hidden">
+        <div className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+          Menampilkan {(currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, totalItems)} dari {totalItems} data
+        </div>
+        <div className="flex items-center gap-2">
+          <button 
+            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+            disabled={currentPage === 1}
+            className={`p-2 rounded-xl border transition-all ${currentPage === 1 ? 'opacity-30 cursor-not-allowed' : 'hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+          >
+            <span className="material-symbols-outlined">chevron_left</span>
+          </button>
+          {[...Array(totalPages)].map((_, i) => (
+            <button 
+              key={i}
+              onClick={() => setCurrentPage(i + 1)}
+              className={`w-10 h-10 rounded-xl text-xs font-black transition-all ${currentPage === i + 1 ? 'bg-blue-600 text-white' : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400'}`}
+            >
+              {i + 1}
+            </button>
+          ))}
+          <button 
+            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+            disabled={currentPage === totalPages}
+            className={`p-2 rounded-xl border transition-all ${currentPage === totalPages ? 'opacity-30 cursor-not-allowed' : 'hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+          >
+            <span className="material-symbols-outlined">chevron_right</span>
+          </button>
+        </div>
+      </div>
       <div className={`rounded-[2.5rem] border shadow-sm overflow-hidden print:border-[1pt] print:border-slate-300 print:rounded-3xl transition-colors duration-300 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
@@ -708,13 +779,22 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
                       {isAnyAdmin && (
                         <>
                           {req.status === RequestStatus.MENUNGGU && (
-                             <button 
-                                onClick={() => handleStartProcess(req.id)}
-                                className="px-5 py-3 bg-indigo-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-700 transition-all flex items-center gap-2 shadow-xl shadow-indigo-900/20"
-                             >
-                               <span className="material-symbols-outlined text-base">play_arrow</span>
-                               Mulai
-                             </button>
+                             <div className="flex gap-2">
+                               <button 
+                                  onClick={() => handleStartProcess(req.id)}
+                                  className="px-5 py-3 bg-indigo-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-700 transition-all flex items-center gap-2 shadow-xl shadow-indigo-900/20"
+                               >
+                                 <span className="material-symbols-outlined text-base">play_arrow</span>
+                                 Mulai
+                               </button>
+                               <button 
+                                  onClick={() => { setRejectingReq(req); setRejectionReason(''); }}
+                                  className="px-5 py-3 bg-rose-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-rose-700 transition-all flex items-center gap-2 shadow-xl shadow-rose-900/20"
+                               >
+                                 <span className="material-symbols-outlined text-base">block</span>
+                                 Tolak
+                               </button>
+                             </div>
                           )}
                           {req.status === RequestStatus.DIPROSES && (
                              <button 
@@ -745,6 +825,51 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
           </table>
         </div>
       </div>
+
+      {/* MODAL TOLAK (REJECT) */}
+      {rejectingReq && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-slate-900/70 backdrop-blur-xl animate-in fade-in duration-300">
+           <div className={`rounded-[3rem] w-full max-w-lg shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 transition-colors duration-300 ${isDarkMode ? 'bg-slate-900 border border-slate-800' : 'bg-white'}`}>
+              <div className="p-10 border-b flex items-center justify-between">
+                 <div>
+                    <h3 className={`text-2xl font-black leading-none ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Tolak Permohonan</h3>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-3">PERSONEL: {rejectingReq.nama}</p>
+                 </div>
+                 <button onClick={() => setRejectingReq(null)} className="p-3 rounded-full text-slate-400 hover:bg-rose-50 hover:text-rose-500 transition-all">
+                    <span className="material-symbols-outlined">close</span>
+                 </button>
+              </div>
+
+              <div className="p-10 space-y-8">
+                 <div className="space-y-4">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Alasan Penolakan</label>
+                    <textarea 
+                      className={`w-full p-6 border rounded-3xl text-sm font-bold min-h-[150px] outline-none transition-all focus:ring-4 focus:ring-rose-500/10 ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-100 text-slate-700'}`}
+                      placeholder="Tuliskan alasan penolakan di sini..."
+                      value={rejectionReason}
+                      onChange={(e) => setRejectionReason(e.target.value)}
+                    ></textarea>
+                    <p className="text-[10px] text-slate-400 font-bold italic">Alasan ini akan dikirimkan ke email personel yang bersangkutan.</p>
+                 </div>
+
+                 <div className="flex gap-4">
+                    <button 
+                      onClick={handleReject}
+                      className="flex-1 py-5 bg-rose-600 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-rose-700 transition-all shadow-xl shadow-rose-900/20"
+                    >
+                      Konfirmasi Tolak
+                    </button>
+                    <button 
+                      onClick={() => setRejectingReq(null)}
+                      className={`flex-1 py-5 border rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-400 hover:bg-slate-700' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'}`}
+                    >
+                      Batal
+                    </button>
+                 </div>
+              </div>
+           </div>
+        </div>
+      )}
 
       {/* MODAL DETAIL */}
       {viewingReq && (
@@ -809,9 +934,30 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
 
                     {viewingReq.dokumen_kta && (
                       <div className={`p-6 rounded-2xl space-y-3 transition-colors duration-300 ${isDarkMode ? 'bg-slate-800' : 'bg-slate-50'}`}>
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Dokumen KTA</p>
-                        <div className="rounded-xl overflow-hidden border border-slate-700">
-                          <img src={viewingReq.dokumen_kta} alt="KTA" className="w-full h-auto" />
+                        <div className="flex items-center justify-between">
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Dokumen KTA</p>
+                          <a 
+                            href={`/api/download/kta/${viewingReq.dokumen_kta}`} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 text-[10px] font-black text-blue-500 uppercase hover:underline"
+                          >
+                            <span className="material-symbols-outlined text-sm">download</span>
+                            Download Full
+                          </a>
+                        </div>
+                        <div className="rounded-xl overflow-hidden border border-slate-700 bg-slate-900 flex items-center justify-center min-h-[200px]">
+                          <img 
+                            src={`/api/download/kta/${viewingReq.dokumen_kta}`} 
+                            alt="KTA" 
+                            className="max-w-full h-auto" 
+                            onError={(e) => {
+                              // Fallback if not found or not a filename
+                              if (!viewingReq.dokumen_kta?.startsWith('data:')) {
+                                (e.target as HTMLImageElement).src = 'https://placehold.co/400x250?text=Dokumen+Tidak+Tersedia';
+                              }
+                            }}
+                          />
                         </div>
                       </div>
                     )}

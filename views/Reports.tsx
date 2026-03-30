@@ -57,19 +57,23 @@ const Reports: React.FC<ReportsProps> = ({ requests, showToast, siteSettings, cu
 
   const pieData = useMemo(() => {
     const finished = filteredRequests.filter(r => r.status === RequestStatus.SELESAI).length;
-    const pending = filteredRequests.filter(r => r.status !== RequestStatus.SELESAI).length;
+    const rejected = filteredRequests.filter(r => r.status === RequestStatus.DITOLAK).length;
+    const pending = filteredRequests.filter(r => r.status !== RequestStatus.SELESAI && r.status !== RequestStatus.DITOLAK).length;
     const total = filteredRequests.length;
 
     const finishedPercent = total > 0 ? Math.round((finished / total) * 100) : 0;
+    const rejectedPercent = total > 0 ? Math.round((rejected / total) * 100) : 0;
     const pendingPercent = total > 0 ? Math.round((pending / total) * 100) : 0;
 
     return {
       chart: [
         { name: `Selesai (${finishedPercent}%)`, value: finished, color: '#10b981' },
-        { name: `Belum Selesai (${pendingPercent}%)`, value: pending, color: '#f59e0b' }
+        { name: `Ditolak (${rejectedPercent}%)`, value: rejected, color: '#ef4444' },
+        { name: `Proses (${pendingPercent}%)`, value: pending, color: '#f59e0b' }
       ],
       total,
       finished,
+      rejected,
       pending
     };
   }, [filteredRequests]);
@@ -84,11 +88,14 @@ const Reports: React.FC<ReportsProps> = ({ requests, showToast, siteSettings, cu
           total: 0,
           backlog: 0,
           selesai: 0,
+          ditolak: 0,
         };
       }
       kesatuanMap[req.kesatuan].total++;
       if (req.status === RequestStatus.SELESAI) {
         kesatuanMap[req.kesatuan].selesai++;
+      } else if (req.status === RequestStatus.DITOLAK) {
+        kesatuanMap[req.kesatuan].ditolak++;
       } else {
         kesatuanMap[req.kesatuan].backlog++;
       }
@@ -103,8 +110,8 @@ const Reports: React.FC<ReportsProps> = ({ requests, showToast, siteSettings, cu
   }, [filteredRequests]);
 
   const exportCSV = () => {
-    const headers = ['Kesatuan', 'Total', 'Backlog', 'Selesai', 'Rasio %'];
-    const rows = polresSummary.map(p => [p.name, p.total, p.backlog, p.selesai, p.ratio]);
+    const headers = ['Kesatuan', 'Total', 'Backlog', 'Selesai', 'Ditolak', 'Rasio %'];
+    const rows = polresSummary.map(p => [p.name, p.total, p.backlog, p.selesai, p.ditolak, p.ratio]);
     
     const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
     const csvContent = XLSX.utils.sheet_to_csv(ws);
@@ -117,8 +124,8 @@ const Reports: React.FC<ReportsProps> = ({ requests, showToast, siteSettings, cu
   };
 
   const exportExcel = () => {
-    const headers = ['Kesatuan', 'Total', 'Backlog', 'Selesai', 'Rasio %'];
-    const rows = polresSummary.map(p => [p.name, p.total, p.backlog, p.selesai, p.ratio]);
+    const headers = ['Kesatuan', 'Total', 'Backlog', 'Selesai', 'Ditolak', 'Rasio %'];
+    const rows = polresSummary.map(p => [p.name, p.total, p.backlog, p.selesai, p.ditolak, p.ratio]);
     
     const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
     const wb = XLSX.utils.book_new();
@@ -260,6 +267,7 @@ const Reports: React.FC<ReportsProps> = ({ requests, showToast, siteSettings, cu
                   <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Total Request</th>
                   <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Backlog</th>
                   <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Selesai</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Ditolak</th>
                   <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Rasio %</th>
                 </tr>
               </thead>
@@ -270,6 +278,7 @@ const Reports: React.FC<ReportsProps> = ({ requests, showToast, siteSettings, cu
                     <td className={`px-6 py-4 text-sm font-bold text-center ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>{item.total}</td>
                     <td className={`px-6 py-4 text-sm font-bold text-center ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>{item.backlog}</td>
                     <td className={`px-6 py-4 text-sm font-bold text-center ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>{item.selesai}</td>
+                    <td className={`px-6 py-4 text-sm font-bold text-center ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>{item.ditolak}</td>
                     <td className="px-6 py-4 text-center">
                       <span className="text-xs font-black text-emerald-600">{item.ratio}%</span>
                     </td>

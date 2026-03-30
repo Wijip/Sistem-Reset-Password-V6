@@ -55,6 +55,25 @@ const Settings: React.FC<SettingsProps> = ({
     confirm: ''
   });
 
+  const getPasswordStrength = (pass: string) => {
+    if (!pass) return 0;
+    let score = 0;
+    if (pass.length >= 8) score += 25;
+    if (/[A-Z]/.test(pass)) score += 25;
+    if (/[0-9]/.test(pass)) score += 25;
+    if (/[!@#$%^&*(),.?":{}|<>]/.test(pass)) score += 25;
+    return score;
+  };
+
+  const passwordStrength = getPasswordStrength(passwordForm.new);
+
+  const checkPasswordStrength = (pass: string) => {
+    const hasNumber = /\d/.test(pass);
+    const hasSymbol = /[!@#$%^&*(),.?":{}|<>]/.test(pass);
+    const hasUpper = /[A-Z]/.test(pass);
+    return pass.length >= 8 && hasNumber && hasSymbol && hasUpper;
+  };
+
   const handleUpdateSite = (e: React.FormEvent) => {
     e.preventDefault();
     if (!isSuperAdmin) return; // Proteksi tambahan
@@ -118,8 +137,8 @@ const Settings: React.FC<SettingsProps> = ({
     if (passwordForm.current !== currentUser.passwordPlain) {
       return showToast('Password saat ini tidak valid', 'error');
     }
-    if (passwordForm.new.length < 8) {
-      return showToast('Password baru minimal 8 karakter', 'error');
+    if (!checkPasswordStrength(passwordForm.new)) {
+      return showToast('Password baru harus minimal 8 karakter, mengandung huruf besar, angka, dan simbol', 'error');
     }
     if (passwordForm.new !== passwordForm.confirm) {
       return showToast('Konfirmasi password tidak cocok', 'error');
@@ -416,10 +435,54 @@ const Settings: React.FC<SettingsProps> = ({
                   className={`w-full px-6 py-4 rounded-2xl border focus:outline-none text-sm font-bold transition-all ${
                     siteSettings.darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-100 text-slate-700'
                   }`}
-                  placeholder="Min. 8 karakter"
+                  placeholder="Min. 8 karakter + Simbol/Angka"
                   value={passwordForm.new}
                   onChange={(e) => setPasswordForm({...passwordForm, new: e.target.value})}
                 />
+                {passwordForm.new && (
+                  <div className="mt-3 px-1">
+                    <div className="flex justify-between items-center mb-1.5">
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Kekuatan Password</span>
+                      <span className={`text-[10px] font-black uppercase ${
+                        passwordStrength <= 25 ? 'text-rose-500' :
+                        passwordStrength <= 50 ? 'text-amber-500' :
+                        passwordStrength <= 75 ? 'text-blue-500' : 'text-emerald-500'
+                      }`}>
+                        {passwordStrength <= 25 ? 'Sangat Lemah' :
+                         passwordStrength <= 50 ? 'Lemah' :
+                         passwordStrength <= 75 ? 'Kuat' : 'Sangat Kuat'}
+                      </span>
+                    </div>
+                    <div className={`h-1.5 w-full rounded-full overflow-hidden ${siteSettings.darkMode ? 'bg-slate-800' : 'bg-slate-100'}`}>
+                      <div 
+                        className={`h-full transition-all duration-500 ${
+                          passwordStrength <= 25 ? 'bg-rose-500' :
+                          passwordStrength <= 50 ? 'bg-amber-500' :
+                          passwordStrength <= 75 ? 'bg-blue-500' : 'bg-emerald-500'
+                        }`}
+                        style={{ width: `${passwordStrength}%` }}
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-1 mt-3">
+                      <div className={`flex items-center gap-1.5 text-[9px] font-bold uppercase ${passwordForm.new.length >= 8 ? 'text-emerald-500' : 'text-slate-400'}`}>
+                        <span className="material-symbols-outlined text-xs">{passwordForm.new.length >= 8 ? 'check_circle' : 'circle'}</span>
+                        Min. 8 Karakter
+                      </div>
+                      <div className={`flex items-center gap-1.5 text-[9px] font-bold uppercase ${/[A-Z]/.test(passwordForm.new) ? 'text-emerald-500' : 'text-slate-400'}`}>
+                        <span className="material-symbols-outlined text-xs">{/[A-Z]/.test(passwordForm.new) ? 'check_circle' : 'circle'}</span>
+                        Huruf Besar
+                      </div>
+                      <div className={`flex items-center gap-1.5 text-[9px] font-bold uppercase ${/\d/.test(passwordForm.new) ? 'text-emerald-500' : 'text-slate-400'}`}>
+                        <span className="material-symbols-outlined text-xs">{/\d/.test(passwordForm.new) ? 'check_circle' : 'circle'}</span>
+                        Angka
+                      </div>
+                      <div className={`flex items-center gap-1.5 text-[9px] font-bold uppercase ${/[!@#$%^&*(),.?":{}|<>]/.test(passwordForm.new) ? 'text-emerald-500' : 'text-slate-400'}`}>
+                        <span className="material-symbols-outlined text-xs">{/[!@#$%^&*(),.?":{}|<>]/.test(passwordForm.new) ? 'check_circle' : 'circle'}</span>
+                        Simbol
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
               <div className="space-y-2">
                 <label className="text-xs font-black text-slate-400 uppercase tracking-widest pl-1">Konfirmasi Password</label>

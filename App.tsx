@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect, useCallback, useLayoutEffect } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { io } from 'socket.io-client';
 import { 
   Personnel, 
   ResetRequest, 
@@ -8,7 +9,8 @@ import {
   Notification, 
   UserRole,
   RequestStatus,
-  LogEntry
+  LogEntry,
+  RequestPriority
 } from './types';
 import Dashboard from './views/Dashboard';
 import ResetRequests from './views/ResetRequests';
@@ -57,52 +59,59 @@ const App: React.FC = () => {
     };
   });
 
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [currentUser, setCurrentUser] = useState<Personnel | null>(() => {
+    const saved = localStorage.getItem('user_profile');
+    return saved ? JSON.parse(saved) : null;
+  });
+
   // Fetch initial data from API
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [pRes, rRes, lRes] = await Promise.all([
-          fetch('/api/personnel'),
-          fetch('/api/requests'),
-          fetch('/api/logs')
+        const [lRes, rRes, pRes] = await Promise.all([
+          fetch('/api/logs', { credentials: 'include' }),
+          fetch('/api/requests?limit=1000', { credentials: 'include' }), // Fetch more for dashboard/reports
+          fetch('/api/personnel?limit=1000', { credentials: 'include' })
         ]);
         
-        if (pRes.ok) setPersonnel(await pRes.json());
-        if (rRes.ok) setRequests(await rRes.json());
         if (lRes.ok) setLogs(await lRes.json());
+        if (rRes.ok) {
+          const rData = await rRes.json();
+          setRequests(rData.data || []);
+        }
+        if (pRes.ok) {
+          const pData = await pRes.json();
+          setPersonnel(pData.data || []);
+        }
       } catch (error) {
         console.error('Failed to fetch data from API:', error);
       }
     };
-    fetchData();
-  }, []);
-
-  useEffect(() => {
-    if (siteSettings.darkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
+    if (currentUser && (currentUser.role === UserRole.SUPERADMIN || currentUser.role === UserRole.ADMIN)) {
+      fetchData();
     }
-  }, [siteSettings.darkMode]);
-
-  // Apply dark mode class immediately on mount if enabled in settings
-  useLayoutEffect(() => {
-    const saved = localStorage.getItem('SITE_SETTINGS');
-    if (saved) {
-      const settings = JSON.parse(saved);
-      if (settings.darkMode) {
-        document.documentElement.classList.add('dark');
-      }
-    }
-  }, []);
-
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [currentUser, setCurrentUser] = useState<Personnel | null>(() => {
-    const saved = localStorage.getItem('session_personel');
-    return saved ? JSON.parse(saved) : null;
-  });
+  }, [currentUser]);
 
   const [toasts, setToasts] = useState<{id: string, message: string, type: 'success' | 'error'}[]>([]);
+  const [hasUrgentRequest, setHasUrgentRequest] = useState(false);
+
+  // Socket.io Integration
+  useEffect(() => {
+    const socket = io();
+
+    socket.on('urgent_request', (data) => {
+      if (currentUser && (currentUser.role === UserRole.SUPERADMIN || currentUser.role === UserRole.ADMIN)) {
+        setHasUrgentRequest(true);
+        showToast(`URGENT: Permintaan reset dari ${data.nama} (NRP: ${data.nrp})`, 'error');
+        addNotification('URGENT REQUEST', `Permintaan reset mendesak dari ${data.nama}`, 'request', data.id);
+      }
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [currentUser]);
 
   useEffect(() => {
     localStorage.setItem('SITE_SETTINGS', JSON.stringify(siteSettings));
@@ -110,9 +119,9 @@ const App: React.FC = () => {
 
   useEffect(() => {
     if (currentUser) {
-      localStorage.setItem('session_personel', JSON.stringify(currentUser));
+      localStorage.setItem('user_profile', JSON.stringify(currentUser));
     } else {
-      localStorage.removeItem('session_personel');
+      localStorage.removeItem('user_profile');
     }
   }, [currentUser]);
 
@@ -144,6 +153,7 @@ const App: React.FC = () => {
       await fetch('/api/logs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(newLog)
       });
     } catch (e) {
@@ -151,9 +161,14 @@ const App: React.FC = () => {
     }
   }, [currentUser]);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/logout', { method: 'POST', credentials: 'include' });
+    } catch (e) {
+      console.error('Logout API failed');
+    }
     addLog('Sistem', 'Pengguna melakukan logout dari sistem');
-    localStorage.removeItem('session_personel');
+    localStorage.removeItem('user_profile');
     setCurrentUser(null);
   };
 
@@ -170,33 +185,51 @@ const App: React.FC = () => {
     setNotifications(prev => [newNotif, ...prev]);
   };
 
-  const submitPublicRequest = async (nrp: string, alasan: string, dokumen_kta?: string, prioritas?: any) => {
+  const submitPublicRequest = async (nrp: string, alasan: string, dokumen_kta?: string, prioritas?: any, file?: File) => {
     const person = personnel.find(p => p.nrp === nrp);
     if (!person) return { success: false, message: 'NRP tidak terdaftar dalam sistem.' };
 
-    const newRequest: ResetRequest = {
-      id: `REQ-${Math.floor(1000 + Math.random() * 9000)}`,
-      nama: person.nama,
-      pangkat: person.pangkat,
-      nrp: person.nrp,
-      jabatan: person.jabatan,
-      kesatuan: person.kesatuan,
-      waktu_iso: new Date().toISOString(),
-      status: RequestStatus.MENUNGGU,
-      alasan: alasan,
-      dokumen_kta,
-      prioritas: prioritas || 'Normal',
-      createdAt: Date.now()
-    };
+    const formData = new FormData();
+    formData.append('id', `REQ-${Math.floor(1000 + Math.random() * 9000)}`);
+    formData.append('nama', person.nama);
+    formData.append('pangkat', person.pangkat || '');
+    formData.append('nrp', person.nrp);
+    formData.append('jabatan', person.jabatan || '');
+    formData.append('kesatuan', person.kesatuan || '');
+    formData.append('waktu_iso', new Date().toISOString());
+    formData.append('status', RequestStatus.MENUNGGU);
+    formData.append('alasan', alasan);
+    formData.append('prioritas', prioritas || 'Normal');
+    formData.append('createdAt', Date.now().toString());
+    
+    if (file) {
+      formData.append('dokumen_kta_file', file);
+    } else if (dokumen_kta) {
+      formData.append('dokumen_kta', dokumen_kta);
+    }
 
     try {
       const res = await fetch('/api/requests', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newRequest)
+        credentials: 'include',
+        body: formData
       });
       
       if (res.ok) {
+        const newRequest: ResetRequest = {
+          id: formData.get('id') as string,
+          nama: person.nama,
+          pangkat: person.pangkat,
+          nrp: person.nrp,
+          jabatan: person.jabatan,
+          kesatuan: person.kesatuan,
+          waktu_iso: formData.get('waktu_iso') as string,
+          status: RequestStatus.MENUNGGU,
+          alasan: alasan,
+          dokumen_kta: dokumen_kta, // This will be updated on next fetch
+          prioritas: prioritas || 'Normal',
+          createdAt: parseInt(formData.get('createdAt') as string)
+        };
         setRequests(prev => [newRequest, ...prev]);
         addNotification('Permintaan Baru', `Pengajuan reset password dari NRP ${nrp}`, 'request', newRequest.id);
         return { success: true, message: 'Permintaan Anda telah dikirim ke Admin.' };
@@ -217,6 +250,8 @@ const App: React.FC = () => {
               setSiteSettings={setSiteSettings}
               currentUser={currentUser} 
               onLogout={handleLogout} 
+              hasUrgentRequest={hasUrgentRequest}
+              setHasUrgentRequest={setHasUrgentRequest}
             />
             <MobileTopbar 
               siteSettings={siteSettings} 
@@ -245,8 +280,6 @@ const App: React.FC = () => {
             <Route path="/requests" element={
               <ProtectedRoute anyAdminOnly allowUser currentUser={currentUser}>
                 <ResetRequests 
-                  requests={requests} 
-                  setRequests={setRequests} 
                   showToast={showToast}
                   addNotification={addNotification}
                   addLog={addLog}

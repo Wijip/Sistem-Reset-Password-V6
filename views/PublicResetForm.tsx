@@ -16,6 +16,7 @@ const PublicResetForm: React.FC<PublicResetFormProps> = ({ onSubmit, siteSetting
   const [alasan, setAlasan] = useState('');
   const [prioritas, setPrioritas] = useState<RequestPriority>(RequestPriority.NORMAL);
   const [dokumen, setDokumen] = useState<string | null>(null);
+  const [dokumenFile, setDokumenFile] = useState<File | null>(null);
   const [result, setResult] = useState<{ success: boolean, message: string } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -29,6 +30,7 @@ const PublicResetForm: React.FC<PublicResetFormProps> = ({ onSubmit, siteSetting
       const res = await fetch('/api/otp/request', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ nrp })
       });
       const data = await res.json();
@@ -52,6 +54,7 @@ const PublicResetForm: React.FC<PublicResetFormProps> = ({ onSubmit, siteSetting
       const res = await fetch('/api/otp/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ nrp, code: otpCode })
       });
       const data = await res.json();
@@ -71,6 +74,7 @@ const PublicResetForm: React.FC<PublicResetFormProps> = ({ onSubmit, siteSetting
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      setDokumenFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
         setDokumen(reader.result as string);
@@ -83,13 +87,15 @@ const PublicResetForm: React.FC<PublicResetFormProps> = ({ onSubmit, siteSetting
     e.preventDefault();
     setIsSubmitting(true);
     
-    const res = await onSubmit(nrp, alasan, dokumen || undefined, prioritas);
+    // @ts-ignore - App.tsx updated submitPublicRequest to accept 5th arg as File
+    const res = await onSubmit(nrp, alasan, dokumen || undefined, prioritas, dokumenFile || undefined);
     setResult(res);
     setIsSubmitting(false);
     if (res.success) {
       setNrp('');
       setAlasan('');
       setDokumen(null);
+      setDokumenFile(null);
       setPrioritas(RequestPriority.NORMAL);
       setStep(1);
     }

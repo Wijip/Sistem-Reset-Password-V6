@@ -62,6 +62,7 @@ export interface ResetRequest {
     password_set: boolean;
   };
   reset_password?: string;
+  alasan_penolakan?: string;
 }
 
 export interface SiteSettings {
@@ -92,7 +93,7 @@ export interface LogEntry {
     role: string;
     initials: string;
   };
-  aktivitas: 'Reset Password' | 'Login' | 'Sistem' | 'Lainnya' | 'Update Data' | 'Hapus Data' | 'Pengaturan' | 'Import Data';
+  aktivitas: 'Reset Password' | 'Login' | 'Sistem' | 'Lainnya' | 'Update Data' | 'Hapus Data' | 'Pengaturan' | 'Import Data' | 'Tolak Permintaan';
   keterangan: string;
   ipAddress: string;
 }

@@ -43,6 +43,8 @@ const PersonnelData: React.FC<PersonnelDataProps> = ({ personnel, setPersonnel, 
   const [activeSearch, setActiveSearch] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [totalItems, setTotalItems] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
   const debouncedSearch = useDebounce(searchTerm, 500);
 
   // Sync debounced search to active search for "automatic" feel, but allow manual trigger
@@ -69,15 +71,41 @@ const PersonnelData: React.FC<PersonnelDataProps> = ({ personnel, setPersonnel, 
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
+  const fetchPersonnel = async () => {
+    setIsLoading(true);
+    try {
+      const params = new URLSearchParams({
+        page: currentPage.toString(),
+        limit: itemsPerPage.toString(),
+        search: activeSearch,
+        role: filterRole,
+        kesatuan: filterKesatuan
+      });
+      const res = await fetch(`/api/personnel?${params.toString()}`, { credentials: 'include' });
+      const result = await res.json();
+      setPersonnel(result.data);
+      setTotalItems(result.total);
+    } catch (error) {
+      console.error('Failed to fetch personnel:', error);
+      showToast('Gagal mengambil data personel', 'error');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPersonnel();
+  }, [currentPage, itemsPerPage, activeSearch, filterRole, filterKesatuan]);
+
   const stats = useMemo(() => {
     return {
-      total: visiblePersonnel.length,
-      superAdmin: visiblePersonnel.filter(p => p.role === UserRole.SUPERADMIN).length,
-      admin: visiblePersonnel.filter(p => p.role === UserRole.ADMIN).length,
-      user: visiblePersonnel.filter(p => p.role === UserRole.USER).length,
-      active: visiblePersonnel.filter(p => p.status === 'Aktif').length
+      total: totalItems,
+      superAdmin: personnel.filter(p => p.role === UserRole.SUPERADMIN).length, // This is only for current page, maybe not ideal
+      admin: personnel.filter(p => p.role === UserRole.ADMIN).length,
+      user: personnel.filter(p => p.role === UserRole.USER).length,
+      active: personnel.filter(p => p.status === 'Aktif').length
     };
-  }, [visiblePersonnel]);
+  }, [personnel, totalItems]);
 
   const handleImport = (type: 'excel' | 'csv') => {
     setImportType(type);
@@ -148,6 +176,7 @@ const PersonnelData: React.FC<PersonnelDataProps> = ({ personnel, setPersonnel, 
             fetch('/api/personnel', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
+              credentials: 'include',
               body: JSON.stringify(p)
             })
           )).then(() => {
@@ -188,44 +217,7 @@ const PersonnelData: React.FC<PersonnelDataProps> = ({ personnel, setPersonnel, 
     return list;
   }, [visiblePersonnel]);
 
-  const filteredPersonnel = useMemo(() => {
-    let result = visiblePersonnel.filter(p => {
-      const search = activeSearch.toLowerCase().trim();
-      const matchesSearch = search === '' || 
-                           p.nama.toLowerCase().includes(search) ||
-                           p.nrp.includes(search) ||
-                           p.kesatuan.toLowerCase().includes(search) ||
-                           p.email.toLowerCase().includes(search);
-      const matchesRole = filterRole === 'ALL' || p.role === filterRole;
-      const matchesKesatuan = filterKesatuan === 'ALL' || p.kesatuan === filterKesatuan;
-      
-      return matchesSearch && matchesRole && matchesKesatuan;
-    });
-
-    if (sortConfig !== null) {
-      result.sort((a, b) => {
-        const aValue = a[sortConfig.key] || '';
-        const bValue = b[sortConfig.key] || '';
-        
-        if (aValue < bValue) {
-          return sortConfig.direction === 'asc' ? -1 : 1;
-        }
-        if (aValue > bValue) {
-          return sortConfig.direction === 'asc' ? 1 : -1;
-        }
-        return 0;
-      });
-    }
-
-    return result;
-  }, [personnel, activeSearch, filterRole, filterKesatuan, sortConfig]);
-
-  const paginatedPersonnel = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    return filteredPersonnel.slice(startIndex, startIndex + itemsPerPage);
-  }, [filteredPersonnel, currentPage]);
-
-  const totalPages = Math.ceil(filteredPersonnel.length / itemsPerPage);
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -282,7 +274,7 @@ const PersonnelData: React.FC<PersonnelDataProps> = ({ personnel, setPersonnel, 
 
     try {
       if (actionType === 'delete') {
-        const res = await fetch(`/api/personnel/${actionTarget.id}`, { method: 'DELETE' });
+        const res = await fetch(`/api/personnel/${actionTarget.id}`, { method: 'DELETE', credentials: 'include' });
         if (!res.ok) throw new Error('Failed to delete');
         
         setPersonnel(prev => prev.filter(p => p.id !== actionTarget.id));
@@ -293,6 +285,7 @@ const PersonnelData: React.FC<PersonnelDataProps> = ({ personnel, setPersonnel, 
         const res = await fetch(`/api/personnel/${actionTarget.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify(updatedPerson)
         });
         if (!res.ok) throw new Error('Failed to update');
@@ -336,6 +329,7 @@ const PersonnelData: React.FC<PersonnelDataProps> = ({ personnel, setPersonnel, 
         const res = await fetch(`/api/personnel/${editingId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify(sanitizedData)
         });
         if (!res.ok) throw new Error('Failed to update');
@@ -361,6 +355,7 @@ const PersonnelData: React.FC<PersonnelDataProps> = ({ personnel, setPersonnel, 
         const res = await fetch('/api/personnel', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify(newPerson)
         });
         if (!res.ok) throw new Error('Failed to create');
@@ -613,7 +608,7 @@ const PersonnelData: React.FC<PersonnelDataProps> = ({ personnel, setPersonnel, 
                   </tr>
                 </thead>
                 <tbody className={`divide-y transition-colors duration-300 ${isDarkMode ? 'divide-slate-800' : 'divide-slate-50'}`}>
-                  {paginatedPersonnel.map((p) => (
+                  {personnel.map((p) => (
                     <tr 
                       key={p.id} 
                       onClick={() => setSelectedPersonnel(p)}
@@ -690,7 +685,7 @@ const PersonnelData: React.FC<PersonnelDataProps> = ({ personnel, setPersonnel, 
                       </td>
                     </tr>
                   ))}
-                  {paginatedPersonnel.length === 0 && (
+                  {personnel.length === 0 && (
                     <tr>
                       <td colSpan={isSuperAdmin ? 7 : 5} className="px-6 py-12 text-center text-slate-400 italic">Data tidak ditemukan.</td>
                     </tr>
@@ -704,7 +699,7 @@ const PersonnelData: React.FC<PersonnelDataProps> = ({ personnel, setPersonnel, 
               <div className={`p-4 border-t flex flex-col sm:flex-row items-center justify-between gap-4 transition-colors duration-300 ${isDarkMode ? 'border-slate-800 bg-slate-900/50' : 'border-slate-100 bg-slate-50/30'}`}>
                 <div className="flex items-center gap-4">
                   <div className="text-xs font-bold text-slate-500">
-                    Menampilkan <span className="text-sky-600">{(currentPage - 1) * itemsPerPage + 1}</span> - <span className="text-sky-600">{Math.min(currentPage * itemsPerPage, filteredPersonnel.length)}</span> dari <span className="text-sky-600">{filteredPersonnel.length}</span> data
+                    Menampilkan <span className="text-sky-600">{(currentPage - 1) * itemsPerPage + 1}</span> - <span className="text-sky-600">{Math.min(currentPage * itemsPerPage, totalItems)}</span> dari <span className="text-sky-600">{totalItems}</span> data
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-[10px] font-black text-slate-400 uppercase">Baris:</span>
