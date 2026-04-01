@@ -301,7 +301,7 @@ async function startServer() {
   const pool = await initializeDatabase();
 
   // API Routes
-  app.get('/api/personnel', async (req: any, res: any) => {
+  app.get('/api/personnel', isAdmin, async (req: any, res: any) => {
     const page = parseInt(req.query.page || '1');
     const limit = parseInt(req.query.limit || '10');
     const offset = (page - 1) * limit;
@@ -313,6 +313,12 @@ async function startServer() {
     let countQuery = 'SELECT COUNT(*) as count FROM personnel';
     let params: any[] = [];
     let whereClauses: string[] = [];
+
+    // Role-based filtering: Non-superadmins are strictly restricted to their own kesatuan
+    if (req.user.role !== 'superadmin') {
+      whereClauses.push('LOWER(TRIM(kesatuan)) = LOWER(TRIM(?))');
+      params.push(req.user.kesatuan || '');
+    }
 
     if (search) {
       whereClauses.push('(nama LIKE ? OR nrp LIKE ? OR kesatuan LIKE ?)');
@@ -349,19 +355,21 @@ async function startServer() {
     });
   });
 
-  app.post('/api/personnel', async (req: any, res: any) => {
+  app.post('/api/personnel', isAdmin, async (req: any, res: any) => {
     const p = req.body;
     const hashedPassword = await bcrypt.hash(p.password || 'user!1234', 10);
+    const finalKesatuan = String(p.kesatuan || '').trim();
     await pool.query(`
       INSERT INTO personnel (id, nama, pangkat, nrp, jabatan, kesatuan, email, role, password, status)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `, [p.id, p.nama, p.pangkat, p.nrp, p.jabatan, p.kesatuan, p.email, p.role, hashedPassword, p.status || 'Aktif']);
+    `, [p.id, p.nama, p.pangkat, p.nrp, p.jabatan, finalKesatuan, p.email, p.role, hashedPassword, p.status || 'Aktif']);
     res.json({ success: true });
   });
 
-  app.put('/api/personnel/:id', async (req: any, res: any) => {
+  app.put('/api/personnel/:id', isAdmin, async (req: any, res: any) => {
     const { id } = req.params;
     const p = req.body;
+    const finalKesatuan = String(p.kesatuan || '').trim();
     
     try {
       if (p.password) {
@@ -370,13 +378,13 @@ async function startServer() {
           UPDATE personnel 
           SET nama = ?, pangkat = ?, nrp = ?, jabatan = ?, kesatuan = ?, email = ?, role = ?, status = ?, password = ?
           WHERE id = ?
-        `, [p.nama, p.pangkat, p.nrp, p.jabatan, p.kesatuan, p.email, p.role, p.status, hashedPassword, id]);
+        `, [p.nama, p.pangkat, p.nrp, p.jabatan, finalKesatuan, p.email, p.role, p.status, hashedPassword, id]);
       } else {
         await pool.query(`
           UPDATE personnel 
           SET nama = ?, pangkat = ?, nrp = ?, jabatan = ?, kesatuan = ?, email = ?, role = ?, status = ?
           WHERE id = ?
-        `, [p.nama, p.pangkat, p.nrp, p.jabatan, p.kesatuan, p.email, p.role, p.status, id]);
+        `, [p.nama, p.pangkat, p.nrp, p.jabatan, finalKesatuan, p.email, p.role, p.status, id]);
       }
       res.json({ success: true });
     } catch (error) {
@@ -385,7 +393,7 @@ async function startServer() {
     }
   });
 
-  app.delete('/api/personnel/:id', async (req: any, res: any) => {
+  app.delete('/api/personnel/:id', isAdmin, async (req: any, res: any) => {
     const { id } = req.params;
     await pool.query('DELETE FROM personnel WHERE id = ?', [id]);
     res.json({ success: true });
@@ -470,10 +478,11 @@ async function startServer() {
     let params: any[] = [];
     let whereClauses: string[] = [];
 
-    // Role-based filtering
-    if (req.user.role === 'admin' || req.user.role === 'user') {
-      whereClauses.push('kesatuan = ?');
-      params.push(req.user.kesatuan);
+    // Role-based filtering: Non-superadmins are strictly restricted to their own kesatuan
+    if (req.user.role !== 'superadmin') {
+      console.log(`[GET /api/requests] Filtering for ${req.user.role}: ${req.user.kesatuan}`);
+      whereClauses.push('LOWER(TRIM(kesatuan)) = LOWER(TRIM(?))');
+      params.push(req.user.kesatuan || '');
     }
 
     if (status && status !== 'Semua') {
@@ -515,10 +524,13 @@ async function startServer() {
     });
   });
 
-  app.post('/api/requests', upload.single('dokumen_kta_file'), async (req: any, res: any) => {
+  app.post('/api/requests', isAdmin, upload.single('dokumen_kta_file'), async (req: any, res: any) => {
     const r = req.body;
     const filename = req.file ? req.file.filename : (r.dokumen_kta || null);
     
+    // Enforce kesatuan for non-superadmins
+    const finalKesatuan = req.user.role !== 'superadmin' ? req.user.kesatuan : (r.kesatuan || 'Polda Jatim');
+
     try {
       await pool.query(`
         INSERT INTO reset_requests (
@@ -527,7 +539,7 @@ async function startServer() {
         )
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [
-        r.id, r.nama, r.pangkat, r.nrp, r.jabatan, r.kesatuan, r.kontak_person || null, 
+        r.id, r.nama, r.pangkat, r.nrp, r.jabatan, finalKesatuan, r.kontak_person || null, 
         r.waktu_iso, r.status, r.alasan, r.catatan || null, filename, 
         r.prioritas || 'Normal', r.createdAt
       ]);
@@ -576,7 +588,7 @@ async function startServer() {
       if (checkRows.length === 0) {
         return res.status(404).json({ success: false, message: 'Data tidak ditemukan.' });
       }
-      if (checkRows[0].kesatuan !== req.user.kesatuan) {
+      if (checkRows[0].kesatuan?.toLowerCase().trim() !== req.user.kesatuan?.toLowerCase().trim()) {
         return res.status(403).json({ success: false, message: 'Akses ditolak. Anda tidak memiliki izin untuk mengubah data dari wilayah lain.' });
       }
     }
@@ -660,7 +672,7 @@ async function startServer() {
       if (checkRows.length === 0) {
         return res.status(404).json({ success: false, message: 'Data tidak ditemukan.' });
       }
-      if (checkRows[0].kesatuan !== req.user.kesatuan) {
+      if (checkRows[0].kesatuan?.toLowerCase().trim() !== req.user.kesatuan?.toLowerCase().trim()) {
         return res.status(403).json({ success: false, message: 'Akses ditolak. Anda tidak memiliki izin untuk menghapus data dari wilayah lain.' });
       }
     }

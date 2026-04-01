@@ -29,7 +29,7 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
   const isSuperAdmin = currentUser.role === UserRole.SUPERADMIN;
   const isAdminPolres = currentUser.role === UserRole.ADMIN;
   const isUser = currentUser.role === UserRole.USER;
-  const isAnyAdmin = isSuperAdmin || isAdminPolres;
+  const isAnyAdmin = isSuperAdmin || isAdminPolres || isUser;
   const isDarkMode = siteSettings.darkMode;
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -263,23 +263,28 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
     reader.onload = (event) => {
       try {
         const bstr = event.target?.result;
-        const wb = XLSX.read(bstr, { type: 'binary' });
+        const wb = XLSX.read(bstr, { type: 'binary', cellDates: true });
         const wsname = wb.SheetNames[0];
         const ws = wb.Sheets[wsname];
         const data = XLSX.utils.sheet_to_json(ws) as any[];
 
-        const newRequests: ResetRequest[] = data.map((item, idx) => ({
-          id: `IMP-${Date.now()}-${idx}`,
-          nama: item.Nama || item.nama || 'Tanpa Nama',
-          pangkat: item.Pangkat || item.pangkat || '-',
-          nrp: String(item.NRP || item.nrp || '00000000'),
-          jabatan: item.Jabatan || item.jabatan || '-',
-          kesatuan: isAdminPolres ? currentUser.kesatuan : (item.Kesatuan || item.kesatuan || 'Polda Jatim'),
-          waktu_iso: new Date().toISOString(),
-          status: RequestStatus.MENUNGGU,
-          alasan: 'Import Data Massal',
-          createdAt: Date.now(),
-        }));
+        const newRequests: ResetRequest[] = data.map((item, idx) => {
+          const rawKesatuan = item.Kesatuan || item.kesatuan || item.KESATUAN || (isAdminPolres || isUser ? currentUser.kesatuan : 'Polda Jatim');
+          return {
+            id: item.id || item.ID || `IMP-${Date.now()}-${idx}`,
+            nama: item.Nama || item.nama || item.NAMA || 'Tanpa Nama',
+            pangkat: item.Pangkat || item.pangkat || item.PANGKAT || '-',
+            nrp: item.NRP || item.nrp || item.Nrp || item.nrp_personel ? String(item.NRP || item.nrp || item.Nrp || item.nrp_personel) : '00000000',
+            jabatan: item.Jabatan || item.jabatan || item.JABATAN || '-',
+            kesatuan: String(rawKesatuan).trim(),
+            waktu_iso: item.Waktu || item.waktu || item.waktu_iso || item.WAKTU || new Date().toISOString(),
+            status: item.Status || item.status || item.STATUS || RequestStatus.MENUNGGU,
+            alasan: item.Alasan || item.alasan || item.ALASAN || 'Import Data Massal',
+            createdAt: item.createdAt || item.created_at || item.CREATED_AT || Date.now(),
+            kontak_person: item.Kontak || item.kontak || item.kontak_person || item.KONTAK || '-',
+            prioritas: item.Prioritas || item.prioritas || item.PRIORITAS || 'Normal'
+          };
+        });
 
         if (newRequests.length > 0) {
           Promise.all(newRequests.map(r => 
@@ -1079,16 +1084,16 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
                   <input 
                     type="text" 
                     className={`w-full px-6 py-4 border rounded-2xl text-sm font-black transition-all outline-none ${
-                      isAdminPolres 
+                      !isSuperAdmin 
                         ? (isDarkMode ? 'bg-slate-800/50 border-slate-800 text-slate-500' : 'bg-slate-100 border-slate-100 text-slate-500') 
                         : (isDarkMode ? 'bg-slate-800 border-slate-700 text-white focus:bg-slate-700' : 'bg-slate-50 border-slate-200 focus:bg-white')
                     }`}
                     value={manualForm.kesatuan}
-                    onChange={(e) => !isAdminPolres && setManualForm({...manualForm, kesatuan: e.target.value})}
-                    readOnly={isAdminPolres}
+                    onChange={(e) => isSuperAdmin && setManualForm({...manualForm, kesatuan: e.target.value})}
+                    readOnly={!isSuperAdmin}
                     required
                   />
-                  {isAdminPolres && <p className="text-[9px] font-bold text-blue-500 uppercase mt-2 italic px-1">* Terkunci: Hanya untuk unit {currentUser.kesatuan}</p>}
+                  {!isSuperAdmin && <p className="text-[9px] font-bold text-blue-500 uppercase mt-2 italic px-1">* Terkunci: Hanya untuk unit {currentUser.kesatuan}</p>}
                </div>
                <div className="space-y-2">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Keterangan / Catatan</label>
