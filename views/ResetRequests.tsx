@@ -29,7 +29,7 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
   const isSuperAdmin = currentUser.role === UserRole.SUPERADMIN;
   const isAdminPolres = currentUser.role === UserRole.ADMIN;
   const isUser = currentUser.role === UserRole.USER;
-  const isAnyAdmin = isSuperAdmin || isAdminPolres || isUser;
+  const isAnyAdmin = isSuperAdmin || isAdminPolres;
   const isDarkMode = siteSettings.darkMode;
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -64,6 +64,13 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
         const result = await res.json();
         setRequests(result.data);
         setTotalItems(result.total);
+      } else if (res.status === 401) {
+        // Session invalid, redirect to login
+        localStorage.removeItem('user_profile');
+        window.location.href = '/#/login';
+      } else if (res.status === 403) {
+        // Access denied but session still valid
+        showToast('Akses ditolak. Anda tidak memiliki izin untuk melihat data ini.', 'error');
       }
     } catch (error) {
       console.error('Failed to fetch requests:', error);
@@ -776,7 +783,7 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
                         Detail
                       </button>
                       
-                      {isAnyAdmin && (
+                      {(isSuperAdmin || isAdminPolres) && (
                         <>
                           {req.status === RequestStatus.MENUNGGU && (
                              <div className="flex gap-2">
@@ -964,7 +971,7 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
                  </div>
 
                  {/* PASSWORD SECTION FOR FINISHED REQUESTS */}
-                 {viewingReq.status === RequestStatus.SELESAI && (
+                 {viewingReq.status === RequestStatus.SELESAI && (isSuperAdmin || isAdminPolres || currentUser.nrp === viewingReq.nrp) && (
                     <div className={`p-8 rounded-[2.5rem] text-white space-y-6 shadow-2xl transition-colors duration-300 ${isDarkMode ? 'bg-emerald-950 shadow-emerald-900/20' : 'bg-emerald-900 shadow-emerald-100'}`}>
                        <div className="flex items-center gap-3">
                           <span className="material-symbols-outlined text-emerald-400">verified_user</span>

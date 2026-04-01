@@ -55,7 +55,7 @@ const isAdmin = (req: any, res: any, next: any) => {
 
   try {
     const decoded: any = jwt.verify(token, JWT_SECRET);
-    if (decoded && (decoded.role === 'admin' || decoded.role === 'superadmin')) {
+    if (decoded && (decoded.role === 'admin' || decoded.role === 'superadmin' || decoded.role === 'user')) {
       req.user = decoded;
       next();
     } else {
@@ -443,7 +443,21 @@ async function startServer() {
     res.json({ success: true });
   });
 
-  app.get('/api/requests', async (req: any, res: any) => {
+  app.get('/api/me', (req: any, res: any) => {
+    const token = req.cookies.token;
+    if (!token) {
+      return res.status(401).json({ success: false, message: 'Sesi berakhir' });
+    }
+
+    try {
+      const decoded: any = jwt.verify(token, JWT_SECRET);
+      res.json({ success: true, user: decoded });
+    } catch (error) {
+      res.status(401).json({ success: false, message: 'Token tidak valid' });
+    }
+  });
+
+  app.get('/api/requests', isAdmin, async (req: any, res: any) => {
     const page = parseInt(req.query.page || '1');
     const limit = parseInt(req.query.limit || '10');
     const offset = (page - 1) * limit;
@@ -455,6 +469,12 @@ async function startServer() {
     let countQuery = 'SELECT COUNT(*) as count FROM reset_requests';
     let params: any[] = [];
     let whereClauses: string[] = [];
+
+    // Role-based filtering
+    if (req.user.role === 'admin' || req.user.role === 'user') {
+      whereClauses.push('kesatuan = ?');
+      params.push(req.user.kesatuan);
+    }
 
     if (status && status !== 'Semua') {
       whereClauses.push('status = ?');
@@ -541,9 +561,25 @@ async function startServer() {
     }
   });
 
-  app.put('/api/requests/:id', async (req: any, res: any) => {
+  app.put('/api/requests/:id', isAdmin, async (req: any, res: any) => {
     const { id } = req.params;
     const r = req.body;
+    
+    // Only Admin or Super Admin can update requests
+    if (req.user.role !== 'admin' && req.user.role !== 'superadmin') {
+      return res.status(403).json({ success: false, message: 'Akses ditolak. Hak akses tidak cukup.' });
+    }
+    
+    // Cross-unit protection for Admin
+    if (req.user.role === 'admin') {
+      const [checkRows]: any = await pool.query('SELECT kesatuan FROM reset_requests WHERE id = ?', [id]);
+      if (checkRows.length === 0) {
+        return res.status(404).json({ success: false, message: 'Data tidak ditemukan.' });
+      }
+      if (checkRows[0].kesatuan !== req.user.kesatuan) {
+        return res.status(403).json({ success: false, message: 'Akses ditolak. Anda tidak memiliki izin untuk mengubah data dari wilayah lain.' });
+      }
+    }
     
     try {
       // Convert reset_info to string if it's an object
@@ -610,8 +646,25 @@ async function startServer() {
     }
   });
 
-  app.delete('/api/requests/:id', async (req: any, res: any) => {
+  app.delete('/api/requests/:id', isAdmin, async (req: any, res: any) => {
     const { id } = req.params;
+    
+    // Only Admin or Super Admin can delete requests
+    if (req.user.role !== 'admin' && req.user.role !== 'superadmin') {
+      return res.status(403).json({ success: false, message: 'Akses ditolak. Hak akses tidak cukup.' });
+    }
+
+    // Cross-unit protection for Admin
+    if (req.user.role === 'admin') {
+      const [checkRows]: any = await pool.query('SELECT kesatuan FROM reset_requests WHERE id = ?', [id]);
+      if (checkRows.length === 0) {
+        return res.status(404).json({ success: false, message: 'Data tidak ditemukan.' });
+      }
+      if (checkRows[0].kesatuan !== req.user.kesatuan) {
+        return res.status(403).json({ success: false, message: 'Akses ditolak. Anda tidak memiliki izin untuk menghapus data dari wilayah lain.' });
+      }
+    }
+    
     await pool.query('DELETE FROM reset_requests WHERE id = ?', [id]);
     res.json({ success: true });
   });

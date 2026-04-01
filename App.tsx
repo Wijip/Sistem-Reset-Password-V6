@@ -65,6 +65,26 @@ const App: React.FC = () => {
     return saved ? JSON.parse(saved) : null;
   });
 
+  // Session check on mount
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        const res = await fetch('/api/me', { credentials: 'include' });
+        if (res.ok) {
+          const data = await res.json();
+          setCurrentUser(data.user);
+        } else {
+          // If session is invalid, clear local storage and redirect
+          localStorage.removeItem('user_profile');
+          setCurrentUser(null);
+        }
+      } catch (error) {
+        console.error('Session check failed:', error);
+      }
+    };
+    checkSession();
+  }, []);
+
   // Fetch initial data from API
   useEffect(() => {
     const fetchData = async () => {
