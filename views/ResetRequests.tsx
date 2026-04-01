@@ -472,7 +472,7 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
   };
 
   return (
-    <main className={`p-6 md:p-10 space-y-8 min-h-screen font-sans print:bg-white print:p-0 animate-in fade-in duration-500 transition-colors duration-300 ${isDarkMode ? 'bg-slate-950' : 'bg-slate-50'}`}>
+    <main className={`p-4 md:p-6 space-y-5 min-h-screen font-sans print:bg-white print:p-0 animate-in fade-in duration-500 transition-colors duration-300 ${isDarkMode ? 'bg-slate-950' : 'bg-slate-50'}`}>
       
       {/* Judul Laporan Khusus Print - Sesuai Gambar */}
       <div className={`hidden print:block mb-8 border-b-[3px] pb-8 ${isDarkMode ? 'border-white' : 'border-slate-900'}`}>
@@ -483,16 +483,16 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
       </div>
 
       {/* Header & Export Buttons */}
-      <div className="flex flex-col xl:flex-row xl:items-start justify-between gap-6 print:hidden">
-        <div className="flex items-center gap-6">
-          <div className={`w-16 h-16 rounded-[1.5rem] flex items-center justify-center shadow-2xl ${isDarkMode ? 'bg-sky-600 text-white shadow-sky-900/20' : 'bg-slate-900 text-white shadow-slate-200'}`}>
-             <span className="material-symbols-outlined text-3xl">lock_reset</span>
+      <div className="flex flex-col xl:flex-row xl:items-start justify-between gap-4 print:hidden">
+        <div className="flex items-center gap-4">
+          <div className={`w-14 h-14 rounded-[1.25rem] flex items-center justify-center shadow-2xl ${isDarkMode ? 'bg-sky-600 text-white shadow-sky-900/20' : 'bg-slate-900 text-white shadow-slate-200'}`}>
+             <span className="material-symbols-outlined text-2xl">lock_reset</span>
           </div>
           <div className="group relative">
-            <h1 className={`text-3xl font-black tracking-tighter leading-none ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+            <h1 className={`text-2xl font-black tracking-tighter leading-none ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
               {siteSettings.requestsTitle || 'Manajemen Reset Password'}
             </h1>
-            <p className="text-xs text-slate-400 font-bold mt-2 uppercase tracking-[0.15em]">
+            <p className="text-[10px] text-slate-400 font-bold mt-1.5 uppercase tracking-[0.15em]">
               {siteSettings.requestsSubtitle || 'Pantau dan eksekusi permohonan akses personel'}
             </p>
             {isSuperAdmin && (
@@ -512,41 +512,41 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
           </div>
         </div>
         
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2">
           {isAnyAdmin && (
             <>
               <button 
                 onClick={() => setIsManualModalOpen(true)}
-                className="flex items-center gap-3 px-6 py-4 bg-blue-600 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-blue-700 transition-all shadow-[0_0_20px_rgba(37,99,235,0.4)] active:scale-[0.97]"
+                className="flex items-center gap-2.5 px-5 py-3 bg-blue-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-700 transition-all shadow-[0_0_20px_rgba(37,99,235,0.4)] active:scale-[0.97]"
               >
-                <span className="material-symbols-outlined text-xl">add_circle</span>
+                <span className="material-symbols-outlined text-lg">add_circle</span>
                 TAMBAH MANUAL
               </button>
               <button 
                 onClick={() => fileInputRef.current?.click()}
-                className="flex items-center gap-3 px-6 py-4 bg-emerald-600 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-[0_0_20px_rgba(16,185,129,0.4)] active:scale-[0.97]"
+                className="flex items-center gap-2.5 px-5 py-3 bg-emerald-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-[0_0_20px_rgba(16,185,129,0.4)] active:scale-[0.97]"
               >
-                <span className="material-symbols-outlined text-xl">upload_file</span>
+                <span className="material-symbols-outlined text-lg">upload_file</span>
                 IMPORT EXCEL
               </button>
               <input type="file" ref={fileInputRef} className="hidden" accept=".xlsx, .xls" onChange={handleImportExcel} />
-              <div className={`w-px h-10 mx-3 hidden xl:block ${isDarkMode ? 'bg-slate-800' : 'bg-slate-200'}`}></div>
+              <div className={`w-px h-8 mx-2 hidden xl:block ${isDarkMode ? 'bg-slate-800' : 'bg-slate-200'}`}></div>
             </>
           )}
 
-          <button onClick={exportExcel} className={`flex items-center gap-3 px-5 py-4 border rounded-2xl text-[11px] font-black transition-all shadow-sm active:scale-[0.97] ${isDarkMode ? 'bg-slate-900 border-slate-800 text-slate-400 hover:bg-slate-800' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
-            <span className="material-symbols-outlined text-emerald-500">table_view</span>
+          <button onClick={exportExcel} className={`flex items-center gap-2.5 px-4 py-3 border rounded-2xl text-[10px] font-black transition-all shadow-sm active:scale-[0.97] ${isDarkMode ? 'bg-slate-900 border-slate-800 text-slate-400 hover:bg-slate-800' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+            <span className="material-symbols-outlined text-emerald-500 text-lg">table_view</span>
             EXPORT XLS
           </button>
-          <button onClick={() => window.print()} className={`flex items-center gap-3 px-5 py-4 border rounded-2xl text-[11px] font-black transition-all shadow-sm active:scale-[0.97] ${isDarkMode ? 'bg-slate-900 border-slate-800 text-slate-400 hover:bg-slate-800' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
-            <span className="material-symbols-outlined text-rose-500">picture_as_pdf</span>
+          <button onClick={() => window.print()} className={`flex items-center gap-2.5 px-4 py-3 border rounded-2xl text-[10px] font-black transition-all shadow-sm active:scale-[0.97] ${isDarkMode ? 'bg-slate-900 border-slate-800 text-slate-400 hover:bg-slate-800' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+            <span className="material-symbols-outlined text-rose-500 text-lg">picture_as_pdf</span>
             PDF
           </button>
         </div>
       </div>
 
       {/* Statistical Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 print:hidden">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 print:hidden">
         {[
           { label: 'Total Request', value: stats.total, sub: 'Seluruh pengajuan', icon: 'list_alt', color: 'blue', bg: isDarkMode ? 'bg-blue-500/10' : 'bg-blue-50', text: isDarkMode ? 'text-blue-400' : 'text-blue-500' },
           { label: isSuperAdmin ? 'Status: Diterima' : 'Status: Terkirim', value: stats.pending, sub: 'Butuh verifikasi segera', icon: 'hourglass_empty', color: 'amber', bg: isDarkMode ? 'bg-amber-500/10' : 'bg-amber-50', text: isDarkMode ? 'text-amber-400' : 'text-amber-500' },
@@ -554,35 +554,35 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
           { label: 'Status: Selesai', value: stats.completedToday, sub: 'Berhasil hari ini', icon: 'verified', color: 'emerald', bg: isDarkMode ? 'bg-emerald-500/10' : 'bg-emerald-50', text: isDarkMode ? 'text-emerald-400' : 'text-emerald-500' },
           { label: 'Prioritas Mendesak', value: stats.urgent, sub: 'Butuh tindakan cepat', icon: 'priority_high', color: 'rose', bg: isDarkMode ? 'bg-rose-500/10' : 'bg-rose-50', text: isDarkMode ? 'text-rose-400' : 'text-rose-500' }
         ].map((stat, i) => (
-          <div key={i} className={`p-8 rounded-[2rem] border shadow-sm flex items-start justify-between group hover:shadow-xl transition-all duration-300 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
-            <div className="space-y-2">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{stat.label}</p>
-              <h4 className={`text-4xl font-black tracking-tighter ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{stat.value}</h4>
-              <p className="text-[10px] font-bold text-slate-400 mt-3">{stat.sub}</p>
+          <div key={i} className={`p-5 rounded-[1.5rem] border shadow-sm flex items-start justify-between group hover:shadow-xl transition-all duration-300 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
+            <div className="space-y-1">
+              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{stat.label}</p>
+              <h4 className={`text-3xl font-black tracking-tighter ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{stat.value}</h4>
+              <p className="text-[9px] font-bold text-slate-400 mt-1">{stat.sub}</p>
             </div>
-            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-transform group-hover:rotate-12 shadow-inner ${stat.bg} ${stat.text}`}>
-              <span className="material-symbols-outlined text-3xl">{stat.icon}</span>
+            <div className={`w-11 h-11 rounded-xl flex items-center justify-center transition-transform group-hover:rotate-12 shadow-inner ${stat.bg} ${stat.text}`}>
+              <span className="material-symbols-outlined text-2xl">{stat.icon}</span>
             </div>
           </div>
         ))}
       </div>
 
       {/* Filter Bar */}
-      <div className={`p-5 rounded-3xl border shadow-sm flex flex-col lg:flex-row items-center gap-4 print:hidden transition-colors duration-300 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
+      <div className={`p-4 rounded-2xl border shadow-sm flex flex-col lg:flex-row items-center gap-3 print:hidden transition-colors duration-300 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
         <div className="relative flex-1 w-full">
-          <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-xl">search</span>
+          <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-lg">search</span>
           <input 
             type="text" 
             placeholder="Cari berdasarkan Nama, NRP, atau Kesatuan..." 
-            className={`w-full pl-12 pr-6 py-3.5 border rounded-xl text-sm font-bold transition-all placeholder:text-slate-300 focus:outline-none focus:ring-4 focus:ring-blue-500/10 ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-100 text-slate-700'}`}
+            className={`w-full pl-11 pr-5 py-2.5 border rounded-xl text-xs font-bold transition-all placeholder:text-slate-300 focus:outline-none focus:ring-4 focus:ring-blue-500/10 ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-100 text-slate-700'}`}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
         
-        <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
+        <div className="flex flex-wrap items-center gap-1.5 w-full lg:w-auto">
           <select 
-            className={`px-4 py-3.5 border rounded-xl text-[10px] font-black outline-none min-w-[140px] cursor-pointer transition-all uppercase tracking-widest ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+            className={`px-3 py-2.5 border rounded-xl text-[9px] font-black outline-none min-w-[130px] cursor-pointer transition-all uppercase tracking-widest ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
           >
@@ -594,7 +594,7 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
           </select>
 
           <select 
-            className={`px-4 py-3.5 border rounded-xl text-[10px] font-black outline-none min-w-[140px] cursor-pointer transition-all uppercase tracking-widest ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+            className={`px-3 py-2.5 border rounded-xl text-[9px] font-black outline-none min-w-[130px] cursor-pointer transition-all uppercase tracking-widest ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
             value={filterPriority}
             onChange={(e) => setFilterPriority(e.target.value)}
           >
@@ -604,31 +604,31 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
             <option value="MENDESAK">Mendesak</option>
           </select>
 
-          <div className="flex items-center gap-2">
-            <div className="flex flex-col gap-1">
-              <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Mulai</span>
+          <div className="flex items-center gap-1.5">
+            <div className="flex flex-col gap-0.5">
+              <span className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">Mulai</span>
               <input 
                 type="date" 
-                className={`px-3 py-2 border rounded-xl text-[10px] font-black outline-none uppercase ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-white border-slate-200 text-slate-600'}`} 
+                className={`px-2 py-1.5 border rounded-xl text-[9px] font-black outline-none uppercase ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-white border-slate-200 text-slate-600'}`} 
                 value={startDate} 
                 onChange={(e) => setStartDate(e.target.value)} 
               />
             </div>
-            <div className="flex flex-col gap-1">
-              <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Selesai</span>
+            <div className="flex flex-col gap-0.5">
+              <span className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">Selesai</span>
               <input 
                 type="date" 
-                className={`px-3 py-2 border rounded-xl text-[10px] font-black outline-none uppercase ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-white border-slate-200 text-slate-600'}`} 
+                className={`px-2 py-1.5 border rounded-xl text-[9px] font-black outline-none uppercase ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-white border-slate-200 text-slate-600'}`} 
                 value={endDate} 
                 onChange={(e) => setEndDate(e.target.value)} 
               />
             </div>
           </div>
 
-          <button onClick={handleApplyFilter} className="px-6 py-3.5 bg-sky-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-sky-700 transition-all active:scale-[0.97] shadow-lg shadow-sky-900/20">
+          <button onClick={handleApplyFilter} className="px-5 py-2.5 bg-sky-600 text-white rounded-xl font-black text-[9px] uppercase tracking-widest hover:bg-sky-700 transition-all active:scale-[0.97] shadow-lg shadow-sky-900/20">
             TERAPKAN
           </button>
-          <button onClick={handleResetFilter} className={`px-4 py-3.5 border rounded-xl font-black text-[10px] transition-all uppercase tracking-widest ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-500 hover:bg-slate-700' : 'bg-white border-slate-200 text-slate-400 hover:bg-slate-50'}`}>
+          <button onClick={handleResetFilter} className={`px-3 py-2.5 border rounded-xl font-black text-[9px] transition-all uppercase tracking-widest ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-500 hover:bg-slate-700' : 'bg-white border-slate-200 text-slate-400 hover:bg-slate-50'}`}>
             RESET
           </button>
         </div>
@@ -669,34 +669,12 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
         </div>
       )}
 
-      {/* Pagination Controls */}
-      <div className="flex items-center justify-between px-8 py-6 print:hidden">
-        <div className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-          MENAMPILKAN {(currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, totalItems)} DARI {totalItems} DATA
-        </div>
-        <div className="flex items-center gap-2">
-          <button 
-            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-            disabled={currentPage === 1 || totalItems === 0}
-            className={`w-10 h-10 rounded-xl border flex items-center justify-center transition-all ${currentPage === 1 || totalItems === 0 ? 'opacity-20 cursor-not-allowed' : 'hover:bg-slate-100 dark:hover:bg-slate-800'}`}
-          >
-            <span className="material-symbols-outlined text-xl">chevron_left</span>
-          </button>
-          <button 
-            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-            disabled={currentPage === totalPages || totalItems === 0}
-            className={`w-10 h-10 rounded-xl border flex items-center justify-center transition-all ${currentPage === totalPages || totalItems === 0 ? 'opacity-20 cursor-not-allowed' : 'hover:bg-slate-100 dark:hover:bg-slate-800'}`}
-          >
-            <span className="material-symbols-outlined text-xl">chevron_right</span>
-          </button>
-        </div>
-      </div>
-      <div className={`rounded-[2.5rem] border shadow-sm overflow-hidden print:border-[1pt] print:border-slate-300 print:rounded-3xl transition-colors duration-300 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
+      <div className={`rounded-[1.5rem] border shadow-sm overflow-hidden print:border-[1pt] print:border-slate-300 print:rounded-3xl transition-colors duration-300 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className={`border-b-2 text-[11px] font-black uppercase tracking-widest print:bg-slate-50 print:text-slate-900 transition-colors duration-300 ${isDarkMode ? 'bg-slate-800/50 border-slate-800 text-slate-500' : 'bg-slate-50/50 border-slate-100 text-slate-400'}`}>
-                <th className="px-8 py-6 text-center w-16 print:hidden">
+              <tr className={`border-b-2 text-[10px] font-black uppercase tracking-widest print:bg-slate-50 print:text-slate-900 transition-colors duration-300 ${isDarkMode ? 'bg-slate-800/50 border-slate-800 text-slate-500' : 'bg-slate-50/50 border-slate-100 text-slate-400'}`}>
+                <th className="px-4 py-3 text-center w-12 print:hidden">
                   <input 
                     type="checkbox" 
                     className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
@@ -704,36 +682,36 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
                     onChange={handleSelectAll}
                   />
                 </th>
-                <th className="px-8 py-6 text-center w-16">NO.</th>
-                <th className="px-8 py-6">WAKTU REQUEST</th>
-                <th className="px-8 py-6">PERSONEL</th>
-                <th className="px-8 py-6">KESATUAN</th>
-                <th className="px-8 py-6 text-center">STATUS</th>
-                <th className="px-8 py-6 text-center">PRIORITAS</th>
-                <th className="px-8 py-6 text-center print:table-cell hidden">PASSWORD BARU</th>
-                <th className="px-8 py-6 text-center print:hidden">AKSI</th>
+                <th className="px-4 py-3 text-center w-12">NO.</th>
+                <th className="px-4 py-3">WAKTU REQUEST</th>
+                <th className="px-4 py-3">PERSONEL</th>
+                <th className="px-4 py-3">KESATUAN</th>
+                <th className="px-4 py-3 text-center">STATUS</th>
+                <th className="px-4 py-3 text-center">PRIORITAS</th>
+                <th className="px-4 py-3 text-center print:table-cell hidden">PASSWORD BARU</th>
+                <th className="px-4 py-3 text-center print:hidden">AKSI</th>
               </tr>
             </thead>
             <tbody className={`divide-y transition-colors duration-300 ${isDarkMode ? 'divide-slate-800' : 'divide-slate-50'} print:divide-slate-200`}>
               {isLoading ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <tr key={`skeleton-${i}`} className="animate-pulse">
-                    <td className="px-8 py-8 text-center print:hidden"><div className={`h-4 w-4 rounded mx-auto ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`}></div></td>
-                    <td className="px-8 py-8 text-center"><div className={`h-4 w-8 rounded mx-auto ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`}></div></td>
-                    <td className="px-8 py-8"><div className={`h-4 w-24 rounded mb-2 ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`}></div><div className={`h-3 w-16 rounded ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`}></div></td>
-                    <td className="px-8 py-8"><div className={`h-5 w-40 rounded mb-2 ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`}></div><div className={`h-3 w-20 rounded ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`}></div></td>
-                    <td className="px-8 py-8"><div className={`h-8 w-32 rounded-xl ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`}></div></td>
-                    <td className="px-8 py-8 text-center"><div className={`h-8 w-24 rounded-full mx-auto ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`}></div></td>
-                    <td className="px-8 py-8 text-center"><div className={`h-6 w-20 rounded-lg mx-auto ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`}></div></td>
-                    <td className="px-8 py-8 text-center hidden"><div className={`h-4 w-20 rounded mx-auto ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`}></div></td>
-                    <td className="px-8 py-8 text-center print:hidden"><div className={`h-10 w-24 rounded-2xl mx-auto ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`}></div></td>
+                    <td className="px-4 py-4 text-center print:hidden"><div className={`h-4 w-4 rounded mx-auto ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`}></div></td>
+                    <td className="px-4 py-4 text-center"><div className={`h-4 w-8 rounded mx-auto ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`}></div></td>
+                    <td className="px-4 py-4"><div className={`h-4 w-24 rounded mb-2 ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`}></div><div className={`h-3 w-16 rounded ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`}></div></td>
+                    <td className="px-4 py-4"><div className={`h-5 w-40 rounded mb-2 ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`}></div><div className={`h-3 w-20 rounded ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`}></div></td>
+                    <td className="px-4 py-4"><div className={`h-8 w-32 rounded-xl ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`}></div></td>
+                    <td className="px-4 py-4 text-center"><div className={`h-8 w-24 rounded-full mx-auto ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`}></div></td>
+                    <td className="px-4 py-4 text-center"><div className={`h-6 w-20 rounded-lg mx-auto ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`}></div></td>
+                    <td className="px-4 py-4 text-center hidden"><div className={`h-4 w-20 rounded mx-auto ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`}></div></td>
+                    <td className="px-4 py-4 text-center print:hidden"><div className={`h-10 w-24 rounded-2xl mx-auto ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`}></div></td>
                   </tr>
                 ))
               ) : (
                 <>
                   {filteredRequests.map((req, index) => (
                     <tr key={req.id} className={`transition-colors group ${isDarkMode ? 'hover:bg-slate-800/30' : 'hover:bg-slate-50/30'}`}>
-                      <td className="px-8 py-8 text-center print:hidden">
+                      <td className="px-4 py-3 text-center print:hidden">
                         <input 
                           type="checkbox" 
                           className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
@@ -741,27 +719,27 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
                           onChange={() => handleSelectOne(req.id)}
                         />
                       </td>
-                      <td className={`px-8 py-8 text-center text-sm font-black print:text-slate-900 ${isDarkMode ? 'text-slate-600' : 'text-slate-400'}`}>{(currentPage - 1) * itemsPerPage + index + 1}</td>
-                      <td className="px-8 py-8">
-                        <div className={`text-sm font-black print:text-slate-900 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>{new Date(req.createdAt).toLocaleDateString('id-ID')}</div>
-                        <div className="text-[11px] text-slate-400 font-bold mt-1 uppercase tracking-widest print:text-slate-500">{new Date(req.createdAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</div>
+                      <td className={`px-4 py-3 text-center text-xs font-black print:text-slate-900 ${isDarkMode ? 'text-slate-600' : 'text-slate-400'}`}>{(currentPage - 1) * itemsPerPage + index + 1}</td>
+                      <td className="px-4 py-3">
+                        <div className={`text-xs font-black print:text-slate-900 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>{new Date(req.createdAt).toLocaleDateString('id-ID')}</div>
+                        <div className="text-[10px] text-slate-400 font-bold mt-0.5 uppercase tracking-widest print:text-slate-500">{new Date(req.createdAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</div>
                       </td>
-                      <td className="px-8 py-8">
-                        <div className={`text-base font-black uppercase tracking-tight print:text-slate-900 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{req.nama}</div>
-                        <div className="flex items-center gap-2 mt-1">
-                           <span className="text-[11px] text-slate-400 font-bold uppercase tracking-widest print:text-slate-500">{req.pangkat}</span>
+                      <td className="px-4 py-3">
+                        <div className={`text-sm font-black uppercase tracking-tight print:text-slate-900 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{req.nama}</div>
+                        <div className="flex items-center gap-2 mt-0.5">
+                           <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest print:text-slate-500">{req.pangkat}</span>
                            <span className={`w-1 h-1 rounded-full print:bg-slate-300 ${isDarkMode ? 'bg-slate-700' : 'bg-slate-200'}`}></span>
-                           <span className={`text-[11px] font-black font-mono print:text-slate-600 ${isDarkMode ? 'text-slate-500' : 'text-slate-500'}`}>{req.nrp}</span>
+                           <span className={`text-[10px] font-black font-mono print:text-slate-600 ${isDarkMode ? 'text-slate-500' : 'text-slate-500'}`}>{req.nrp}</span>
                         </div>
                       </td>
-                      <td className="px-8 py-8">
-                        <span className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase flex items-center gap-2 w-fit transition-all print:bg-transparent print:p-0 print:text-slate-900 print:font-black ${isDarkMode ? 'bg-slate-800 text-slate-400 group-hover:bg-sky-600 group-hover:text-white' : 'bg-slate-100 text-slate-500 group-hover:bg-slate-900 group-hover:text-white'}`}>
-                          <span className="material-symbols-outlined text-sm print:text-base">account_balance</span>
+                      <td className="px-4 py-3">
+                        <span className={`px-3 py-1.5 rounded-xl text-[9px] font-black uppercase flex items-center gap-2 w-fit transition-all print:bg-transparent print:p-0 print:text-slate-900 print:font-black ${isDarkMode ? 'bg-slate-800 text-slate-400 group-hover:bg-sky-600 group-hover:text-white' : 'bg-slate-100 text-slate-500 group-hover:bg-slate-900 group-hover:text-white'}`}>
+                          <span className="material-symbols-outlined text-xs print:text-base">account_balance</span>
                           {req.kesatuan}
                         </span>
                       </td>
-                      <td className="px-8 py-8 text-center">
-                        <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest print:bg-transparent print:p-0 print:text-xs print:font-black ${
+                      <td className="px-4 py-3 text-center">
+                        <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest print:bg-transparent print:p-0 print:text-xs print:font-black ${
                           req.status === RequestStatus.MENUNGGU ? (isDarkMode ? 'bg-amber-500/10 text-amber-400' : 'bg-amber-50 text-amber-600') :
                           req.status === RequestStatus.DIPROSES ? (isDarkMode ? 'bg-blue-500/10 text-blue-400' : 'bg-blue-50 text-blue-600') : 
                           req.status === RequestStatus.DITOLAK ? (isDarkMode ? 'bg-rose-500/10 text-rose-400' : 'bg-rose-50 text-rose-600') :
@@ -771,12 +749,12 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
                           req.status === RequestStatus.DIPROSES ? 'print:text-blue-600' : 
                           req.status === RequestStatus.DITOLAK ? 'print:text-rose-600' : 'print:text-emerald-600'
                         }`}>
-                          <span className={`w-2 h-2 rounded-full ${req.status === RequestStatus.MENUNGGU ? 'bg-amber-500' : req.status === RequestStatus.DIPROSES ? 'bg-blue-500' : req.status === RequestStatus.DITOLAK ? 'bg-rose-500' : 'bg-emerald-500'} print:hidden`}></span>
+                          <span className={`w-1.5 h-1.5 rounded-full ${req.status === RequestStatus.MENUNGGU ? 'bg-amber-500' : req.status === RequestStatus.DIPROSES ? 'bg-blue-500' : req.status === RequestStatus.DITOLAK ? 'bg-rose-500' : 'bg-emerald-500'} print:hidden`}></span>
                           {getStatusLabel(req.status)}
                         </span>
                       </td>
-                      <td className="px-8 py-8 text-center">
-                        <span className={`text-[10px] font-black uppercase px-3 py-1 rounded-lg ${
+                      <td className="px-4 py-3 text-center">
+                        <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-lg ${
                           req.prioritas === RequestPriority.MENDESAK ? (isDarkMode ? 'bg-rose-500/10 text-rose-400' : 'bg-rose-100 text-rose-600') :
                           req.prioritas === RequestPriority.PENTING ? (isDarkMode ? 'bg-amber-500/10 text-amber-400' : 'bg-amber-100 text-amber-600') :
                           (isDarkMode ? 'bg-slate-800 text-slate-500' : 'bg-slate-100 text-slate-400')
@@ -784,35 +762,35 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
                           {req.prioritas || 'NORMAL'}
                         </span>
                       </td>
-                      <td className={`px-8 py-8 text-center print:table-cell hidden font-mono text-xs font-black uppercase ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+                      <td className={`px-4 py-3 text-center print:table-cell hidden font-mono text-[10px] font-black uppercase ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
                         {req.reset_password || '-'}
                       </td>
-                      <td className="px-8 py-8 text-center print:hidden">
-                        <div className="flex items-center justify-center gap-3">
+                      <td className="px-4 py-3 text-center print:hidden">
+                        <div className="flex items-center justify-center gap-2">
                           <button 
                             onClick={() => { setViewingReq(req); setShowDetailPassword(false); }}
-                            className={`px-5 py-3 border-2 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 shadow-sm ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-400 hover:border-sky-500 hover:text-sky-400' : 'bg-white border-slate-100 text-slate-600 hover:border-blue-500 hover:text-blue-600'}`}
+                            className={`px-4 py-2.5 border-2 rounded-2xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-1.5 shadow-sm ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-400 hover:border-sky-500 hover:text-sky-400' : 'bg-white border-slate-100 text-slate-600 hover:border-blue-500 hover:text-blue-600'}`}
                           >
-                            <span className="material-symbols-outlined text-base">visibility</span>
+                            <span className="material-symbols-outlined text-sm">visibility</span>
                             Detail
                           </button>
                           
                           {(isSuperAdmin || isAdminPolres) && (
                             <>
                               {req.status === RequestStatus.MENUNGGU && (
-                                 <div className="flex gap-2">
+                                 <div className="flex gap-1.5">
                                    <button 
                                       onClick={() => handleStartProcess(req.id)}
-                                      className="px-5 py-3 bg-indigo-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-700 transition-all flex items-center gap-2 shadow-xl shadow-indigo-900/20"
+                                      className="px-4 py-2.5 bg-indigo-600 text-white rounded-2xl text-[9px] font-black uppercase tracking-widest hover:bg-indigo-700 transition-all flex items-center gap-1.5 shadow-xl shadow-indigo-900/20"
                                    >
-                                     <span className="material-symbols-outlined text-base">play_arrow</span>
+                                     <span className="material-symbols-outlined text-sm">play_arrow</span>
                                      Mulai
                                    </button>
                                    <button 
                                       onClick={() => { setRejectingReq(req); setRejectionReason(''); }}
-                                      className="px-5 py-3 bg-rose-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-rose-700 transition-all flex items-center gap-2 shadow-xl shadow-rose-900/20"
+                                      className="px-4 py-2.5 bg-rose-600 text-white rounded-2xl text-[9px] font-black uppercase tracking-widest hover:bg-rose-700 transition-all flex items-center gap-1.5 shadow-xl shadow-rose-900/20"
                                    >
-                                     <span className="material-symbols-outlined text-base">block</span>
+                                     <span className="material-symbols-outlined text-sm">block</span>
                                      Tolak
                                    </button>
                                  </div>
@@ -820,9 +798,9 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
                               {req.status === RequestStatus.DIPROSES && (
                                  <button 
                                     onClick={() => { setSelectedReq(req); setNewPassword(''); setShowWeakWarning(false); }}
-                                    className={`px-5 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 shadow-xl ${isDarkMode ? 'bg-white text-slate-900 hover:bg-sky-400 hover:text-white shadow-white/5' : 'bg-slate-900 text-white hover:bg-blue-600 shadow-slate-200'}`}
+                                    className={`px-4 py-2.5 rounded-2xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-1.5 shadow-xl ${isDarkMode ? 'bg-white text-slate-900 hover:bg-sky-400 hover:text-white shadow-white/5' : 'bg-slate-900 text-white hover:bg-blue-600 shadow-slate-200'}`}
                                  >
-                                   <span className="material-symbols-outlined text-base">flash_on</span>
+                                   <span className="material-symbols-outlined text-sm">flash_on</span>
                                    Selesai
                                  </button>
                               )}
@@ -834,10 +812,10 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
                   ))}
                   {filteredRequests.length === 0 && (
                     <tr>
-                      <td colSpan={11} className="px-8 py-32 text-center">
-                        <div className="flex flex-col items-center gap-4 opacity-30">
-                           <span className="material-symbols-outlined text-6xl">database_off</span>
-                           <p className="text-sm font-black text-slate-400 uppercase tracking-widest">Tidak ada data ditemukan</p>
+                      <td colSpan={11} className="px-4 py-24 text-center">
+                        <div className="flex flex-col items-center gap-3 opacity-30">
+                           <span className="material-symbols-outlined text-5xl">database_off</span>
+                           <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Tidak ada data ditemukan</p>
                         </div>
                       </td>
                     </tr>
@@ -846,6 +824,29 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
               )}
             </tbody>
           </table>
+        </div>
+      </div>
+
+      {/* Pagination Controls */}
+      <div className="flex items-center justify-between px-4 py-2 print:hidden">
+        <div className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">
+          MENAMPILKAN {(currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, totalItems)} DARI {totalItems} DATA
+        </div>
+        <div className="flex items-center gap-1.5">
+          <button 
+            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+            disabled={currentPage === 1 || totalItems === 0}
+            className={`w-8 h-8 rounded-xl border flex items-center justify-center transition-all ${currentPage === 1 || totalItems === 0 ? 'opacity-20 cursor-not-allowed' : 'hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+          >
+            <span className="material-symbols-outlined text-lg">chevron_left</span>
+          </button>
+          <button 
+            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+            disabled={currentPage === totalPages || totalItems === 0}
+            className={`w-8 h-8 rounded-xl border flex items-center justify-center transition-all ${currentPage === totalPages || totalItems === 0 ? 'opacity-20 cursor-not-allowed' : 'hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+          >
+            <span className="material-symbols-outlined text-lg">chevron_right</span>
+          </button>
         </div>
       </div>
 
