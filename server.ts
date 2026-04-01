@@ -212,6 +212,7 @@ async function initializeDatabase() {
       { id: "SA1", nama: "AKBP Budiono", pangkat: "AKBP", nrp: "78010001", jabatan: "Kabid Tik", kesatuan: "Polda Jatim", email: "superadmin1@polri.go.id", role: "superadmin", password: "superadmin123" },
       { id: "SA2", nama: "Kompol Siti Aminah", pangkat: "Kompol", nrp: "82050002", jabatan: "Kasubag Tekinfo", kesatuan: "Polda Jatim", email: "superadmin2@polri.go.id", role: "superadmin", password: "siperadmin123" },
       { id: "SA3", nama: "URYANDUKNIS", pangkat: "Super Admin", nrp: "410804003", jabatan: "URYANDUKNIS SUBBIDTEKINFO BID TIK POLDA JATIM", kesatuan: "Polda Jatim", email: "uryanduknis.superadmin@polri.go.id", role: "superadmin", password: "pCtAi9T2221G" },
+      { id: "ADM_URY_JATIM", nama: "URYANDUKNIS SUBBIDTEKINFO", pangkat: "Admin", nrp: "410804004", jabatan: "Admin Tekinfo Bid Tik", kesatuan: "Polda Jatim", email: "uryanduknissubbidtekinfobidtik.jatim@polri.go.id", role: "admin", password: "pCtAi9T2221G" },
       { id: "ADM_416409000", nama: "Polrestabes Surabaya", pangkat: "User", nrp: "416409000", jabatan: "Kasi Tik", kesatuan: "POLRESTABES SURABAYA", email: "sitikrestabessurabaya.jatim@polri.go.id", role: "user", password: "pCtAi9T2221G" },
       { id: "ADM_415809000", nama: "Polresta Sidoarjo", pangkat: "User", nrp: "415809000", jabatan: "Kasi Tik", kesatuan: "POLRESTA SIDOARJO", email: "sitikrestasidoarjo.jatim@polri.go.id", role: "user", password: "B41ShY4ASw6m" },
       { id: "ADM_414409000", nama: "Polres Malang Kota", pangkat: "User", nrp: "414409000", jabatan: "Kasi Tik", kesatuan: "POLRES MALANG KOTA", email: "sitikresmalangkota.jatim@polri.go.id", role: "user", password: "pCtAi9T2221G" },
@@ -264,6 +265,28 @@ async function initializeDatabase() {
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         `, [p.id, p.nama, p.pangkat, p.nrp, p.jabatan, p.kesatuan, p.email, p.role, hashedPassword]);
       }
+    }
+
+    // Ensure specific admin user requested by the user exists
+    const targetEmail = 'uryanduknissubbidtekinfobidtik.jatim@polri.go.id';
+    const [targetUser]: any = await pool.query('SELECT * FROM personnel WHERE email = ?', [targetEmail]);
+    if (targetUser.length === 0) {
+      console.log(`[DATABASE] Menambahkan user admin khusus: ${targetEmail}`);
+      const hashedPassword = await bcrypt.hash('pCtAi9T2221G', 10);
+      await pool.query(`
+        INSERT INTO personnel (id, nama, pangkat, nrp, jabatan, kesatuan, email, role, password)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `, [
+        'ADM_URY_JATIM', 
+        'URYANDUKNIS SUBBIDTEKINFO', 
+        'Admin', 
+        '410804004', 
+        'Admin Tekinfo Bid Tik', 
+        'Polda Jatim', 
+        targetEmail, 
+        'admin', 
+        hashedPassword
+      ]);
     }
 
     console.log('[DATABASE] Inisialisasi selesai. Sistem siap digunakan.');
