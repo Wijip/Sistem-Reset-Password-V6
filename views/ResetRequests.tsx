@@ -1,7 +1,6 @@
 
 import React, { useState, useMemo, useRef } from 'react';
 import * as XLSX from 'xlsx';
-import { motion, AnimatePresence } from 'motion/react';
 import { useDebounce } from '../src/hooks/useDebounce';
 import { ResetRequest, RequestStatus, LogEntry, SiteSettings, UserRole, Personnel, RequestPriority } from '../types';
 
@@ -471,11 +470,7 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
   };
 
   return (
-    <motion.main 
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className={`p-6 md:p-10 space-y-8 max-w-full mx-auto min-h-screen font-sans print:bg-white print:p-0 transition-colors duration-300 ${isDarkMode ? 'bg-slate-950' : 'bg-slate-50'}`}
-    >
+    <main className={`p-6 md:p-10 space-y-8 max-w-7xl mx-auto min-h-screen font-sans print:bg-white print:p-0 animate-in fade-in duration-500 transition-colors duration-300 ${isDarkMode ? 'bg-slate-950' : 'bg-slate-50'}`}>
       
       {/* Judul Laporan Khusus Print - Sesuai Gambar */}
       <div className={`hidden print:block mb-8 border-b-[3px] pb-8 ${isDarkMode ? 'border-white' : 'border-slate-900'}`}>
@@ -571,21 +566,21 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
       </div>
 
       {/* Filter Bar */}
-      <div className={`p-6 rounded-[2rem] border shadow-sm flex flex-col xl:flex-row items-center gap-4 print:hidden transition-colors duration-300 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
+      <div className={`p-5 rounded-3xl border shadow-sm flex flex-col lg:flex-row items-center gap-4 print:hidden transition-colors duration-300 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
         <div className="relative flex-1 w-full">
-          <span className="material-symbols-outlined absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 text-2xl">search</span>
+          <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-xl">search</span>
           <input 
             type="text" 
             placeholder="Cari berdasarkan Nama, NRP, atau Kesatuan..." 
-            className={`w-full pl-14 pr-6 py-4 border rounded-2xl text-sm font-bold transition-all placeholder:text-slate-300 focus:outline-none focus:ring-4 focus:ring-blue-500/10 ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-100 text-slate-700'}`}
+            className={`w-full pl-12 pr-6 py-3.5 border rounded-xl text-sm font-bold transition-all placeholder:text-slate-300 focus:outline-none focus:ring-4 focus:ring-blue-500/10 ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-100 text-slate-700'}`}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
         
-        <div className="flex flex-wrap items-center gap-3 w-full xl:w-auto">
+        <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
           <select 
-            className={`px-6 py-4 border rounded-2xl text-xs font-black outline-none min-w-[150px] cursor-pointer transition-all uppercase tracking-widest ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+            className={`px-4 py-3.5 border rounded-xl text-[10px] font-black outline-none min-w-[140px] cursor-pointer transition-all uppercase tracking-widest ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
           >
@@ -597,7 +592,7 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
           </select>
 
           <select 
-            className={`px-6 py-4 border rounded-2xl text-xs font-black outline-none min-w-[150px] cursor-pointer transition-all uppercase tracking-widest ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+            className={`px-4 py-3.5 border rounded-xl text-[10px] font-black outline-none min-w-[140px] cursor-pointer transition-all uppercase tracking-widest ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
             value={filterPriority}
             onChange={(e) => setFilterPriority(e.target.value)}
           >
@@ -607,31 +602,31 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
             <option value="MENDESAK">Mendesak</option>
           </select>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <div className="flex flex-col gap-1">
-              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Mulai</span>
+              <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Mulai</span>
               <input 
                 type="date" 
-                className={`px-4 py-3 border rounded-2xl text-[10px] font-black outline-none uppercase ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-white border-slate-200 text-slate-600'}`} 
+                className={`px-3 py-2 border rounded-xl text-[10px] font-black outline-none uppercase ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-white border-slate-200 text-slate-600'}`} 
                 value={startDate} 
                 onChange={(e) => setStartDate(e.target.value)} 
               />
             </div>
             <div className="flex flex-col gap-1">
-              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Selesai</span>
+              <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Selesai</span>
               <input 
                 type="date" 
-                className={`px-4 py-3 border rounded-2xl text-[10px] font-black outline-none uppercase ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-white border-slate-200 text-slate-600'}`} 
+                className={`px-3 py-2 border rounded-xl text-[10px] font-black outline-none uppercase ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-white border-slate-200 text-slate-600'}`} 
                 value={endDate} 
                 onChange={(e) => setEndDate(e.target.value)} 
               />
             </div>
           </div>
 
-          <button onClick={handleApplyFilter} className="px-8 py-4 bg-sky-600 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest hover:bg-sky-700 transition-all active:scale-[0.97] shadow-lg shadow-sky-900/20">
+          <button onClick={handleApplyFilter} className="px-6 py-3.5 bg-sky-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-sky-700 transition-all active:scale-[0.97] shadow-lg shadow-sky-900/20">
             Terapkan
           </button>
-          <button onClick={handleResetFilter} className={`px-5 py-4 border rounded-2xl font-black text-[11px] transition-all uppercase tracking-widest ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-500 hover:bg-slate-700' : 'bg-white border-slate-200 text-slate-400 hover:bg-slate-50'}`}>
+          <button onClick={handleResetFilter} className={`px-4 py-3.5 border rounded-xl font-black text-[10px] transition-all uppercase tracking-widest ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-500 hover:bg-slate-700' : 'bg-white border-slate-200 text-slate-400 hover:bg-slate-50'}`}>
             Reset
           </button>
         </div>
@@ -673,36 +668,38 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
       )}
 
       {/* Pagination Controls */}
-      <div className="flex items-center justify-between px-8 py-6 print:hidden">
-        <div className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-          Menampilkan {(currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, totalItems)} dari {totalItems} data
-        </div>
-        <div className="flex items-center gap-2">
-          <button 
-            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-            disabled={currentPage === 1}
-            className={`p-2 rounded-xl border transition-all ${currentPage === 1 ? 'opacity-20 cursor-not-allowed' : 'hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-95'}`}
-          >
-            <span className="material-symbols-outlined">chevron_left</span>
-          </button>
-          {[...Array(totalPages)].map((_, i) => (
+      {totalItems > 0 && (
+        <div className="flex items-center justify-between px-8 py-6 print:hidden">
+          <div className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+            Menampilkan {(currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, totalItems)} dari {totalItems} data
+          </div>
+          <div className="flex items-center gap-2">
             <button 
-              key={i}
-              onClick={() => setCurrentPage(i + 1)}
-              className={`w-10 h-10 rounded-xl text-xs font-black transition-all ${currentPage === i + 1 ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 active:scale-95'}`}
+              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+              className={`p-2 rounded-xl border transition-all ${currentPage === 1 ? 'opacity-30 cursor-not-allowed' : 'hover:bg-slate-100 dark:hover:bg-slate-800'}`}
             >
-              {i + 1}
+              <span className="material-symbols-outlined">chevron_left</span>
             </button>
-          ))}
-          <button 
-            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-            disabled={currentPage >= totalPages || totalPages === 0}
-            className={`p-2 rounded-xl border transition-all ${currentPage >= totalPages || totalPages === 0 ? 'opacity-20 cursor-not-allowed' : 'hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-95'}`}
-          >
-            <span className="material-symbols-outlined">chevron_right</span>
-          </button>
+            {[...Array(totalPages)].map((_, i) => (
+              <button 
+                key={i}
+                onClick={() => setCurrentPage(i + 1)}
+                className={`w-10 h-10 rounded-xl text-xs font-black transition-all ${currentPage === i + 1 ? 'bg-blue-600 text-white' : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400'}`}
+              >
+                {i + 1}
+              </button>
+            ))}
+            <button 
+              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages}
+              className={`p-2 rounded-xl border transition-all ${currentPage === totalPages ? 'opacity-30 cursor-not-allowed' : 'hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+            >
+              <span className="material-symbols-outlined">chevron_right</span>
+            </button>
+          </div>
         </div>
-      </div>
+      )}
       <div className={`rounded-[2.5rem] border shadow-sm overflow-hidden print:border-[1pt] print:border-slate-300 print:rounded-3xl transition-colors duration-300 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
@@ -727,116 +724,134 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
               </tr>
             </thead>
             <tbody className={`divide-y transition-colors duration-300 ${isDarkMode ? 'divide-slate-800' : 'divide-slate-50'} print:divide-slate-200`}>
-              {filteredRequests.map((req, index) => (
-                <tr key={req.id} className={`transition-colors group ${isDarkMode ? 'hover:bg-slate-800/30' : 'hover:bg-slate-50/30'}`}>
-                  <td className="px-8 py-8 text-center print:hidden">
-                    <input 
-                      type="checkbox" 
-                      className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                      checked={selectedIds.includes(req.id)}
-                      onChange={() => handleSelectOne(req.id)}
-                    />
-                  </td>
-                  <td className={`px-8 py-8 text-center text-sm font-black print:text-slate-900 ${isDarkMode ? 'text-slate-600' : 'text-slate-400'}`}>{index + 1}</td>
-                  <td className="px-8 py-8">
-                    <div className={`text-sm font-black print:text-slate-900 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>{new Date(req.createdAt).toLocaleDateString('id-ID')}</div>
-                    <div className="text-[11px] text-slate-400 font-bold mt-1 uppercase tracking-widest print:text-slate-500">{new Date(req.createdAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</div>
-                  </td>
-                  <td className="px-8 py-8">
-                    <div className={`text-base font-black uppercase tracking-tight print:text-slate-900 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{req.nama}</div>
-                    <div className="flex items-center gap-2 mt-1">
-                       <span className="text-[11px] text-slate-400 font-bold uppercase tracking-widest print:text-slate-500">{req.pangkat}</span>
-                       <span className={`w-1 h-1 rounded-full print:bg-slate-300 ${isDarkMode ? 'bg-slate-700' : 'bg-slate-200'}`}></span>
-                       <span className={`text-[11px] font-black font-mono print:text-slate-600 ${isDarkMode ? 'text-slate-500' : 'text-slate-500'}`}>{req.nrp}</span>
-                    </div>
-                  </td>
-                  <td className="px-8 py-8">
-                    <span className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase flex items-center gap-2 w-fit transition-all print:bg-transparent print:p-0 print:text-slate-900 print:font-black ${isDarkMode ? 'bg-slate-800 text-slate-400 group-hover:bg-sky-600 group-hover:text-white' : 'bg-slate-100 text-slate-500 group-hover:bg-slate-900 group-hover:text-white'}`}>
-                      <span className="material-symbols-outlined text-sm print:text-base">account_balance</span>
-                      {req.kesatuan}
-                    </span>
-                  </td>
-                  <td className="px-8 py-8 text-center">
-                    <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest print:bg-transparent print:p-0 print:text-xs print:font-black ${
-                      req.status === RequestStatus.MENUNGGU ? (isDarkMode ? 'bg-amber-500/10 text-amber-400' : 'bg-amber-50 text-amber-600') :
-                      req.status === RequestStatus.DIPROSES ? (isDarkMode ? 'bg-blue-500/10 text-blue-400' : 'bg-blue-50 text-blue-600') : 
-                      req.status === RequestStatus.DITOLAK ? (isDarkMode ? 'bg-rose-500/10 text-rose-400' : 'bg-rose-50 text-rose-600') :
-                      (isDarkMode ? 'bg-emerald-500/10 text-emerald-400' : 'bg-emerald-50 text-emerald-600')
-                    } ${
-                      req.status === RequestStatus.MENUNGGU ? 'print:text-amber-600' :
-                      req.status === RequestStatus.DIPROSES ? 'print:text-blue-600' : 
-                      req.status === RequestStatus.DITOLAK ? 'print:text-rose-600' : 'print:text-emerald-600'
-                    }`}>
-                      <span className={`w-2 h-2 rounded-full ${req.status === RequestStatus.MENUNGGU ? 'bg-amber-500' : req.status === RequestStatus.DIPROSES ? 'bg-blue-500' : req.status === RequestStatus.DITOLAK ? 'bg-rose-500' : 'bg-emerald-500'} print:hidden`}></span>
-                      {getStatusLabel(req.status)}
-                    </span>
-                  </td>
-                  <td className="px-8 py-8 text-center">
-                    <span className={`text-[10px] font-black uppercase px-3 py-1 rounded-lg ${
-                      req.prioritas === RequestPriority.MENDESAK ? (isDarkMode ? 'bg-rose-500/10 text-rose-400' : 'bg-rose-100 text-rose-600') :
-                      req.prioritas === RequestPriority.PENTING ? (isDarkMode ? 'bg-amber-500/10 text-amber-400' : 'bg-amber-100 text-amber-600') :
-                      (isDarkMode ? 'bg-slate-800 text-slate-500' : 'bg-slate-100 text-slate-400')
-                    }`}>
-                      {req.prioritas || 'NORMAL'}
-                    </span>
-                  </td>
-                  <td className={`px-8 py-8 text-center print:table-cell hidden font-mono text-xs font-black uppercase ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
-                    {req.reset_password || '-'}
-                  </td>
-                  <td className="px-8 py-8 text-center print:hidden">
-                    <div className="flex items-center justify-center gap-3">
-                      <button 
-                        onClick={() => { setViewingReq(req); setShowDetailPassword(false); }}
-                        className={`px-5 py-3 border-2 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 shadow-sm ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-400 hover:border-sky-500 hover:text-sky-400' : 'bg-white border-slate-100 text-slate-600 hover:border-blue-500 hover:text-blue-600'}`}
-                      >
-                        <span className="material-symbols-outlined text-base">visibility</span>
-                        Detail
-                      </button>
-                      
-                      {(isSuperAdmin || isAdminPolres) && (
-                        <>
-                          {req.status === RequestStatus.MENUNGGU && (
-                             <div className="flex gap-2">
-                               <button 
-                                  onClick={() => handleStartProcess(req.id)}
-                                  className="px-5 py-3 bg-indigo-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-700 transition-all flex items-center gap-2 shadow-xl shadow-indigo-900/20"
-                               >
-                                 <span className="material-symbols-outlined text-base">play_arrow</span>
-                                 Mulai
-                               </button>
-                               <button 
-                                  onClick={() => { setRejectingReq(req); setRejectionReason(''); }}
-                                  className="px-5 py-3 bg-rose-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-rose-700 transition-all flex items-center gap-2 shadow-xl shadow-rose-900/20"
-                               >
-                                 <span className="material-symbols-outlined text-base">block</span>
-                                 Tolak
-                               </button>
-                             </div>
+              {isLoading ? (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <tr key={`skeleton-${i}`} className="animate-pulse">
+                    <td className="px-8 py-8 text-center print:hidden"><div className={`h-4 w-4 rounded mx-auto ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`}></div></td>
+                    <td className="px-8 py-8 text-center"><div className={`h-4 w-8 rounded mx-auto ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`}></div></td>
+                    <td className="px-8 py-8"><div className={`h-4 w-24 rounded mb-2 ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`}></div><div className={`h-3 w-16 rounded ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`}></div></td>
+                    <td className="px-8 py-8"><div className={`h-5 w-40 rounded mb-2 ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`}></div><div className={`h-3 w-20 rounded ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`}></div></td>
+                    <td className="px-8 py-8"><div className={`h-8 w-32 rounded-xl ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`}></div></td>
+                    <td className="px-8 py-8 text-center"><div className={`h-8 w-24 rounded-full mx-auto ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`}></div></td>
+                    <td className="px-8 py-8 text-center"><div className={`h-6 w-20 rounded-lg mx-auto ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`}></div></td>
+                    <td className="px-8 py-8 text-center hidden"><div className={`h-4 w-20 rounded mx-auto ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`}></div></td>
+                    <td className="px-8 py-8 text-center print:hidden"><div className={`h-10 w-24 rounded-2xl mx-auto ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`}></div></td>
+                  </tr>
+                ))
+              ) : (
+                <>
+                  {filteredRequests.map((req, index) => (
+                    <tr key={req.id} className={`transition-colors group ${isDarkMode ? 'hover:bg-slate-800/30' : 'hover:bg-slate-50/30'}`}>
+                      <td className="px-8 py-8 text-center print:hidden">
+                        <input 
+                          type="checkbox" 
+                          className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                          checked={selectedIds.includes(req.id)}
+                          onChange={() => handleSelectOne(req.id)}
+                        />
+                      </td>
+                      <td className={`px-8 py-8 text-center text-sm font-black print:text-slate-900 ${isDarkMode ? 'text-slate-600' : 'text-slate-400'}`}>{(currentPage - 1) * itemsPerPage + index + 1}</td>
+                      <td className="px-8 py-8">
+                        <div className={`text-sm font-black print:text-slate-900 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>{new Date(req.createdAt).toLocaleDateString('id-ID')}</div>
+                        <div className="text-[11px] text-slate-400 font-bold mt-1 uppercase tracking-widest print:text-slate-500">{new Date(req.createdAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</div>
+                      </td>
+                      <td className="px-8 py-8">
+                        <div className={`text-base font-black uppercase tracking-tight print:text-slate-900 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{req.nama}</div>
+                        <div className="flex items-center gap-2 mt-1">
+                           <span className="text-[11px] text-slate-400 font-bold uppercase tracking-widest print:text-slate-500">{req.pangkat}</span>
+                           <span className={`w-1 h-1 rounded-full print:bg-slate-300 ${isDarkMode ? 'bg-slate-700' : 'bg-slate-200'}`}></span>
+                           <span className={`text-[11px] font-black font-mono print:text-slate-600 ${isDarkMode ? 'text-slate-500' : 'text-slate-500'}`}>{req.nrp}</span>
+                        </div>
+                      </td>
+                      <td className="px-8 py-8">
+                        <span className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase flex items-center gap-2 w-fit transition-all print:bg-transparent print:p-0 print:text-slate-900 print:font-black ${isDarkMode ? 'bg-slate-800 text-slate-400 group-hover:bg-sky-600 group-hover:text-white' : 'bg-slate-100 text-slate-500 group-hover:bg-slate-900 group-hover:text-white'}`}>
+                          <span className="material-symbols-outlined text-sm print:text-base">account_balance</span>
+                          {req.kesatuan}
+                        </span>
+                      </td>
+                      <td className="px-8 py-8 text-center">
+                        <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest print:bg-transparent print:p-0 print:text-xs print:font-black ${
+                          req.status === RequestStatus.MENUNGGU ? (isDarkMode ? 'bg-amber-500/10 text-amber-400' : 'bg-amber-50 text-amber-600') :
+                          req.status === RequestStatus.DIPROSES ? (isDarkMode ? 'bg-blue-500/10 text-blue-400' : 'bg-blue-50 text-blue-600') : 
+                          req.status === RequestStatus.DITOLAK ? (isDarkMode ? 'bg-rose-500/10 text-rose-400' : 'bg-rose-50 text-rose-600') :
+                          (isDarkMode ? 'bg-emerald-500/10 text-emerald-400' : 'bg-emerald-50 text-emerald-600')
+                        } ${
+                          req.status === RequestStatus.MENUNGGU ? 'print:text-amber-600' :
+                          req.status === RequestStatus.DIPROSES ? 'print:text-blue-600' : 
+                          req.status === RequestStatus.DITOLAK ? 'print:text-rose-600' : 'print:text-emerald-600'
+                        }`}>
+                          <span className={`w-2 h-2 rounded-full ${req.status === RequestStatus.MENUNGGU ? 'bg-amber-500' : req.status === RequestStatus.DIPROSES ? 'bg-blue-500' : req.status === RequestStatus.DITOLAK ? 'bg-rose-500' : 'bg-emerald-500'} print:hidden`}></span>
+                          {getStatusLabel(req.status)}
+                        </span>
+                      </td>
+                      <td className="px-8 py-8 text-center">
+                        <span className={`text-[10px] font-black uppercase px-3 py-1 rounded-lg ${
+                          req.prioritas === RequestPriority.MENDESAK ? (isDarkMode ? 'bg-rose-500/10 text-rose-400' : 'bg-rose-100 text-rose-600') :
+                          req.prioritas === RequestPriority.PENTING ? (isDarkMode ? 'bg-amber-500/10 text-amber-400' : 'bg-amber-100 text-amber-600') :
+                          (isDarkMode ? 'bg-slate-800 text-slate-500' : 'bg-slate-100 text-slate-400')
+                        }`}>
+                          {req.prioritas || 'NORMAL'}
+                        </span>
+                      </td>
+                      <td className={`px-8 py-8 text-center print:table-cell hidden font-mono text-xs font-black uppercase ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+                        {req.reset_password || '-'}
+                      </td>
+                      <td className="px-8 py-8 text-center print:hidden">
+                        <div className="flex items-center justify-center gap-3">
+                          <button 
+                            onClick={() => { setViewingReq(req); setShowDetailPassword(false); }}
+                            className={`px-5 py-3 border-2 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 shadow-sm ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-400 hover:border-sky-500 hover:text-sky-400' : 'bg-white border-slate-100 text-slate-600 hover:border-blue-500 hover:text-blue-600'}`}
+                          >
+                            <span className="material-symbols-outlined text-base">visibility</span>
+                            Detail
+                          </button>
+                          
+                          {(isSuperAdmin || isAdminPolres) && (
+                            <>
+                              {req.status === RequestStatus.MENUNGGU && (
+                                 <div className="flex gap-2">
+                                   <button 
+                                      onClick={() => handleStartProcess(req.id)}
+                                      className="px-5 py-3 bg-indigo-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-700 transition-all flex items-center gap-2 shadow-xl shadow-indigo-900/20"
+                                   >
+                                     <span className="material-symbols-outlined text-base">play_arrow</span>
+                                     Mulai
+                                   </button>
+                                   <button 
+                                      onClick={() => { setRejectingReq(req); setRejectionReason(''); }}
+                                      className="px-5 py-3 bg-rose-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-rose-700 transition-all flex items-center gap-2 shadow-xl shadow-rose-900/20"
+                                   >
+                                     <span className="material-symbols-outlined text-base">block</span>
+                                     Tolak
+                                   </button>
+                                 </div>
+                              )}
+                              {req.status === RequestStatus.DIPROSES && (
+                                 <button 
+                                    onClick={() => { setSelectedReq(req); setNewPassword(''); setShowWeakWarning(false); }}
+                                    className={`px-5 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 shadow-xl ${isDarkMode ? 'bg-white text-slate-900 hover:bg-sky-400 hover:text-white shadow-white/5' : 'bg-slate-900 text-white hover:bg-blue-600 shadow-slate-200'}`}
+                                 >
+                                   <span className="material-symbols-outlined text-base">flash_on</span>
+                                   Selesai
+                                 </button>
+                              )}
+                            </>
                           )}
-                          {req.status === RequestStatus.DIPROSES && (
-                             <button 
-                                onClick={() => { setSelectedReq(req); setNewPassword(''); setShowWeakWarning(false); }}
-                                className={`px-5 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 shadow-xl ${isDarkMode ? 'bg-white text-slate-900 hover:bg-sky-400 hover:text-white shadow-white/5' : 'bg-slate-900 text-white hover:bg-blue-600 shadow-slate-200'}`}
-                             >
-                               <span className="material-symbols-outlined text-base">flash_on</span>
-                               Selesai
-                             </button>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-              {filteredRequests.length === 0 && (
-                <tr>
-                  <td colSpan={11} className="px-8 py-32 text-center">
-                    <div className="flex flex-col items-center gap-4 opacity-30">
-                       <span className="material-symbols-outlined text-6xl">database_off</span>
-                       <p className="text-sm font-black text-slate-400 uppercase tracking-widest">Tidak ada data ditemukan</p>
-                    </div>
-                  </td>
-                </tr>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {filteredRequests.length === 0 && (
+                    <tr>
+                      <td colSpan={11} className="px-8 py-32 text-center">
+                        <div className="flex flex-col items-center gap-4 opacity-30">
+                           <span className="material-symbols-outlined text-6xl">database_off</span>
+                           <p className="text-sm font-black text-slate-400 uppercase tracking-widest">Tidak ada data ditemukan</p>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </>
               )}
             </tbody>
           </table>
@@ -844,15 +859,9 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
       </div>
 
       {/* MODAL TOLAK (REJECT) */}
-      <AnimatePresence>
-        {rejectingReq && (
-          <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-slate-900/70 backdrop-blur-xl">
-             <motion.div 
-               initial={{ opacity: 0, scale: 0.9, y: 20 }}
-               animate={{ opacity: 1, scale: 1, y: 0 }}
-               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-               className={`rounded-[3rem] w-full max-w-lg shadow-2xl flex flex-col overflow-hidden transition-colors duration-300 ${isDarkMode ? 'bg-slate-900 border border-slate-800' : 'bg-white'}`}
-             >
+      {rejectingReq && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-slate-900/70 backdrop-blur-xl animate-in fade-in duration-300">
+           <div className={`rounded-[3rem] w-full max-w-lg shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 transition-colors duration-300 ${isDarkMode ? 'bg-slate-900 border border-slate-800' : 'bg-white'}`}>
               <div className="p-10 border-b flex items-center justify-between">
                  <div>
                     <h3 className={`text-2xl font-black leading-none ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Tolak Permohonan</h3>
@@ -890,21 +899,14 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
                     </button>
                  </div>
               </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+           </div>
+        </div>
+      )}
 
       {/* MODAL DETAIL */}
-      <AnimatePresence>
-        {viewingReq && (
-          <div className="fixed inset-0 z-[150] flex items-center justify-center p-6 bg-slate-900/70 backdrop-blur-xl">
-             <motion.div 
-               initial={{ opacity: 0, scale: 0.9, y: 20 }}
-               animate={{ opacity: 1, scale: 1, y: 0 }}
-               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-               className={`rounded-[3rem] w-full max-w-xl shadow-2xl flex flex-col overflow-hidden transition-colors duration-300 ${isDarkMode ? 'bg-slate-900 border border-slate-800' : 'bg-white'}`}
-             >
+      {viewingReq && (
+        <div className="fixed inset-0 z-[150] flex items-center justify-center p-6 bg-slate-900/70 backdrop-blur-xl animate-in fade-in duration-300">
+           <div className={`rounded-[3rem] w-full max-w-xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 transition-colors duration-300 ${isDarkMode ? 'bg-slate-900 border border-slate-800' : 'bg-white'}`}>
               <div className={`p-10 border-b flex items-center justify-between transition-colors duration-300 ${isDarkMode ? 'bg-slate-800/50 border-slate-800' : 'bg-slate-50/30 border-slate-50'}`}>
                  <div>
                     <h3 className={`text-2xl font-black leading-none ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Rincian Permohonan</h3>
@@ -1027,21 +1029,14 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
                     Tutup Detail
                  </button>
               </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+           </div>
+        </div>
+      )}
 
       {/* MODAL INPUT MANUAL (KHUSUS ADMIN) */}
-      <AnimatePresence>
-        {isManualModalOpen && (
-        <div className="fixed inset-0 z-[160] flex items-center justify-center p-6 bg-slate-900/70 backdrop-blur-xl">
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            className={`rounded-[3rem] w-full max-w-xl shadow-2xl flex flex-col overflow-hidden transition-colors duration-300 ${isDarkMode ? 'bg-slate-900 border border-slate-800' : 'bg-white'}`}
-          >
+      {isManualModalOpen && (
+        <div className="fixed inset-0 z-[160] flex items-center justify-center p-6 bg-slate-900/70 backdrop-blur-xl animate-in fade-in duration-300">
+          <div className={`rounded-[3rem] w-full max-w-xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 transition-colors duration-300 ${isDarkMode ? 'bg-slate-900 border border-slate-800' : 'bg-white'}`}>
             <div className={`p-10 border-b flex items-center justify-between transition-colors duration-300 ${isDarkMode ? 'bg-slate-800/50 border-slate-800' : 'bg-slate-50/30 border-slate-100'}`}>
               <div className="flex items-center gap-4">
                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${isDarkMode ? 'bg-blue-500/10 text-blue-400' : 'bg-blue-50 text-blue-600'}`}>
@@ -1145,20 +1140,13 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
                   </button>
                </div>
             </form>
-            </motion.div>
           </div>
-        )}
-      </AnimatePresence>
+        </div>
+      )}
 
-      <AnimatePresence>
-        {selectedReq && isSuperAdmin && (
-          <div className="fixed inset-0 z-[170] flex items-center justify-center p-6 bg-slate-900/70 backdrop-blur-xl">
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className={`rounded-[3rem] w-full max-w-md overflow-hidden shadow-2xl transition-colors duration-300 ${isDarkMode ? 'bg-slate-900 border border-slate-800' : 'bg-white'}`}
-            >
+      {selectedReq && isSuperAdmin && (
+        <div className="fixed inset-0 z-[170] flex items-center justify-center p-6 bg-slate-900/70 backdrop-blur-xl animate-in fade-in duration-300">
+          <div className={`rounded-[3rem] w-full max-w-md overflow-hidden shadow-2xl animate-in zoom-in-95 transition-colors duration-300 ${isDarkMode ? 'bg-slate-900 border border-slate-800' : 'bg-white'}`}>
             <div className={`p-10 border-b flex items-center justify-between transition-colors duration-300 ${isDarkMode ? 'bg-slate-800/50 border-slate-800' : 'bg-slate-50/30 border-slate-50'}`}>
               <div className="flex items-center gap-4">
                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${isDarkMode ? 'bg-blue-500/10 text-blue-400' : 'bg-blue-50 text-blue-600'}`}>
@@ -1276,21 +1264,14 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
                 )}
               </div>
             </div>
-          </motion.div>
+          </div>
         </div>
       )}
-    </AnimatePresence>
 
       {/* Modal Edit Header (Super Admin Only) */}
-      <AnimatePresence>
-        {isEditHeaderModalOpen && (
-          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className={`w-full max-w-md rounded-[2.5rem] shadow-2xl overflow-hidden transition-colors duration-300 ${isDarkMode ? 'bg-slate-900 border border-slate-800' : 'bg-white'}`}
-            >
+      {isEditHeaderModalOpen && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className={`w-full max-w-md rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 ${isDarkMode ? 'bg-slate-900 border border-slate-800' : 'bg-white'}`}>
             <div className="p-8 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
               <h3 className={`text-xl font-black tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Edit Judul Halaman</h3>
               <button onClick={() => setIsEditHeaderModalOpen(false)} className="p-2 text-slate-400 hover:text-rose-500 transition-colors">
@@ -1323,10 +1304,9 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
                 Simpan Perubahan
               </button>
             </div>
-          </motion.div>
+          </div>
         </div>
       )}
-    </AnimatePresence>
 
       <style>{`
         @media print {
@@ -1343,7 +1323,7 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
           .print\\:divide-slate-200 tr { border-bottom: 0.5pt solid #cbd5e1 !important; }
         }
       `}</style>
-    </motion.main>
+    </main>
   );
 };
 
