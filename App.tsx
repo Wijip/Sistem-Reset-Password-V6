@@ -299,14 +299,25 @@ const App: React.FC = () => {
             
             <Route path="/requests" element={
               <ProtectedRoute anyAdminOnly allowUser currentUser={currentUser}>
-                <ResetRequests 
-                  showToast={showToast}
-                  addNotification={addNotification}
-                  addLog={addLog}
-                  siteSettings={siteSettings}
-                  setSiteSettings={setSiteSettings}
-                  currentUser={currentUser as Personnel}
-                />
+                {currentUser?.role === UserRole.USER ? (
+                  <UserDashboard 
+                    currentUser={currentUser as Personnel} 
+                    requests={requests} 
+                    setRequests={setRequests} 
+                    showToast={showToast} 
+                    addNotification={addNotification} 
+                    siteSettings={siteSettings} 
+                  />
+                ) : (
+                  <ResetRequests 
+                    showToast={showToast}
+                    addNotification={addNotification}
+                    addLog={addLog}
+                    siteSettings={siteSettings}
+                    setSiteSettings={setSiteSettings}
+                    currentUser={currentUser as Personnel}
+                  />
+                )}
               </ProtectedRoute>
             } />
             

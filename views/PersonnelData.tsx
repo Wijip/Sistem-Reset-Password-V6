@@ -1,6 +1,7 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import * as XLSX from 'xlsx';
+import { motion, AnimatePresence } from 'motion/react';
 import { useDebounce } from '../src/hooks/useDebounce';
 import { Personnel, UserRole, LogEntry, SiteSettings } from '../types';
 
@@ -383,7 +384,11 @@ const PersonnelData: React.FC<PersonnelDataProps> = ({ personnel, setPersonnel, 
   };
 
   return (
-    <main className="p-4 md:p-8 space-y-6">
+    <motion.main 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="p-4 md:p-8 space-y-6 transition-colors duration-300"
+    >
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className={`text-2xl font-extrabold ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>
@@ -778,347 +783,370 @@ const PersonnelData: React.FC<PersonnelDataProps> = ({ personnel, setPersonnel, 
         </div>
 
         {/* Detail Panel */}
-        {selectedPersonnel && (
-          <div className="lg:w-1/3 w-full animate-scale-in sticky top-8">
-            <div className={`rounded-[2.5rem] shadow-xl border overflow-hidden flex flex-col transition-colors duration-300 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
-              <div className="p-8 space-y-8">
-                <div className="flex items-center justify-between">
-                  <div className={`text-[10px] font-black uppercase tracking-[0.2em] ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>Detail Personel</div>
-                  <button 
-                    onClick={() => setSelectedPersonnel(null)}
-                    className={`p-2 rounded-full transition-all ${isDarkMode ? 'text-slate-500 hover:bg-slate-800 hover:text-white' : 'text-slate-400 hover:bg-slate-100 hover:text-slate-800'}`}
-                  >
-                    <span className="material-symbols-outlined">close</span>
-                  </button>
-                </div>
+        <AnimatePresence>
+          {selectedPersonnel && (
+            <motion.div 
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              className="lg:w-1/3 w-full sticky top-8"
+            >
+              <div className={`rounded-[2.5rem] shadow-xl border overflow-hidden flex flex-col transition-colors duration-300 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
+                <div className="p-8 space-y-8">
+                  <div className="flex items-center justify-between">
+                    <div className={`text-[10px] font-black uppercase tracking-[0.2em] ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>Detail Personel</div>
+                    <button 
+                      onClick={() => setSelectedPersonnel(null)}
+                      className={`p-2 rounded-full transition-all ${isDarkMode ? 'text-slate-500 hover:bg-slate-800 hover:text-white' : 'text-slate-400 hover:bg-slate-100 hover:text-slate-800'}`}
+                    >
+                      <span className="material-symbols-outlined">close</span>
+                    </button>
+                  </div>
 
-                <div className="flex flex-col items-center text-center space-y-4">
-                  <div className={`w-24 h-24 rounded-full flex items-center justify-center text-3xl font-black shadow-2xl ${isDarkMode ? 'bg-sky-500/20 text-sky-400' : 'bg-sky-50 text-sky-600'}`}>
-                    {selectedPersonnel.nama.charAt(0)}
+                  <div className="flex flex-col items-center text-center space-y-4">
+                    <div className={`w-24 h-24 rounded-full flex items-center justify-center text-3xl font-black shadow-2xl ${isDarkMode ? 'bg-sky-500/20 text-sky-400' : 'bg-sky-50 text-sky-600'}`}>
+                      {selectedPersonnel.nama.charAt(0)}
+                    </div>
+                    <div>
+                      <h2 className={`text-xl font-black uppercase tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{selectedPersonnel.nama}</h2>
+                      <p className="text-sm text-slate-500 font-bold uppercase tracking-widest">{selectedPersonnel.pangkat} — {selectedPersonnel.nrp}</p>
+                    </div>
+                    <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${
+                      selectedPersonnel.status === 'Aktif' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-slate-500/10 text-slate-500'
+                    }`}>
+                      {selectedPersonnel.status}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-4">
+                    <div className={`p-5 rounded-3xl border transition-colors ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-100'}`}>
+                      <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Jabatan & Kesatuan</div>
+                      <div className={`text-sm font-bold ${isDarkMode ? 'text-slate-200' : 'text-slate-800'}`}>{selectedPersonnel.jabatan}</div>
+                      <div className="text-xs text-sky-600 font-black uppercase tracking-tight mt-1">{selectedPersonnel.kesatuan}</div>
+                    </div>
+
+                    <div className={`p-5 rounded-3xl border transition-colors ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-100'}`}>
+                      <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Email / Kontak</div>
+                      <div className={`text-sm font-bold ${isDarkMode ? 'text-slate-200' : 'text-slate-800'}`}>{selectedPersonnel.email || '-'}</div>
+                    </div>
+
+                    {!isAdminPolres && (
+                      <div className={`p-5 rounded-3xl border transition-colors ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-100'}`}>
+                        <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Hak Akses (Role)</div>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase ${
+                            selectedPersonnel.role === UserRole.SUPERADMIN ? 'bg-rose-500 text-white' : 
+                            selectedPersonnel.role === UserRole.ADMIN ? 'bg-indigo-500 text-white' : 'bg-slate-500 text-white'
+                          }`}>
+                            {selectedPersonnel.role}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="pt-4 flex gap-3">
+                    <button 
+                      onClick={() => handleEdit(selectedPersonnel)}
+                      className="flex-1 py-4 bg-sky-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-sky-700 shadow-lg shadow-sky-200/20 transition-all active:scale-95 flex items-center justify-center gap-2"
+                    >
+                      <span className="material-symbols-outlined text-sm">edit</span>
+                      Edit Data
+                    </button>
+                    <button 
+                      onClick={() => handleDelete(selectedPersonnel.id)}
+                      className={`p-4 rounded-2xl font-black transition-all active:scale-95 border-2 ${
+                        isDarkMode ? 'border-slate-800 text-rose-500 hover:bg-rose-500/10' : 'border-slate-100 text-rose-600 hover:bg-rose-50'
+                      }`}
+                    >
+                      <span className="material-symbols-outlined">block</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      <AnimatePresence>
+        {isModalOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className={`rounded-[2.5rem] w-full max-w-2xl overflow-hidden shadow-2xl transition-colors duration-300 ${isDarkMode ? 'bg-slate-900 border border-slate-800' : 'bg-white'}`}
+            >
+              <div className={`p-8 border-b flex items-center justify-between transition-colors duration-300 ${isDarkMode ? 'bg-slate-800/50 border-slate-800' : 'bg-slate-50/50 border-slate-100'}`}>
+                <div className="flex items-center gap-4">
+                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${isDarkMode ? 'bg-sky-500/10 text-sky-400' : 'bg-sky-50 text-sky-600'}`}>
+                    <span className="material-symbols-outlined text-3xl">{editingId ? 'edit_square' : 'person_add'}</span>
                   </div>
                   <div>
-                    <h2 className={`text-xl font-black uppercase tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{selectedPersonnel.nama}</h2>
-                    <p className="text-sm text-slate-500 font-bold uppercase tracking-widest">{selectedPersonnel.pangkat} — {selectedPersonnel.nrp}</p>
+                    <h3 className={`text-xl font-black ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>
+                      {editingId ? 'Edit Data Personel' : 'Tambah Personel Baru'}
+                    </h3>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Lengkapi informasi data anggota</p>
                   </div>
-                  <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${
-                    selectedPersonnel.status === 'Aktif' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-slate-500/10 text-slate-500'
-                  }`}>
-                    {selectedPersonnel.status}
+                </div>
+                <button onClick={() => setIsModalOpen(false)} className={`p-3 rounded-full transition-all ${isDarkMode ? 'text-slate-400 hover:bg-slate-800 hover:text-white' : 'text-slate-400 hover:bg-slate-100 hover:text-slate-800'}`}>
+                  <span className="material-symbols-outlined">close</span>
+                </button>
+              </div>
+              
+              <form onSubmit={handleSave} className="p-8 space-y-6 overflow-y-auto max-h-[calc(100vh-200px)] scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-black text-slate-500 uppercase tracking-wider pl-1">Nama Lengkap</label>
+                    <input 
+                      type="text" 
+                      placeholder="Masukkan Nama Lengkap"
+                      className={`w-full px-4 py-3 rounded-xl border focus:outline-none focus:ring-2 focus:ring-sky-500/20 font-bold text-sm transition-colors duration-300 ${
+                        isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+                      }`}
+                      value={formData.nama}
+                      onChange={(e) => setFormData({...formData, nama: e.target.value})}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-black text-slate-500 uppercase tracking-wider pl-1">Pangkat</label>
+                    <input 
+                      type="text" 
+                      placeholder="Contoh: Brigadir"
+                      className={`w-full px-4 py-3 rounded-xl border focus:outline-none focus:ring-2 focus:ring-sky-500/20 font-bold text-sm transition-colors duration-300 ${
+                        isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+                      }`}
+                      value={formData.pangkat}
+                      onChange={(e) => setFormData({...formData, pangkat: e.target.value})}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-black text-slate-500 uppercase tracking-wider pl-1">NRP / NIP</label>
+                    <input 
+                      type="text" 
+                      placeholder="99999999"
+                      className={`w-full px-4 py-3 rounded-xl border focus:outline-none focus:ring-2 focus:ring-sky-500/20 font-bold text-sm transition-colors duration-300 ${
+                        isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+                      }`}
+                      value={formData.nrp}
+                      onChange={(e) => setFormData({...formData, nrp: e.target.value})}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-black text-slate-500 uppercase tracking-wider pl-1">Jabatan</label>
+                    <input 
+                      type="text" 
+                      placeholder="User Testing"
+                      className={`w-full px-4 py-3 rounded-xl border focus:outline-none focus:ring-2 focus:ring-sky-500/20 font-bold text-sm transition-colors duration-300 ${
+                        isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+                      }`}
+                      value={formData.jabatan}
+                      onChange={(e) => setFormData({...formData, jabatan: e.target.value})}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-black text-slate-500 uppercase tracking-wider pl-1">Kesatuan</label>
+                    {isSuperAdmin ? (
+                      <select 
+                        className={`w-full px-4 py-3 rounded-xl border focus:outline-none focus:ring-2 focus:ring-sky-500/20 font-bold text-sm transition-colors duration-300 ${
+                          isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+                        }`}
+                        value={formData.kesatuan}
+                        onChange={(e) => setFormData({...formData, kesatuan: e.target.value})}
+                        required
+                      >
+                        <option value="">Pilih Kesatuan</option>
+                        {kesatuanList.map(k => (
+                          <option key={k} value={k}>{k}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input 
+                        type="text" 
+                        placeholder="Polres Malang"
+                        className={`w-full px-4 py-3 rounded-xl border focus:outline-none focus:ring-2 focus:ring-sky-500/20 font-bold text-sm transition-colors duration-300 ${
+                          isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+                        } ${!isSuperAdmin ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        value={formData.kesatuan}
+                        onChange={(e) => setFormData({...formData, kesatuan: e.target.value})}
+                        readOnly={!isSuperAdmin}
+                      />
+                    )}
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-black text-slate-500 uppercase tracking-wider pl-1">Email</label>
+                    <input 
+                      type="email" 
+                      placeholder="testing@polri.go.id"
+                      className={`w-full px-4 py-3 rounded-xl border focus:outline-none focus:ring-2 focus:ring-sky-500/20 font-bold text-sm transition-colors duration-300 ${
+                        isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+                      }`}
+                      value={formData.email}
+                      onChange={(e) => setFormData({...formData, email: e.target.value})}
+                    />
+                  </div>
+                  {isSuperAdmin && (
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-black text-slate-500 uppercase tracking-wider pl-1">Role</label>
+                      <select 
+                        className={`w-full px-4 py-3 rounded-xl border focus:outline-none focus:ring-2 focus:ring-sky-500/20 font-bold text-sm transition-colors duration-300 ${
+                          isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+                        }`}
+                        value={formData.role}
+                        onChange={(e) => setFormData({...formData, role: e.target.value as UserRole})}
+                      >
+                        <option value={UserRole.USER}>User</option>
+                        <option value={UserRole.ADMIN}>Admin</option>
+                        <option value={UserRole.SUPERADMIN}>Super Admin</option>
+                      </select>
+                    </div>
+                  )}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-black text-slate-500 uppercase tracking-wider pl-1">Status</label>
+                    <select 
+                      className={`w-full px-4 py-3 rounded-xl border focus:outline-none focus:ring-2 focus:ring-sky-500/20 font-bold text-sm transition-colors duration-300 ${
+                        isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+                      }`}
+                      value={formData.status}
+                      onChange={(e) => setFormData({...formData, status: e.target.value})}
+                    >
+                      <option value="Aktif">Aktif</option>
+                      <option value="Nonaktif">Nonaktif</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="pt-6 flex items-center justify-end gap-4 border-t border-slate-100 dark:border-slate-800">
+                  <button 
+                    type="button" 
+                    onClick={() => setIsModalOpen(false)}
+                    className={`px-8 py-4 rounded-2xl font-black transition-all text-xs uppercase tracking-widest ${isDarkMode ? 'text-slate-400 hover:bg-slate-800' : 'text-slate-500 hover:bg-slate-100'}`}
+                  >
+                    Batal
+                  </button>
+                  <button 
+                    type="submit"
+                    disabled={!formData.nama || !formData.nrp}
+                    className={`px-10 py-4 bg-sky-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-sky-700 shadow-2xl shadow-sky-200/20 transition-all active:scale-95 ${(!formData.nama || !formData.nrp) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                    {editingId ? 'Simpan Perubahan' : 'Tambah Personel'}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Custom Action Modal (Delete/Deactivate) */}
+      <AnimatePresence>
+        {actionTarget && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className={`w-full max-w-md rounded-[3rem] shadow-2xl overflow-hidden transition-colors duration-300 ${isDarkMode ? 'bg-slate-900 border border-slate-800' : 'bg-white'}`}
+            >
+              <div className="p-10 text-center space-y-8 overflow-y-auto max-h-[90vh] scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700">
+                <div className={`w-24 h-24 mx-auto rounded-[2rem] flex items-center justify-center shadow-2xl transition-all duration-500 ${
+                  actionStep === 'choice' 
+                    ? (isDarkMode ? 'bg-amber-500/10 text-amber-500 shadow-amber-500/10' : 'bg-amber-50 text-amber-600 shadow-amber-100')
+                    : (actionType === 'delete' ? (isDarkMode ? 'bg-rose-500/10 text-rose-500 shadow-rose-500/10' : 'bg-rose-50 text-rose-600 shadow-rose-100') : (isDarkMode ? 'bg-blue-500/10 text-blue-500 shadow-blue-500/10' : 'bg-blue-50 text-blue-600 shadow-blue-100'))
+                }`}>
+                  <span className="material-symbols-outlined text-5xl animate-pulse">
+                    {actionStep === 'choice' ? 'warning' : (actionType === 'delete' ? 'delete_forever' : 'block')}
                   </span>
                 </div>
 
-                <div className="grid grid-cols-1 gap-4">
-                  <div className={`p-5 rounded-3xl border transition-colors ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-100'}`}>
-                    <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Jabatan & Kesatuan</div>
-                    <div className={`text-sm font-bold ${isDarkMode ? 'text-slate-200' : 'text-slate-800'}`}>{selectedPersonnel.jabatan}</div>
-                    <div className="text-xs text-sky-600 font-black uppercase tracking-tight mt-1">{selectedPersonnel.kesatuan}</div>
-                  </div>
-
-                  <div className={`p-5 rounded-3xl border transition-colors ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-100'}`}>
-                    <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Email / Kontak</div>
-                    <div className={`text-sm font-bold ${isDarkMode ? 'text-slate-200' : 'text-slate-800'}`}>{selectedPersonnel.email || '-'}</div>
-                  </div>
-
-                  {!isAdminPolres && (
-                    <div className={`p-5 rounded-3xl border transition-colors ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-100'}`}>
-                      <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Hak Akses (Role)</div>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase ${
-                          selectedPersonnel.role === UserRole.SUPERADMIN ? 'bg-rose-500 text-white' : 
-                          selectedPersonnel.role === UserRole.ADMIN ? 'bg-indigo-500 text-white' : 'bg-slate-500 text-white'
-                        }`}>
-                          {selectedPersonnel.role}
-                        </span>
-                      </div>
+                {actionStep === 'choice' ? (
+                  <div className="space-y-6">
+                    <div className="space-y-2">
+                      <h3 className={`text-2xl font-black tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Tindakan Personel</h3>
+                      <p className="text-sm text-slate-500 font-medium leading-relaxed">
+                        Pilih tindakan yang ingin dilakukan untuk <br/> <span className="font-black text-sky-600 text-base">{actionTarget.nama}</span>
+                      </p>
                     </div>
-                  )}
-                </div>
-
-                <div className="pt-4 flex gap-3">
-                  <button 
-                    onClick={() => handleEdit(selectedPersonnel)}
-                    className="flex-1 py-4 bg-sky-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-sky-700 shadow-lg shadow-sky-200/20 transition-all active:scale-95 flex items-center justify-center gap-2"
-                  >
-                    <span className="material-symbols-outlined text-sm">edit</span>
-                    Edit Data
-                  </button>
-                  <button 
-                    onClick={() => handleDelete(selectedPersonnel.id)}
-                    className={`p-4 rounded-2xl font-black transition-all active:scale-95 border-2 ${
-                      isDarkMode ? 'border-slate-800 text-rose-500 hover:bg-rose-500/10' : 'border-slate-100 text-rose-600 hover:bg-rose-50'
-                    }`}
-                  >
-                    <span className="material-symbols-outlined">block</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {isModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md transition-all duration-500">
-          <div className={`rounded-[2.5rem] w-full max-w-2xl overflow-hidden shadow-2xl animate-scale-in transition-colors duration-300 ${isDarkMode ? 'bg-slate-900 border border-slate-800' : 'bg-white'}`}>
-            <div className={`p-8 border-b flex items-center justify-between transition-colors duration-300 ${isDarkMode ? 'bg-slate-800/50 border-slate-800' : 'bg-slate-50/50 border-slate-100'}`}>
-              <div className="flex items-center gap-4">
-                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${isDarkMode ? 'bg-sky-500/10 text-sky-400' : 'bg-sky-50 text-sky-600'}`}>
-                  <span className="material-symbols-outlined text-3xl">{editingId ? 'edit_square' : 'person_add'}</span>
-                </div>
-                <div>
-                  <h3 className={`text-xl font-black ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>
-                    {editingId ? 'Edit Data Personel' : 'Tambah Personel Baru'}
-                  </h3>
-                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Lengkapi informasi data anggota</p>
-                </div>
-              </div>
-              <button onClick={() => setIsModalOpen(false)} className={`p-3 rounded-full transition-all ${isDarkMode ? 'text-slate-400 hover:bg-slate-800 hover:text-white' : 'text-slate-400 hover:bg-slate-100 hover:text-slate-800'}`}>
-                <span className="material-symbols-outlined">close</span>
-              </button>
-            </div>
-            
-            <form onSubmit={handleSave} className="p-8 space-y-6 overflow-y-auto max-h-[calc(100vh-200px)] scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-black text-slate-500 uppercase tracking-wider pl-1">Nama Lengkap</label>
-                  <input 
-                    type="text" 
-                    placeholder="Masukkan Nama Lengkap"
-                    className={`w-full px-4 py-3 rounded-xl border focus:outline-none focus:ring-2 focus:ring-sky-500/20 font-bold text-sm transition-colors duration-300 ${
-                      isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-                    }`}
-                    value={formData.nama}
-                    onChange={(e) => setFormData({...formData, nama: e.target.value})}
-                    required
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-black text-slate-500 uppercase tracking-wider pl-1">Pangkat</label>
-                  <input 
-                    type="text" 
-                    placeholder="Contoh: Brigadir"
-                    className={`w-full px-4 py-3 rounded-xl border focus:outline-none focus:ring-2 focus:ring-sky-500/20 font-bold text-sm transition-colors duration-300 ${
-                      isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-                    }`}
-                    value={formData.pangkat}
-                    onChange={(e) => setFormData({...formData, pangkat: e.target.value})}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-black text-slate-500 uppercase tracking-wider pl-1">NRP / NIP</label>
-                  <input 
-                    type="text" 
-                    placeholder="99999999"
-                    className={`w-full px-4 py-3 rounded-xl border focus:outline-none focus:ring-2 focus:ring-sky-500/20 font-bold text-sm transition-colors duration-300 ${
-                      isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-                    }`}
-                    value={formData.nrp}
-                    onChange={(e) => setFormData({...formData, nrp: e.target.value})}
-                    required
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-black text-slate-500 uppercase tracking-wider pl-1">Jabatan</label>
-                  <input 
-                    type="text" 
-                    placeholder="User Testing"
-                    className={`w-full px-4 py-3 rounded-xl border focus:outline-none focus:ring-2 focus:ring-sky-500/20 font-bold text-sm transition-colors duration-300 ${
-                      isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-                    }`}
-                    value={formData.jabatan}
-                    onChange={(e) => setFormData({...formData, jabatan: e.target.value})}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-black text-slate-500 uppercase tracking-wider pl-1">Kesatuan</label>
-                  {isSuperAdmin ? (
-                    <select 
-                      className={`w-full px-4 py-3 rounded-xl border focus:outline-none focus:ring-2 focus:ring-sky-500/20 font-bold text-sm transition-colors duration-300 ${
-                        isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-                      }`}
-                      value={formData.kesatuan}
-                      onChange={(e) => setFormData({...formData, kesatuan: e.target.value})}
-                      required
-                    >
-                      <option value="">Pilih Kesatuan</option>
-                      {kesatuanList.map(k => (
-                        <option key={k} value={k}>{k}</option>
-                      ))}
-                    </select>
-                  ) : (
-                    <input 
-                      type="text" 
-                      placeholder="Polres Malang"
-                      className={`w-full px-4 py-3 rounded-xl border focus:outline-none focus:ring-2 focus:ring-sky-500/20 font-bold text-sm transition-colors duration-300 ${
-                        isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-                      } ${!isSuperAdmin ? 'opacity-50 cursor-not-allowed' : ''}`}
-                      value={formData.kesatuan}
-                      onChange={(e) => setFormData({...formData, kesatuan: e.target.value})}
-                      readOnly={!isSuperAdmin}
-                    />
-                  )}
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-black text-slate-500 uppercase tracking-wider pl-1">Email</label>
-                  <input 
-                    type="email" 
-                    placeholder="testing@polri.go.id"
-                    className={`w-full px-4 py-3 rounded-xl border focus:outline-none focus:ring-2 focus:ring-sky-500/20 font-bold text-sm transition-colors duration-300 ${
-                      isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-                    }`}
-                    value={formData.email}
-                    onChange={(e) => setFormData({...formData, email: e.target.value})}
-                  />
-                </div>
-                {isSuperAdmin && (
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-black text-slate-500 uppercase tracking-wider pl-1">Role</label>
-                    <select 
-                      className={`w-full px-4 py-3 rounded-xl border focus:outline-none focus:ring-2 focus:ring-sky-500/20 font-bold text-sm transition-colors duration-300 ${
-                        isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-                      }`}
-                      value={formData.role}
-                      onChange={(e) => setFormData({...formData, role: e.target.value as UserRole})}
-                    >
-                      <option value={UserRole.USER}>User</option>
-                      <option value={UserRole.ADMIN}>Admin</option>
-                      <option value={UserRole.SUPERADMIN}>Super Admin</option>
-                    </select>
-                  </div>
-                )}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-black text-slate-500 uppercase tracking-wider pl-1">Status</label>
-                  <select 
-                    className={`w-full px-4 py-3 rounded-xl border focus:outline-none focus:ring-2 focus:ring-sky-500/20 font-bold text-sm transition-colors duration-300 ${
-                      isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-                    }`}
-                    value={formData.status}
-                    onChange={(e) => setFormData({...formData, status: e.target.value})}
-                  >
-                    <option value="Aktif">Aktif</option>
-                    <option value="Nonaktif">Nonaktif</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="pt-6 flex items-center justify-end gap-4 border-t border-slate-100 dark:border-slate-800">
-                <button 
-                  type="button" 
-                  onClick={() => setIsModalOpen(false)}
-                  className={`px-8 py-4 rounded-2xl font-black transition-all text-xs uppercase tracking-widest ${isDarkMode ? 'text-slate-400 hover:bg-slate-800' : 'text-slate-500 hover:bg-slate-100'}`}
-                >
-                  Batal
-                </button>
-                <button 
-                  type="submit"
-                  className="px-10 py-4 bg-sky-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-sky-700 shadow-2xl shadow-sky-200/20 transition-all active:scale-95"
-                >
-                  {editingId ? 'Simpan Perubahan' : 'Tambah Personel'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-      {/* Custom Action Modal (Delete/Deactivate) */}
-      {actionTarget && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md transition-all duration-500">
-          <div className={`w-full max-w-md rounded-[3rem] shadow-2xl overflow-hidden animate-scale-in transition-colors duration-300 ${isDarkMode ? 'bg-slate-900 border border-slate-800' : 'bg-white'}`}>
-            <div className="p-10 text-center space-y-8 overflow-y-auto max-h-[90vh] scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700">
-              <div className={`w-24 h-24 mx-auto rounded-[2rem] flex items-center justify-center shadow-2xl transition-all duration-500 ${
-                actionStep === 'choice' 
-                  ? (isDarkMode ? 'bg-amber-500/10 text-amber-500 shadow-amber-500/10' : 'bg-amber-50 text-amber-600 shadow-amber-100')
-                  : (actionType === 'delete' ? (isDarkMode ? 'bg-rose-500/10 text-rose-500 shadow-rose-500/10' : 'bg-rose-50 text-rose-600 shadow-rose-100') : (isDarkMode ? 'bg-blue-500/10 text-blue-500 shadow-blue-500/10' : 'bg-blue-50 text-blue-600 shadow-blue-100'))
-              }`}>
-                <span className="material-symbols-outlined text-5xl animate-pulse">
-                  {actionStep === 'choice' ? 'warning' : (actionType === 'delete' ? 'delete_forever' : 'block')}
-                </span>
-              </div>
-
-              {actionStep === 'choice' ? (
-                <div className="space-y-6">
-                  <div className="space-y-2">
-                    <h3 className={`text-2xl font-black tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Tindakan Personel</h3>
-                    <p className="text-sm text-slate-500 font-medium leading-relaxed">
-                      Pilih tindakan yang ingin dilakukan untuk <br/> <span className="font-black text-sky-600 text-base">{actionTarget.nama}</span>
-                    </p>
-                  </div>
-                  <div className="grid grid-cols-1 gap-4">
-                    <button 
-                      onClick={() => { setActionType('deactivate'); setActionStep('confirm'); }}
-                      className={`flex items-center justify-between px-8 py-5 rounded-3xl border-2 transition-all group active:scale-95 ${
-                        isDarkMode ? 'border-slate-800 hover:border-blue-500 bg-slate-800/50' : 'border-slate-100 hover:border-blue-500 bg-slate-50'
-                      }`}
-                    >
-                      <div className="flex items-center gap-5">
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isDarkMode ? 'bg-blue-500/20' : 'bg-blue-100'}`}>
-                          <span className="material-symbols-outlined text-blue-500 text-2xl">block</span>
+                    <div className="grid grid-cols-1 gap-4">
+                      <button 
+                        onClick={() => { setActionType('deactivate'); setActionStep('confirm'); }}
+                        className={`flex items-center justify-between px-8 py-5 rounded-3xl border-2 transition-all group active:scale-95 ${
+                          isDarkMode ? 'border-slate-800 hover:border-blue-500 bg-slate-800/50' : 'border-slate-100 hover:border-blue-500 bg-slate-50'
+                        }`}
+                      >
+                        <div className="flex items-center gap-5">
+                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isDarkMode ? 'bg-blue-500/20' : 'bg-blue-100'}`}>
+                            <span className="material-symbols-outlined text-blue-500 text-2xl">block</span>
+                          </div>
+                          <div className="text-left">
+                            <div className={`text-sm font-black ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Nonaktifkan</div>
+                            <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">Ubah status ke Nonaktif</div>
+                          </div>
                         </div>
-                        <div className="text-left">
-                          <div className={`text-sm font-black ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Nonaktifkan</div>
-                          <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">Ubah status ke Nonaktif</div>
+                        <span className="material-symbols-outlined text-slate-300 group-hover:text-blue-500 group-hover:translate-x-1 transition-all">chevron_right</span>
+                      </button>
+                      <button 
+                        onClick={() => { setActionType('delete'); setActionStep('confirm'); }}
+                        className={`flex items-center justify-between px-8 py-5 rounded-3xl border-2 transition-all group active:scale-95 ${
+                          isDarkMode ? 'border-slate-800 hover:border-rose-500 bg-slate-800/50' : 'border-slate-100 hover:border-rose-500 bg-slate-50'
+                        }`}
+                      >
+                        <div className="flex items-center gap-5">
+                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isDarkMode ? 'bg-rose-500/20' : 'bg-rose-100'}`}>
+                            <span className="material-symbols-outlined text-rose-500 text-2xl">delete_forever</span>
+                          </div>
+                          <div className="text-left">
+                            <div className={`text-sm font-black ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Hapus Permanen</div>
+                            <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">Hapus data dari sistem</div>
+                          </div>
                         </div>
-                      </div>
-                      <span className="material-symbols-outlined text-slate-300 group-hover:text-blue-500 group-hover:translate-x-1 transition-all">chevron_right</span>
-                    </button>
+                        <span className="material-symbols-outlined text-slate-300 group-hover:text-rose-500 group-hover:translate-x-1 transition-all">chevron_right</span>
+                      </button>
+                    </div>
                     <button 
-                      onClick={() => { setActionType('delete'); setActionStep('confirm'); }}
-                      className={`flex items-center justify-between px-8 py-5 rounded-3xl border-2 transition-all group active:scale-95 ${
-                        isDarkMode ? 'border-slate-800 hover:border-rose-500 bg-slate-800/50' : 'border-slate-100 hover:border-rose-500 bg-slate-50'
-                      }`}
-                    >
-                      <div className="flex items-center gap-5">
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isDarkMode ? 'bg-rose-500/20' : 'bg-rose-100'}`}>
-                          <span className="material-symbols-outlined text-rose-500 text-2xl">delete_forever</span>
-                        </div>
-                        <div className="text-left">
-                          <div className={`text-sm font-black ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Hapus Permanen</div>
-                          <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">Hapus data dari sistem</div>
-                        </div>
-                      </div>
-                      <span className="material-symbols-outlined text-slate-300 group-hover:text-rose-500 group-hover:translate-x-1 transition-all">chevron_right</span>
-                    </button>
-                  </div>
-                  <button 
-                    onClick={() => setActionTarget(null)}
-                    className={`w-full py-4 text-xs font-black uppercase tracking-widest transition-all ${isDarkMode ? 'text-slate-500 hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}
-                  >
-                    Batalkan
-                  </button>
-                </div>
-              ) : (
-                <div className="space-y-8 animate-in fade-in zoom-in-95 duration-300">
-                  <div className="space-y-3">
-                    <h3 className={`text-2xl font-black tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Konfirmasi Akhir</h3>
-                    <p className="text-sm text-slate-500 font-medium leading-relaxed">
-                      Apakah Anda benar-benar yakin ingin {actionType === 'delete' ? <span className="text-rose-600 font-black">MENGHAPUS</span> : <span className="text-blue-600 font-black">MENONAKTIFKAN</span>} data <span className="font-bold text-sky-600">{actionTarget.nama}</span>?
-                    </p>
-                  </div>
-                  
-                  <div className="flex flex-col gap-3">
-                    <button 
-                      onClick={executeAction}
-                      className={`w-full py-5 rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-2xl transition-all active:scale-95 ${
-                        actionType === 'delete' 
-                          ? 'bg-rose-600 text-white hover:bg-rose-700 shadow-rose-200/20' 
-                          : 'bg-blue-600 text-white hover:bg-blue-700 shadow-blue-200/20'
-                      }`}
-                    >
-                      Ya, Saya Yakin
-                    </button>
-                    <button 
-                      onClick={() => setActionStep('choice')}
+                      onClick={() => setActionTarget(null)}
                       className={`w-full py-4 text-xs font-black uppercase tracking-widest transition-all ${isDarkMode ? 'text-slate-500 hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}
                     >
-                      Kembali
+                      Batalkan
                     </button>
                   </div>
-                </div>
-              )}
-            </div>
+                ) : (
+                  <div className="space-y-8">
+                    <div className="space-y-3">
+                      <h3 className={`text-2xl font-black tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Konfirmasi Akhir</h3>
+                      <p className="text-sm text-slate-500 font-medium leading-relaxed">
+                        Apakah Anda benar-benar yakin ingin {actionType === 'delete' ? <span className="text-rose-600 font-black">MENGHAPUS</span> : <span className="text-blue-600 font-black">MENONAKTIFKAN</span>} data <span className="font-bold text-sky-600">{actionTarget.nama}</span>?
+                      </p>
+                    </div>
+                    
+                    <div className="flex flex-col gap-3">
+                      <button 
+                        onClick={executeAction}
+                        className={`w-full py-5 rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-2xl transition-all active:scale-95 ${
+                          actionType === 'delete' 
+                            ? 'bg-rose-600 text-white hover:bg-rose-700 shadow-rose-200/20' 
+                            : 'bg-blue-600 text-white hover:bg-blue-700 shadow-blue-200/20'
+                        }`}
+                      >
+                        Ya, Saya Yakin
+                      </button>
+                      <button 
+                        onClick={() => setActionStep('choice')}
+                        className={`w-full py-4 text-xs font-black uppercase tracking-widest transition-all ${isDarkMode ? 'text-slate-500 hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}
+                      >
+                        Kembali
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </motion.div>
           </div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
 
       <style>{`
         @keyframes scaleIn {
@@ -1127,7 +1155,7 @@ const PersonnelData: React.FC<PersonnelDataProps> = ({ personnel, setPersonnel, 
         }
         .animate-scale-in { animation: scaleIn 0.2s ease-out forwards; }
       `}</style>
-    </main>
+    </motion.main>
   );
 };
 

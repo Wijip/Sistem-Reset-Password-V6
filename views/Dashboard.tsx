@@ -1,6 +1,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { motion } from 'motion/react';
 import { 
   CartesianGrid, 
   Tooltip, 
@@ -77,7 +78,11 @@ const Dashboard: React.FC<DashboardProps> = ({ requests, personnel, currentUser,
   }, [requests, isSuperAdmin, currentUser.kesatuan]);
 
   return (
-    <main className="p-6 md:p-10 space-y-8 animate-in fade-in duration-500">
+    <motion.main 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="p-6 md:p-10 space-y-8 transition-colors duration-300"
+    >
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <span className="text-sky-600 font-black text-xs uppercase tracking-[0.2em]">Monitoring Panel</span>
@@ -97,16 +102,23 @@ const Dashboard: React.FC<DashboardProps> = ({ requests, personnel, currentUser,
           { label: 'Terselesaikan', value: stats.completedRequests, trend: 'Sistem Email', icon: 'verified', color: 'emerald', link: '/requests' },
           { label: 'Health System', value: '100%', trend: 'Stabil', icon: 'speed', color: 'sky', link: '#' }
         ].map((stat, idx) => (
-          <Link key={idx} to={stat.link} className={`rounded-[2rem] p-6 shadow-sm border hover:shadow-xl hover:-translate-y-1 transition-all duration-300 block ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-50'}`}>
-            <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-4 ${isDarkMode ? `bg-${stat.color}-500/10` : `bg-${stat.color}-50`}`}>
-              <span className={`material-symbols-outlined text-${stat.color}-600 text-4xl`}>{stat.icon}</span>
-            </div>
-            <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{stat.label}</div>
-            <div className={`text-3xl font-black mt-1 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{stat.value}</div>
-            <div className={`text-[10px] font-bold mt-2 inline-block px-2 py-1 rounded-lg ${isDarkMode ? `bg-${stat.color}-500/20 text-${stat.color}-400` : `bg-${stat.color}-50 text-${stat.color}-600`}`}>
-              {stat.trend}
-            </div>
-          </Link>
+          <motion.div
+            key={idx}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: idx * 0.1 }}
+          >
+            <Link to={stat.link} className={`rounded-[2rem] p-6 shadow-sm border hover:shadow-xl hover:-translate-y-1 transition-all duration-300 h-full block ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-50'}`}>
+              <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-4 ${isDarkMode ? `bg-${stat.color}-500/10` : `bg-${stat.color}-50`}`}>
+                <span className={`material-symbols-outlined text-${stat.color}-600 text-4xl`}>{stat.icon}</span>
+              </div>
+              <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{stat.label}</div>
+              <div className={`text-3xl font-black mt-1 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{stat.value}</div>
+              <div className={`text-[10px] font-bold mt-2 inline-block px-2 py-1 rounded-lg ${isDarkMode ? `bg-${stat.color}-500/20 text-${stat.color}-400` : `bg-${stat.color}-50 text-${stat.color}-600`}`}>
+                {stat.trend}
+              </div>
+            </Link>
+          </motion.div>
         ))}
       </section>
 
@@ -219,7 +231,7 @@ const Dashboard: React.FC<DashboardProps> = ({ requests, personnel, currentUser,
           </div>
         </div>
       </div>
-    </main>
+    </motion.main>
   );
 };
 

@@ -1,6 +1,7 @@
 
 import React, { useState, useMemo, useRef } from 'react';
 import * as XLSX from 'xlsx';
+import { motion, AnimatePresence } from 'motion/react';
 import { useDebounce } from '../src/hooks/useDebounce';
 import { ResetRequest, RequestStatus, LogEntry, SiteSettings, UserRole, Personnel, RequestPriority } from '../types';
 
@@ -470,7 +471,11 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
   };
 
   return (
-    <main className={`p-6 md:p-10 space-y-8 max-w-full mx-auto min-h-screen font-sans print:bg-white print:p-0 animate-in fade-in duration-500 transition-colors duration-300 ${isDarkMode ? 'bg-slate-950' : 'bg-slate-50'}`}>
+    <motion.main 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className={`p-6 md:p-10 space-y-8 max-w-full mx-auto min-h-screen font-sans print:bg-white print:p-0 transition-colors duration-300 ${isDarkMode ? 'bg-slate-950' : 'bg-slate-50'}`}
+    >
       
       {/* Judul Laporan Khusus Print - Sesuai Gambar */}
       <div className={`hidden print:block mb-8 border-b-[3px] pb-8 ${isDarkMode ? 'border-white' : 'border-slate-900'}`}>
@@ -676,7 +681,7 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
           <button 
             onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
             disabled={currentPage === 1}
-            className={`p-2 rounded-xl border transition-all ${currentPage === 1 ? 'opacity-30 cursor-not-allowed' : 'hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+            className={`p-2 rounded-xl border transition-all ${currentPage === 1 ? 'opacity-20 cursor-not-allowed' : 'hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-95'}`}
           >
             <span className="material-symbols-outlined">chevron_left</span>
           </button>
@@ -684,15 +689,15 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
             <button 
               key={i}
               onClick={() => setCurrentPage(i + 1)}
-              className={`w-10 h-10 rounded-xl text-xs font-black transition-all ${currentPage === i + 1 ? 'bg-blue-600 text-white' : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400'}`}
+              className={`w-10 h-10 rounded-xl text-xs font-black transition-all ${currentPage === i + 1 ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 active:scale-95'}`}
             >
               {i + 1}
             </button>
           ))}
           <button 
             onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-            disabled={currentPage === totalPages}
-            className={`p-2 rounded-xl border transition-all ${currentPage === totalPages ? 'opacity-30 cursor-not-allowed' : 'hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+            disabled={currentPage >= totalPages || totalPages === 0}
+            className={`p-2 rounded-xl border transition-all ${currentPage >= totalPages || totalPages === 0 ? 'opacity-20 cursor-not-allowed' : 'hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-95'}`}
           >
             <span className="material-symbols-outlined">chevron_right</span>
           </button>
@@ -839,9 +844,15 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
       </div>
 
       {/* MODAL TOLAK (REJECT) */}
-      {rejectingReq && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-slate-900/70 backdrop-blur-xl animate-in fade-in duration-300">
-           <div className={`rounded-[3rem] w-full max-w-lg shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 transition-colors duration-300 ${isDarkMode ? 'bg-slate-900 border border-slate-800' : 'bg-white'}`}>
+      <AnimatePresence>
+        {rejectingReq && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-slate-900/70 backdrop-blur-xl">
+             <motion.div 
+               initial={{ opacity: 0, scale: 0.9, y: 20 }}
+               animate={{ opacity: 1, scale: 1, y: 0 }}
+               exit={{ opacity: 0, scale: 0.9, y: 20 }}
+               className={`rounded-[3rem] w-full max-w-lg shadow-2xl flex flex-col overflow-hidden transition-colors duration-300 ${isDarkMode ? 'bg-slate-900 border border-slate-800' : 'bg-white'}`}
+             >
               <div className="p-10 border-b flex items-center justify-between">
                  <div>
                     <h3 className={`text-2xl font-black leading-none ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Tolak Permohonan</h3>
@@ -879,14 +890,21 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
                     </button>
                  </div>
               </div>
-           </div>
-        </div>
-      )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* MODAL DETAIL */}
-      {viewingReq && (
-        <div className="fixed inset-0 z-[150] flex items-center justify-center p-6 bg-slate-900/70 backdrop-blur-xl animate-in fade-in duration-300">
-           <div className={`rounded-[3rem] w-full max-w-xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 transition-colors duration-300 ${isDarkMode ? 'bg-slate-900 border border-slate-800' : 'bg-white'}`}>
+      <AnimatePresence>
+        {viewingReq && (
+          <div className="fixed inset-0 z-[150] flex items-center justify-center p-6 bg-slate-900/70 backdrop-blur-xl">
+             <motion.div 
+               initial={{ opacity: 0, scale: 0.9, y: 20 }}
+               animate={{ opacity: 1, scale: 1, y: 0 }}
+               exit={{ opacity: 0, scale: 0.9, y: 20 }}
+               className={`rounded-[3rem] w-full max-w-xl shadow-2xl flex flex-col overflow-hidden transition-colors duration-300 ${isDarkMode ? 'bg-slate-900 border border-slate-800' : 'bg-white'}`}
+             >
               <div className={`p-10 border-b flex items-center justify-between transition-colors duration-300 ${isDarkMode ? 'bg-slate-800/50 border-slate-800' : 'bg-slate-50/30 border-slate-50'}`}>
                  <div>
                     <h3 className={`text-2xl font-black leading-none ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Rincian Permohonan</h3>
@@ -1009,14 +1027,21 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
                     Tutup Detail
                  </button>
               </div>
-           </div>
-        </div>
-      )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* MODAL INPUT MANUAL (KHUSUS ADMIN) */}
-      {isManualModalOpen && (
-        <div className="fixed inset-0 z-[160] flex items-center justify-center p-6 bg-slate-900/70 backdrop-blur-xl animate-in fade-in duration-300">
-          <div className={`rounded-[3rem] w-full max-w-xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 transition-colors duration-300 ${isDarkMode ? 'bg-slate-900 border border-slate-800' : 'bg-white'}`}>
+      <AnimatePresence>
+        {isManualModalOpen && (
+        <div className="fixed inset-0 z-[160] flex items-center justify-center p-6 bg-slate-900/70 backdrop-blur-xl">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+            className={`rounded-[3rem] w-full max-w-xl shadow-2xl flex flex-col overflow-hidden transition-colors duration-300 ${isDarkMode ? 'bg-slate-900 border border-slate-800' : 'bg-white'}`}
+          >
             <div className={`p-10 border-b flex items-center justify-between transition-colors duration-300 ${isDarkMode ? 'bg-slate-800/50 border-slate-800' : 'bg-slate-50/30 border-slate-100'}`}>
               <div className="flex items-center gap-4">
                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${isDarkMode ? 'bg-blue-500/10 text-blue-400' : 'bg-blue-50 text-blue-600'}`}>
@@ -1120,13 +1145,20 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
                   </button>
                </div>
             </form>
+            </motion.div>
           </div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
 
-      {selectedReq && isSuperAdmin && (
-        <div className="fixed inset-0 z-[170] flex items-center justify-center p-6 bg-slate-900/70 backdrop-blur-xl animate-in fade-in duration-300">
-          <div className={`rounded-[3rem] w-full max-w-md overflow-hidden shadow-2xl animate-in zoom-in-95 transition-colors duration-300 ${isDarkMode ? 'bg-slate-900 border border-slate-800' : 'bg-white'}`}>
+      <AnimatePresence>
+        {selectedReq && isSuperAdmin && (
+          <div className="fixed inset-0 z-[170] flex items-center justify-center p-6 bg-slate-900/70 backdrop-blur-xl">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className={`rounded-[3rem] w-full max-w-md overflow-hidden shadow-2xl transition-colors duration-300 ${isDarkMode ? 'bg-slate-900 border border-slate-800' : 'bg-white'}`}
+            >
             <div className={`p-10 border-b flex items-center justify-between transition-colors duration-300 ${isDarkMode ? 'bg-slate-800/50 border-slate-800' : 'bg-slate-50/30 border-slate-50'}`}>
               <div className="flex items-center gap-4">
                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${isDarkMode ? 'bg-blue-500/10 text-blue-400' : 'bg-blue-50 text-blue-600'}`}>
@@ -1244,14 +1276,21 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
                 )}
               </div>
             </div>
-          </div>
+          </motion.div>
         </div>
       )}
+    </AnimatePresence>
 
       {/* Modal Edit Header (Super Admin Only) */}
-      {isEditHeaderModalOpen && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
-          <div className={`w-full max-w-md rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 ${isDarkMode ? 'bg-slate-900 border border-slate-800' : 'bg-white'}`}>
+      <AnimatePresence>
+        {isEditHeaderModalOpen && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className={`w-full max-w-md rounded-[2.5rem] shadow-2xl overflow-hidden transition-colors duration-300 ${isDarkMode ? 'bg-slate-900 border border-slate-800' : 'bg-white'}`}
+            >
             <div className="p-8 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
               <h3 className={`text-xl font-black tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Edit Judul Halaman</h3>
               <button onClick={() => setIsEditHeaderModalOpen(false)} className="p-2 text-slate-400 hover:text-rose-500 transition-colors">
@@ -1284,9 +1323,10 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
                 Simpan Perubahan
               </button>
             </div>
-          </div>
+          </motion.div>
         </div>
       )}
+    </AnimatePresence>
 
       <style>{`
         @media print {
@@ -1303,7 +1343,7 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
           .print\\:divide-slate-200 tr { border-bottom: 0.5pt solid #cbd5e1 !important; }
         }
       `}</style>
-    </main>
+    </motion.main>
   );
 };
 

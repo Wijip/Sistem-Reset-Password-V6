@@ -1,6 +1,7 @@
 
 import React, { useMemo, useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
+import { motion, AnimatePresence } from 'motion/react';
 import { Personnel, ResetRequest, RequestStatus, SiteSettings } from '../types';
 
 interface UserDashboardProps {
@@ -119,7 +120,11 @@ const UserDashboard: React.FC<UserDashboardProps> = ({
   };
 
   return (
-    <main className={`p-4 md:p-8 space-y-6 max-w-full mx-auto min-h-screen font-sans animate-in fade-in duration-500 transition-colors duration-300 ${isDarkMode ? 'bg-slate-950' : 'bg-slate-50'}`}>
+    <motion.main 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className={`p-4 md:p-8 space-y-6 max-w-full mx-auto min-h-screen font-sans transition-colors duration-300 ${isDarkMode ? 'bg-slate-950' : 'bg-slate-50'}`}
+    >
       
       {/* HEADER SECTION - Match Screenshot */}
       <div className={`rounded-xl p-5 flex items-center justify-between shadow-sm border transition-colors duration-300 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
@@ -279,126 +284,146 @@ const UserDashboard: React.FC<UserDashboardProps> = ({
         </div>
       </div>
 
-      {/* MODAL DETAIL - Same logic as before but updated look */}
-      {selectedDetail && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
-          <div className={`rounded-3xl w-full max-w-lg shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 ${isDarkMode ? 'bg-slate-900' : 'bg-white'}`}>
-            <div className={`p-8 border-b flex items-center justify-between ${isDarkMode ? 'border-slate-800' : 'border-slate-50'}`}>
-              <div>
-                <h3 className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Rincian Pengajuan</h3>
-                <p className="text-[10px] font-bold text-slate-400 uppercase mt-1">ID TIKET: {selectedDetail.id}</p>
-              </div>
-              <button onClick={() => setSelectedDetail(null)} className="p-2 text-slate-400 hover:bg-slate-50 rounded-lg">
-                <span className="material-symbols-outlined">close</span>
-              </button>
-            </div>
-            <div className="p-8 space-y-6">
-              <div className="grid grid-cols-2 gap-4">
-                <div className={`p-4 rounded-xl ${isDarkMode ? 'bg-slate-800' : 'bg-slate-50'}`}>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Status</p>
-                  <span className="text-xs font-bold text-blue-600">{getStatusLabel(selectedDetail.status)}</span>
+      {/* MODAL DETAIL */}
+      <AnimatePresence>
+        {selectedDetail && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className={`rounded-3xl w-full max-w-lg shadow-2xl flex flex-col overflow-hidden ${isDarkMode ? 'bg-slate-900' : 'bg-white'}`}
+            >
+              <div className={`p-8 border-b flex items-center justify-between ${isDarkMode ? 'border-slate-800' : 'border-slate-50'}`}>
+                <div>
+                  <h3 className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Rincian Pengajuan</h3>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase mt-1">ID TIKET: {selectedDetail.id}</p>
                 </div>
-                <div className={`p-4 rounded-xl ${isDarkMode ? 'bg-slate-800' : 'bg-slate-50'}`}>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Tanggal</p>
-                  <span className={`text-xs font-bold ${isDarkMode ? 'text-slate-300' : 'text-slate-800'}`}>{new Date(selectedDetail.createdAt).toLocaleDateString()}</span>
-                </div>
+                <button onClick={() => setSelectedDetail(null)} className="p-2 text-slate-400 hover:bg-slate-50 rounded-lg">
+                  <span className="material-symbols-outlined">close</span>
+                </button>
               </div>
-
-              {selectedDetail.status === RequestStatus.SELESAI && (
-                <div className={`p-6 border rounded-2xl space-y-3 ${isDarkMode ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-emerald-50 border-emerald-100'}`}>
-                  <div className={`flex items-center gap-2 ${isDarkMode ? 'text-emerald-400' : 'text-emerald-700'}`}>
-                     <span className="material-symbols-outlined text-xl">key</span>
-                     <p className="text-[10px] font-black uppercase tracking-widest">Password Baru Anda</p>
+              <div className="p-8 space-y-6">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className={`p-4 rounded-xl ${isDarkMode ? 'bg-slate-800' : 'bg-slate-50'}`}>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Status</p>
+                    <span className="text-xs font-bold text-blue-600">{getStatusLabel(selectedDetail.status)}</span>
                   </div>
-                  <div className="relative">
-                    <input 
-                      type={showPasswordInDetail ? "text" : "password"} 
-                      readOnly
-                      className={`w-full border px-5 py-3 rounded-xl text-lg font-mono font-black tracking-widest transition-colors ${isDarkMode ? 'bg-slate-800 border-slate-700 text-emerald-400' : 'bg-white border-emerald-200 text-emerald-800'}`}
-                      value={selectedDetail.reset_password || ''}
-                    />
-                    <button onClick={() => setShowPasswordInDetail(!showPasswordInDetail)} className="absolute right-4 top-1/2 -translate-y-1/2 text-emerald-400">
-                      <span className="material-symbols-outlined">{showPasswordInDetail ? 'visibility_off' : 'visibility'}</span>
-                    </button>
+                  <div className={`p-4 rounded-xl ${isDarkMode ? 'bg-slate-800' : 'bg-slate-50'}`}>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Tanggal</p>
+                    <span className={`text-xs font-bold ${isDarkMode ? 'text-slate-300' : 'text-slate-800'}`}>{new Date(selectedDetail.createdAt).toLocaleDateString()}</span>
                   </div>
                 </div>
-              )}
-              
-              <div className="space-y-4">
-                 <div className={`p-4 rounded-xl flex items-center justify-between ${isDarkMode ? 'bg-slate-800' : 'bg-slate-50'}`}>
-                    <p className="text-xs font-medium text-slate-500">Kontak Person</p>
-                    <p className={`text-xs font-bold ${isDarkMode ? 'text-slate-300' : 'text-slate-800'}`}>{selectedDetail.kontak_person || '-'}</p>
-                 </div>
-                 <div className={`p-4 rounded-xl ${isDarkMode ? 'bg-slate-800' : 'bg-slate-50'}`}>
-                    <p className="text-xs font-medium text-slate-500 mb-2">Catatan Admin</p>
-                    <p className={`text-xs font-bold italic ${isDarkMode ? 'text-slate-400' : 'text-slate-700'}`}>"{selectedDetail.catatan || 'Tidak ada catatan tambahan.'}"</p>
-                 </div>
-              </div>
 
-              <button onClick={() => setSelectedDetail(null)} className={`w-full py-4 rounded-xl font-bold text-xs uppercase tracking-widest transition-colors ${isDarkMode ? 'bg-slate-100 text-slate-900 hover:bg-white' : 'bg-slate-900 text-white hover:bg-slate-800'}`}>Tutup</button>
-            </div>
+                {selectedDetail.status === RequestStatus.SELESAI && (
+                  <div className={`p-6 border rounded-2xl space-y-3 ${isDarkMode ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-emerald-50 border-emerald-100'}`}>
+                    <div className={`flex items-center gap-2 ${isDarkMode ? 'text-emerald-400' : 'text-emerald-700'}`}>
+                       <span className="material-symbols-outlined text-xl">key</span>
+                       <p className="text-[10px] font-black uppercase tracking-widest">Password Baru Anda</p>
+                    </div>
+                    <div className="relative">
+                      <input 
+                        type={showPasswordInDetail ? "text" : "password"} 
+                        readOnly
+                        className={`w-full border px-5 py-3 rounded-xl text-lg font-mono font-black tracking-widest transition-colors ${isDarkMode ? 'bg-slate-800 border-slate-700 text-emerald-400' : 'bg-white border-emerald-200 text-emerald-800'}`}
+                        value={selectedDetail.reset_password || ''}
+                      />
+                      <button onClick={() => setShowPasswordInDetail(!showPasswordInDetail)} className="absolute right-4 top-1/2 -translate-y-1/2 text-emerald-400">
+                        <span className="material-symbols-outlined">{showPasswordInDetail ? 'visibility_off' : 'visibility'}</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+                
+                <div className="space-y-4">
+                   <div className={`p-4 rounded-xl flex items-center justify-between ${isDarkMode ? 'bg-slate-800' : 'bg-slate-50'}`}>
+                      <p className="text-xs font-medium text-slate-500">Kontak Person</p>
+                      <p className={`text-xs font-bold ${isDarkMode ? 'text-slate-300' : 'text-slate-800'}`}>{selectedDetail.kontak_person || '-'}</p>
+                   </div>
+                   <div className={`p-4 rounded-xl ${isDarkMode ? 'bg-slate-800' : 'bg-slate-50'}`}>
+                      <p className="text-xs font-medium text-slate-500 mb-2">Catatan Admin</p>
+                      <p className={`text-xs font-bold italic ${isDarkMode ? 'text-slate-400' : 'text-slate-700'}`}>"{selectedDetail.catatan || 'Tidak ada catatan tambahan.'}"</p>
+                   </div>
+                </div>
+
+                <button onClick={() => setSelectedDetail(null)} className={`w-full py-4 rounded-xl font-bold text-xs uppercase tracking-widest transition-colors ${isDarkMode ? 'bg-slate-100 text-slate-900 hover:bg-white' : 'bg-slate-900 text-white hover:bg-slate-800'}`}>Tutup</button>
+              </div>
+            </motion.div>
           </div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
 
       {/* FORM MODAL - Updated to include Contact Person */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
-           <div className={`rounded-2xl w-full max-w-xl shadow-2xl flex flex-col p-8 space-y-6 transition-colors ${isDarkMode ? 'bg-slate-900' : 'bg-white'}`}>
-              <div className={`flex items-center gap-3 border-b pb-4 ${isDarkMode ? 'border-slate-800' : 'border-slate-100'}`}>
-                <span className="material-symbols-outlined text-blue-600">edit_document</span>
-                <h3 className={`text-base font-bold ${isDarkMode ? 'text-slate-200' : 'text-slate-800'}`}>Form Pengajuan Reset Password</h3>
-              </div>
-              
-              <div className="space-y-4">
-                 <div className={`p-4 border rounded-xl transition-colors ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-100'}`}>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Konfirmasi Identitas</p>
-                    <p className={`text-sm font-bold ${isDarkMode ? 'text-slate-200' : 'text-slate-700'}`}>{currentUser.nama} / {currentUser.nrp}</p>
-                    <p className="text-[10px] font-black text-blue-600 uppercase mt-1">{currentUser.kesatuan}</p>
-                 </div>
-                 
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Kontak Person (WhatsApp)</label>
-                       <input 
-                          type="text" 
-                          className={`w-full px-4 py-3 border rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-blue-500/10 transition-colors ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200'}`}
-                          placeholder="Contoh: 08123456789"
-                          value={formKontak}
-                          onChange={(e) => setFormKontak(e.target.value)}
-                       />
-                    </div>
-                    <div className="space-y-1.5">
-                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Alasan</label>
-                       <input 
-                          type="text" 
-                          readOnly
-                          className={`w-full px-4 py-3 border rounded-xl text-xs font-bold outline-none transition-colors ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-500' : 'bg-slate-50 border-slate-100 text-slate-500'}`}
-                          value={alasan}
-                       />
-                    </div>
-                 </div>
+      <AnimatePresence>
+        {isModalOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+             <motion.div 
+               initial={{ opacity: 0, scale: 0.9, y: 20 }}
+               animate={{ opacity: 1, scale: 1, y: 0 }}
+               exit={{ opacity: 0, scale: 0.9, y: 20 }}
+               className={`rounded-2xl w-full max-w-xl shadow-2xl flex flex-col p-8 space-y-6 transition-colors ${isDarkMode ? 'bg-slate-900' : 'bg-white'}`}
+             >
+                <div className={`flex items-center gap-3 border-b pb-4 ${isDarkMode ? 'border-slate-800' : 'border-slate-100'}`}>
+                  <span className="material-symbols-outlined text-blue-600">edit_document</span>
+                  <h3 className={`text-base font-bold ${isDarkMode ? 'text-slate-200' : 'text-slate-800'}`}>Form Pengajuan Reset Password</h3>
+                </div>
+                
+                <div className="space-y-4">
+                   <div className={`p-4 border rounded-xl transition-colors ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-100'}`}>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Konfirmasi Identitas</p>
+                      <p className={`text-sm font-bold ${isDarkMode ? 'text-slate-200' : 'text-slate-700'}`}>{currentUser.nama} / {currentUser.nrp}</p>
+                      <p className="text-[10px] font-black text-blue-600 uppercase mt-1">{currentUser.kesatuan}</p>
+                   </div>
+                   
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Kontak Person (WhatsApp)</label>
+                         <input 
+                            type="text" 
+                            className={`w-full px-4 py-3 border rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-blue-500/10 transition-colors ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200'}`}
+                            placeholder="Contoh: 08123456789"
+                            value={formKontak}
+                            onChange={(e) => setFormKontak(e.target.value)}
+                         />
+                      </div>
+                      <div className="space-y-1.5">
+                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Alasan</label>
+                         <input 
+                            type="text" 
+                            readOnly
+                            className={`w-full px-4 py-3 border rounded-xl text-xs font-bold outline-none transition-colors ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-500' : 'bg-slate-50 border-slate-100 text-slate-500'}`}
+                            value={alasan}
+                         />
+                      </div>
+                   </div>
 
-                 <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Keterangan / Kendala (Opsional)</label>
-                    <textarea 
-                       className={`w-full px-4 py-3 border rounded-xl text-xs font-bold h-24 resize-none outline-none focus:ring-2 focus:ring-blue-500/10 transition-colors ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200'}`}
-                       placeholder="Masukkan kendala spesifik..."
-                       value={keterangan}
-                       onChange={(e) => setKeterangan(e.target.value)}
-                    />
-                 </div>
-              </div>
-              
-              <div className="flex gap-3 pt-4">
-                 <button onClick={() => setIsModalOpen(false)} className={`flex-1 py-3.5 border rounded-xl font-bold text-xs transition-colors ${isDarkMode ? 'border-slate-800 text-slate-500 hover:bg-slate-800' : 'border-slate-200 text-slate-500 hover:bg-slate-50'}`}>Batal</button>
-                 <button onClick={handleAjukanReset} className="flex-1 py-3.5 bg-blue-600 text-white rounded-xl font-bold uppercase tracking-widest text-xs hover:bg-blue-700 shadow-lg shadow-blue-500/20">Kirim Pengajuan</button>
-              </div>
-           </div>
-        </div>
-      )}
+                   <div className="space-y-1.5">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Keterangan / Kendala (Opsional)</label>
+                      <textarea 
+                         className={`w-full px-4 py-3 border rounded-xl text-xs font-bold h-24 resize-none outline-none focus:ring-2 focus:ring-blue-500/10 transition-colors ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200'}`}
+                         placeholder="Masukkan kendala spesifik..."
+                         value={keterangan}
+                         onChange={(e) => setKeterangan(e.target.value)}
+                      />
+                   </div>
+                </div>
+                
+                <div className="flex gap-3 pt-4">
+                   <button onClick={() => setIsModalOpen(false)} className={`flex-1 py-3.5 border rounded-xl font-bold text-xs transition-colors ${isDarkMode ? 'border-slate-800 text-slate-500 hover:bg-slate-800' : 'border-slate-200 text-slate-500 hover:bg-slate-50'}`}>Batal</button>
+                   <button 
+                    onClick={handleAjukanReset} 
+                    disabled={!formNama.trim() || !formNRP.trim() || !formKontak.trim()}
+                    className={`flex-1 py-3.5 bg-blue-600 text-white rounded-xl font-bold uppercase tracking-widest text-xs hover:bg-blue-700 shadow-lg shadow-blue-500/20 transition-all active:scale-95 ${(!formNama.trim() || !formNRP.trim() || !formKontak.trim()) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                   >
+                    Kirim Pengajuan
+                   </button>
+                </div>
+             </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
-    </main>
+    </motion.main>
   );
 };
 
