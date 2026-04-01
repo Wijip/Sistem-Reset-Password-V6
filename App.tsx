@@ -284,7 +284,7 @@ const App: React.FC = () => {
 
         <div className={`flex-1 flex flex-col min-w-0 ${currentUser ? 'pt-14 md:pt-0' : ''}`}>
           <Routes>
-            <Route path="/login" element={<Login onLogin={(user) => { setCurrentUser(user); }} addLog={addLog} siteSettings={siteSettings} />} />
+            <Route path="/login" element={<Login onLogin={(user) => { setCurrentUser(user); }} addLog={addLog} siteSettings={siteSettings} currentUser={currentUser} />} />
             <Route path="/request-reset" element={<PublicResetForm onSubmit={submitPublicRequest} siteSettings={siteSettings} />} />
             
             <Route path="/" element={
@@ -299,25 +299,14 @@ const App: React.FC = () => {
             
             <Route path="/requests" element={
               <ProtectedRoute anyAdminOnly allowUser currentUser={currentUser}>
-                {currentUser?.role === UserRole.USER ? (
-                  <UserDashboard 
-                    currentUser={currentUser as Personnel} 
-                    requests={requests} 
-                    setRequests={setRequests} 
-                    showToast={showToast} 
-                    addNotification={addNotification} 
-                    siteSettings={siteSettings} 
-                  />
-                ) : (
-                  <ResetRequests 
-                    showToast={showToast}
-                    addNotification={addNotification}
-                    addLog={addLog}
-                    siteSettings={siteSettings}
-                    setSiteSettings={setSiteSettings}
-                    currentUser={currentUser as Personnel}
-                  />
-                )}
+                <ResetRequests 
+                  showToast={showToast}
+                  addNotification={addNotification}
+                  addLog={addLog}
+                  siteSettings={siteSettings}
+                  setSiteSettings={setSiteSettings}
+                  currentUser={currentUser as Personnel}
+                />
               </ProtectedRoute>
             } />
             

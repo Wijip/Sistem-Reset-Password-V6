@@ -7,9 +7,10 @@ interface LoginProps {
   onLogin: (user: Personnel) => void;
   addLog?: (aktivitas: LogEntry['aktivitas'], keterangan: string) => void;
   siteSettings: SiteSettings;
+  currentUser?: Personnel | null;
 }
 
-const Login: React.FC<LoginProps> = ({ onLogin, addLog, siteSettings }) => {
+const Login: React.FC<LoginProps> = ({ onLogin, addLog, siteSettings, currentUser }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -17,7 +18,8 @@ const Login: React.FC<LoginProps> = ({ onLogin, addLog, siteSettings }) => {
   const [redirectToDashboard, setRedirectToDashboard] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  if (redirectToDashboard) return <Navigate to="/" />;
+  // Redirect if already logged in
+  if (currentUser || redirectToDashboard) return <Navigate to="/" replace />;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

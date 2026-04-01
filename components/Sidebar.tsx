@@ -169,9 +169,11 @@ const Sidebar: React.FC<SidebarProps> = ({
             )}
           </div>
           <div className="min-w-0">
-            <div className={`text-xs font-black truncate ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{currentUser.nama}</div>
+            <div className={`text-xs font-black truncate ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+              {isSuperAdmin ? 'Polda Jatim' : currentUser.kesatuan || 'Polda Jatim'}
+            </div>
             <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
-              {isSuperAdmin ? 'Super Admin' : isAdmin ? `Admin ${currentUser.kesatuan}` : 'User'}
+              {isSuperAdmin ? 'SUPER ADMIN' : isAdmin ? 'ADMIN' : 'USER'}
             </div>
           </div>
         </div>

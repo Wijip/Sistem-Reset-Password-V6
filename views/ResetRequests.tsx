@@ -263,26 +263,28 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
     reader.onload = (event) => {
       try {
         const bstr = event.target?.result;
-        const wb = XLSX.read(bstr, { type: 'binary', cellDates: true });
+        // Use raw: false to get formatted strings from cells, preserving leading zeros and exact text
+        const wb = XLSX.read(bstr, { type: 'binary', cellDates: false });
         const wsname = wb.SheetNames[0];
         const ws = wb.Sheets[wsname];
-        const data = XLSX.utils.sheet_to_json(ws) as any[];
+        // Use raw: false to ensure all values are treated as strings as seen in Excel
+        const data = XLSX.utils.sheet_to_json(ws, { raw: false, defval: '' }) as any[];
 
         const newRequests: ResetRequest[] = data.map((item, idx) => {
           const rawKesatuan = item.Kesatuan || item.kesatuan || item.KESATUAN || (isAdminPolres || isUser ? currentUser.kesatuan : 'Polda Jatim');
           return {
-            id: item.id || item.ID || `IMP-${Date.now()}-${idx}`,
-            nama: item.Nama || item.nama || item.NAMA || 'Tanpa Nama',
-            pangkat: item.Pangkat || item.pangkat || item.PANGKAT || '-',
-            nrp: item.NRP || item.nrp || item.Nrp || item.nrp_personel ? String(item.NRP || item.nrp || item.Nrp || item.nrp_personel) : '00000000',
-            jabatan: item.Jabatan || item.jabatan || item.JABATAN || '-',
+            id: `IMP-${Date.now()}-${idx}`,
+            nama: String(item.Nama || item.nama || item.NAMA || 'Tanpa Nama').trim(),
+            pangkat: String(item.Pangkat || item.pangkat || item.PANGKAT || '-').trim(),
+            nrp: String(item.NRP || item.nrp || item.Nrp || item['NRP/NIP'] || '00000000').trim(),
+            jabatan: String(item.Jabatan || item.jabatan || item.JABATAN || '-').trim(),
             kesatuan: String(rawKesatuan).trim(),
-            waktu_iso: item.Waktu || item.waktu || item.waktu_iso || item.WAKTU || new Date().toISOString(),
-            status: item.Status || item.status || item.STATUS || RequestStatus.MENUNGGU,
-            alasan: item.Alasan || item.alasan || item.ALASAN || 'Import Data Massal',
-            createdAt: item.createdAt || item.created_at || item.CREATED_AT || Date.now(),
-            kontak_person: item.Kontak || item.kontak || item.kontak_person || item.KONTAK || '-',
-            prioritas: item.Prioritas || item.prioritas || item.PRIORITAS || 'Normal'
+            waktu_iso: new Date().toISOString(),
+            status: RequestStatus.MENUNGGU,
+            alasan: String(item.Alasan || item.alasan || item.ALASAN || 'Import Data Massal').trim(),
+            createdAt: Date.now(),
+            kontak_person: String(item.Kontak || item.kontak || item.kontak_person || item.KONTAK || '-').trim(),
+            prioritas: (item.Prioritas || item.prioritas || item.PRIORITAS || 'Normal') as RequestPriority
           };
         });
 
@@ -515,14 +517,14 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
             <>
               <button 
                 onClick={() => setIsManualModalOpen(true)}
-                className="flex items-center gap-3 px-6 py-4 bg-blue-600 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-blue-700 transition-all shadow-xl shadow-blue-500/20 active:scale-[0.97]"
+                className="flex items-center gap-3 px-6 py-4 bg-blue-600 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-blue-700 transition-all shadow-[0_0_20px_rgba(37,99,235,0.4)] active:scale-[0.97]"
               >
                 <span className="material-symbols-outlined text-xl">add_circle</span>
                 TAMBAH MANUAL
               </button>
               <button 
                 onClick={() => fileInputRef.current?.click()}
-                className="flex items-center gap-3 px-6 py-4 bg-emerald-600 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-500/20 active:scale-[0.97]"
+                className="flex items-center gap-3 px-6 py-4 bg-emerald-600 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-[0_0_20px_rgba(16,185,129,0.4)] active:scale-[0.97]"
               >
                 <span className="material-symbols-outlined text-xl">upload_file</span>
                 IMPORT EXCEL
@@ -546,11 +548,11 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
       {/* Statistical Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 print:hidden">
         {[
-          { label: 'Total Request', value: stats.total, sub: 'Seluruh pengajuan', icon: 'list_alt', color: 'blue' },
-          { label: isSuperAdmin ? 'Status: Diterima' : 'Status: Terkirim', value: stats.pending, sub: 'Butuh verifikasi segera', icon: 'hourglass_empty', color: 'amber' },
-          { label: 'Status: Diproses', value: stats.processing, sub: 'Sedang dalam pengerjaan', icon: 'sync', color: 'indigo' },
-          { label: 'Status: Selesai', value: stats.completedToday, sub: 'Berhasil hari ini', icon: 'verified', color: 'emerald' },
-          { label: 'Prioritas Mendesak', value: stats.urgent, sub: 'Butuh tindakan cepat', icon: 'priority_high', color: 'rose' }
+          { label: 'Total Request', value: stats.total, sub: 'Seluruh pengajuan', icon: 'list_alt', color: 'blue', bg: isDarkMode ? 'bg-blue-500/10' : 'bg-blue-50', text: isDarkMode ? 'text-blue-400' : 'text-blue-500' },
+          { label: isSuperAdmin ? 'Status: Diterima' : 'Status: Terkirim', value: stats.pending, sub: 'Butuh verifikasi segera', icon: 'hourglass_empty', color: 'amber', bg: isDarkMode ? 'bg-amber-500/10' : 'bg-amber-50', text: isDarkMode ? 'text-amber-400' : 'text-amber-500' },
+          { label: 'Status: Diproses', value: stats.processing, sub: 'Sedang dalam pengerjaan', icon: 'sync', color: 'indigo', bg: isDarkMode ? 'bg-indigo-500/10' : 'bg-indigo-50', text: isDarkMode ? 'text-indigo-400' : 'text-indigo-500' },
+          { label: 'Status: Selesai', value: stats.completedToday, sub: 'Berhasil hari ini', icon: 'verified', color: 'emerald', bg: isDarkMode ? 'bg-emerald-500/10' : 'bg-emerald-50', text: isDarkMode ? 'text-emerald-400' : 'text-emerald-500' },
+          { label: 'Prioritas Mendesak', value: stats.urgent, sub: 'Butuh tindakan cepat', icon: 'priority_high', color: 'rose', bg: isDarkMode ? 'bg-rose-500/10' : 'bg-rose-50', text: isDarkMode ? 'text-rose-400' : 'text-rose-500' }
         ].map((stat, i) => (
           <div key={i} className={`p-8 rounded-[2rem] border shadow-sm flex items-start justify-between group hover:shadow-xl transition-all duration-300 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
             <div className="space-y-2">
@@ -558,7 +560,7 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
               <h4 className={`text-4xl font-black tracking-tighter ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{stat.value}</h4>
               <p className="text-[10px] font-bold text-slate-400 mt-3">{stat.sub}</p>
             </div>
-            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-transform group-hover:rotate-12 shadow-inner ${isDarkMode ? `bg-${stat.color}-500/10 text-${stat.color}-400` : `bg-${stat.color}-50 text-${stat.color}-500`}`}>
+            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-transform group-hover:rotate-12 shadow-inner ${stat.bg} ${stat.text}`}>
               <span className="material-symbols-outlined text-3xl">{stat.icon}</span>
             </div>
           </div>
