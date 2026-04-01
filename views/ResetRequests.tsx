@@ -470,7 +470,7 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
   };
 
   return (
-    <main className={`p-6 md:p-10 space-y-8 max-w-7xl mx-auto min-h-screen font-sans print:bg-white print:p-0 animate-in fade-in duration-500 transition-colors duration-300 ${isDarkMode ? 'bg-slate-950' : 'bg-slate-50'}`}>
+    <main className={`p-6 md:p-10 space-y-8 min-h-screen font-sans print:bg-white print:p-0 animate-in fade-in duration-500 transition-colors duration-300 ${isDarkMode ? 'bg-slate-950' : 'bg-slate-50'}`}>
       
       {/* Judul Laporan Khusus Print - Sesuai Gambar */}
       <div className={`hidden print:block mb-8 border-b-[3px] pb-8 ${isDarkMode ? 'border-white' : 'border-slate-900'}`}>
@@ -515,17 +515,17 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
             <>
               <button 
                 onClick={() => setIsManualModalOpen(true)}
-                className="flex items-center gap-3 px-6 py-4 bg-blue-600 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-blue-700 transition-all shadow-xl shadow-blue-100 active:scale-[0.97]"
+                className="flex items-center gap-3 px-6 py-4 bg-blue-600 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-blue-700 transition-all shadow-xl shadow-blue-500/20 active:scale-[0.97]"
               >
                 <span className="material-symbols-outlined text-xl">add_circle</span>
-                Tambah Manual
+                TAMBAH MANUAL
               </button>
               <button 
                 onClick={() => fileInputRef.current?.click()}
-                className="flex items-center gap-3 px-6 py-4 bg-emerald-600 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-100 active:scale-[0.97]"
+                className="flex items-center gap-3 px-6 py-4 bg-emerald-600 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-500/20 active:scale-[0.97]"
               >
                 <span className="material-symbols-outlined text-xl">upload_file</span>
-                Import Excel
+                IMPORT EXCEL
               </button>
               <input type="file" ref={fileInputRef} className="hidden" accept=".xlsx, .xls" onChange={handleImportExcel} />
               <div className={`w-px h-10 mx-3 hidden xl:block ${isDarkMode ? 'bg-slate-800' : 'bg-slate-200'}`}></div>
@@ -534,7 +534,7 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
 
           <button onClick={exportExcel} className={`flex items-center gap-3 px-5 py-4 border rounded-2xl text-[11px] font-black transition-all shadow-sm active:scale-[0.97] ${isDarkMode ? 'bg-slate-900 border-slate-800 text-slate-400 hover:bg-slate-800' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
             <span className="material-symbols-outlined text-emerald-500">table_view</span>
-            Export XLS
+            EXPORT XLS
           </button>
           <button onClick={() => window.print()} className={`flex items-center gap-3 px-5 py-4 border rounded-2xl text-[11px] font-black transition-all shadow-sm active:scale-[0.97] ${isDarkMode ? 'bg-slate-900 border-slate-800 text-slate-400 hover:bg-slate-800' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
             <span className="material-symbols-outlined text-rose-500">picture_as_pdf</span>
@@ -624,10 +624,10 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
           </div>
 
           <button onClick={handleApplyFilter} className="px-6 py-3.5 bg-sky-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-sky-700 transition-all active:scale-[0.97] shadow-lg shadow-sky-900/20">
-            Terapkan
+            TERAPKAN
           </button>
           <button onClick={handleResetFilter} className={`px-4 py-3.5 border rounded-xl font-black text-[10px] transition-all uppercase tracking-widest ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-500 hover:bg-slate-700' : 'bg-white border-slate-200 text-slate-400 hover:bg-slate-50'}`}>
-            Reset
+            RESET
           </button>
         </div>
       </div>
@@ -668,38 +668,27 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
       )}
 
       {/* Pagination Controls */}
-      {totalItems > 0 && (
-        <div className="flex items-center justify-between px-8 py-6 print:hidden">
-          <div className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-            Menampilkan {(currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, totalItems)} dari {totalItems} data
-          </div>
-          <div className="flex items-center gap-2">
-            <button 
-              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-              disabled={currentPage === 1}
-              className={`p-2 rounded-xl border transition-all ${currentPage === 1 ? 'opacity-30 cursor-not-allowed' : 'hover:bg-slate-100 dark:hover:bg-slate-800'}`}
-            >
-              <span className="material-symbols-outlined">chevron_left</span>
-            </button>
-            {[...Array(totalPages)].map((_, i) => (
-              <button 
-                key={i}
-                onClick={() => setCurrentPage(i + 1)}
-                className={`w-10 h-10 rounded-xl text-xs font-black transition-all ${currentPage === i + 1 ? 'bg-blue-600 text-white' : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400'}`}
-              >
-                {i + 1}
-              </button>
-            ))}
-            <button 
-              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-              disabled={currentPage === totalPages}
-              className={`p-2 rounded-xl border transition-all ${currentPage === totalPages ? 'opacity-30 cursor-not-allowed' : 'hover:bg-slate-100 dark:hover:bg-slate-800'}`}
-            >
-              <span className="material-symbols-outlined">chevron_right</span>
-            </button>
-          </div>
+      <div className="flex items-center justify-between px-8 py-6 print:hidden">
+        <div className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+          MENAMPILKAN {(currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, totalItems)} DARI {totalItems} DATA
         </div>
-      )}
+        <div className="flex items-center gap-2">
+          <button 
+            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+            disabled={currentPage === 1 || totalItems === 0}
+            className={`w-10 h-10 rounded-xl border flex items-center justify-center transition-all ${currentPage === 1 || totalItems === 0 ? 'opacity-20 cursor-not-allowed' : 'hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+          >
+            <span className="material-symbols-outlined text-xl">chevron_left</span>
+          </button>
+          <button 
+            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+            disabled={currentPage === totalPages || totalItems === 0}
+            className={`w-10 h-10 rounded-xl border flex items-center justify-center transition-all ${currentPage === totalPages || totalItems === 0 ? 'opacity-20 cursor-not-allowed' : 'hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+          >
+            <span className="material-symbols-outlined text-xl">chevron_right</span>
+          </button>
+        </div>
+      </div>
       <div className={`rounded-[2.5rem] border shadow-sm overflow-hidden print:border-[1pt] print:border-slate-300 print:rounded-3xl transition-colors duration-300 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
