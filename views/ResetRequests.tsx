@@ -107,6 +107,8 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
 
   // State untuk Input Manual
   const [isManualModalOpen, setIsManualModalOpen] = useState(false);
+  const [nrpConflict, setNrpConflict] = useState<{ nrp: string, existingNama: string } | null>(null);
+  const [importErrors, setImportErrors] = useState<{ row: number, nrp: string, nama: string, existingNama: string }[]>([]);
   const [manualForm, setManualForm] = useState({
     nama: '',
     pangkat: '',
@@ -255,57 +257,93 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
     XLSX.writeFile(wb, `permintaan_reset_${Date.now()}.xlsx`);
   };
 
-  const handleImportExcel = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const validateNRP = async (nrp: string, nama: string) => {
+    if (!nrp.trim()) return null;
+    try {
+      const res = await fetch(`/api/validate-nrp?nrp=${encodeURIComponent(nrp.trim())}&nama=${encodeURIComponent(nama.trim())}`, {
+        credentials: 'include'
+      });
+      const data = await res.json();
+      if (data.success && data.conflict) {
+        return data.existingNama;
+      }
+    } catch (error) {
+      console.error('Validation error:', error);
+    }
+    return null;
+  };
+
+  const handleImportExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
       try {
         const bstr = event.target?.result;
-        // Use raw: false to get formatted strings from cells, preserving leading zeros and exact text
         const wb = XLSX.read(bstr, { type: 'binary', cellDates: false });
         const wsname = wb.SheetNames[0];
         const ws = wb.Sheets[wsname];
-        // Use raw: false to ensure all values are treated as strings as seen in Excel
         const data = XLSX.utils.sheet_to_json(ws, { raw: false, defval: '' }) as any[];
 
-        const newRequests: ResetRequest[] = data.map((item, idx) => {
-          const rawKesatuan = item.Kesatuan || item.kesatuan || item.KESATUAN || (isAdminPolres || isUser ? currentUser.kesatuan : 'Polda Jatim');
-          return {
-            id: `IMP-${Date.now()}-${idx}`,
-            nama: String(item.Nama || item.nama || item.NAMA || 'Tanpa Nama').trim(),
-            pangkat: String(item.Pangkat || item.pangkat || item.PANGKAT || '-').trim(),
-            nrp: String(item.NRP || item.nrp || item.Nrp || item['NRP/NIP'] || '00000000').trim(),
-            jabatan: String(item.Jabatan || item.jabatan || item.JABATAN || '-').trim(),
-            kesatuan: String(rawKesatuan).trim(),
-            waktu_iso: new Date().toISOString(),
-            status: RequestStatus.MENUNGGU,
-            alasan: String(item.Alasan || item.alasan || item.ALASAN || 'Import Data Massal').trim(),
-            createdAt: Date.now(),
-            kontak_person: String(item.Kontak || item.kontak || item.kontak_person || item.KONTAK || '-').trim(),
-            prioritas: (item.Prioritas || item.prioritas || item.PRIORITAS || 'Normal') as RequestPriority
-          };
-        });
+        const errors: { row: number, nrp: string, nama: string, existingNama: string }[] = [];
+        const validRequests: ResetRequest[] = [];
 
-        if (newRequests.length > 0) {
-          Promise.all(newRequests.map(r => 
-            fetch('/api/requests', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              credentials: 'include',
-              body: JSON.stringify(r)
-            })
-          )).then(() => {
-            setRequests(prev => [...newRequests, ...prev]);
-            showToast(`${newRequests.length} data berhasil diimport`);
-            addLog?.('Sistem', `Melakukan import massal sebanyak ${newRequests.length} data`);
-          }).catch(err => {
-            console.error('Import failed:', err);
+        for (let i = 0; i < data.length; i++) {
+          const item = data[i];
+          const nrp = String(item.NRP || item.nrp || item.Nrp || item['NRP/NIP'] || '').trim();
+          const nama = String(item.Nama || item.nama || item.NAMA || '').trim();
+          
+          if (!nrp) continue;
+
+          const existingNama = await validateNRP(nrp, nama);
+          if (existingNama) {
+            errors.push({ row: i + 2, nrp, nama, existingNama });
+          } else {
+            const rawKesatuan = item.Kesatuan || item.kesatuan || item.KESATUAN || (isAdminPolres || isUser ? currentUser.kesatuan : 'Polda Jatim');
+            validRequests.push({
+              id: `IMP-${Date.now()}-${i}`,
+              nama: nama || 'Tanpa Nama',
+              pangkat: String(item.Pangkat || item.pangkat || item.PANGKAT || '-').trim(),
+              nrp: nrp,
+              jabatan: String(item.Jabatan || item.jabatan || item.JABATAN || '-').trim(),
+              kesatuan: String(rawKesatuan).trim(),
+              waktu_iso: new Date().toISOString(),
+              status: RequestStatus.MENUNGGU,
+              alasan: String(item.Alasan || item.alasan || item.ALASAN || 'Import Data Massal').trim(),
+              createdAt: Date.now(),
+              kontak_person: String(item.Kontak || item.kontak || item.kontak_person || item.KONTAK || '-').trim(),
+              prioritas: (item.Prioritas || item.prioritas || item.PRIORITAS || 'Normal') as RequestPriority
+            });
+          }
+        }
+
+        if (errors.length > 0) {
+          setImportErrors(errors);
+        }
+
+        if (validRequests.length > 0) {
+          try {
+            await Promise.all(validRequests.map(r => 
+              fetch('/api/requests', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify(r)
+              })
+            ));
+            setRequests(prev => [...validRequests, ...prev]);
+            showToast(`${validRequests.length} data berhasil diimport${errors.length > 0 ? `, ${errors.length} data gagal karena konflik` : ''}`);
+            addLog?.('Sistem', `Melakukan import massal sebanyak ${validRequests.length} data`);
+          } catch (err) {
+            console.error('Import save failed:', err);
             showToast('Gagal menyimpan data import ke server', 'error');
-          });
+          }
+        } else if (errors.length === 0) {
+          showToast('Tidak ada data valid untuk diimport', 'error');
         }
       } catch (err) {
+        console.error('Excel processing error:', err);
         showToast('Gagal memproses file Excel', 'error');
       }
     };
@@ -317,6 +355,13 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
     e.preventDefault();
     if (!manualForm.nama || !manualForm.nrp || !manualForm.kesatuan) {
       showToast('Mohon lengkapi Nama, NRP, dan Kesatuan', 'error');
+      return;
+    }
+
+    // Final check before submit
+    const existingNama = await validateNRP(manualForm.nrp, manualForm.nama);
+    if (existingNama) {
+      setNrpConflict({ nrp: manualForm.nrp, existingNama });
       return;
     }
 
@@ -850,6 +895,55 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
         </div>
       </div>
 
+      {/* MODAL ERROR IMPORT */}
+      {importErrors.length > 0 && (
+        <div className="fixed inset-0 z-[220] flex items-center justify-center p-6 bg-slate-900/70 backdrop-blur-xl animate-in fade-in duration-300">
+          <div className={`rounded-[2.5rem] w-full max-w-2xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 transition-colors duration-300 ${isDarkMode ? 'bg-slate-900 border border-slate-800' : 'bg-white'}`}>
+            <div className={`p-8 border-b flex items-center justify-between transition-colors duration-300 ${isDarkMode ? 'bg-slate-800/50 border-slate-800' : 'bg-rose-50/30 border-rose-100'}`}>
+              <div className="flex items-center gap-4">
+                 <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${isDarkMode ? 'bg-rose-500/10 text-rose-400' : 'bg-rose-50 text-rose-600'}`}>
+                    <span className="material-symbols-outlined text-3xl">error</span>
+                 </div>
+                 <div>
+                    <h3 className={`font-black text-lg uppercase tracking-tight leading-none ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>Konflik Data Import</h3>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-2">{importErrors.length} baris bermasalah ditemukan</p>
+                 </div>
+              </div>
+              <button onClick={() => setImportErrors([])} className={`p-3 rounded-full transition-all ${isDarkMode ? 'text-slate-400 hover:bg-slate-800 hover:text-white' : 'text-slate-400 hover:bg-rose-50 hover:text-rose-500'}`}>
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+            
+            <div className="p-8 max-h-[400px] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700">
+               <div className="space-y-3">
+                  {importErrors.map((err, idx) => (
+                    <div key={idx} className={`p-4 rounded-2xl border flex items-start gap-4 transition-colors ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-100'}`}>
+                       <div className="w-8 h-8 rounded-lg bg-rose-500/10 text-rose-500 flex items-center justify-center font-black text-xs">
+                          {err.row}
+                       </div>
+                       <div className="flex-1">
+                          <p className={`text-[10px] font-black uppercase tracking-widest ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>Baris {err.row}: NRP {err.nrp}</p>
+                          <p className="text-[10px] font-bold text-slate-400 mt-1">
+                             Input: <span className="text-rose-500">{err.nama}</span> | Database: <span className="text-emerald-500">{err.existingNama}</span>
+                          </p>
+                       </div>
+                    </div>
+                  ))}
+               </div>
+            </div>
+
+            <div className="p-8 border-t border-slate-100 dark:border-slate-800 flex justify-end">
+               <button 
+                 onClick={() => setImportErrors([])}
+                 className="px-10 py-4 bg-slate-900 text-white dark:bg-white dark:text-slate-900 rounded-2xl font-black text-xs uppercase tracking-widest hover:opacity-90 transition-all"
+               >
+                 Tutup & Perbaiki File
+               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* MODAL TOLAK (REJECT) */}
       {rejectingReq && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-slate-900/70 backdrop-blur-xl animate-in fade-in duration-300">
@@ -1065,10 +1159,34 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
                       placeholder="8 Digit NRP"
                       value={manualForm.nrp}
                       onChange={(e) => setManualForm({...manualForm, nrp: e.target.value})}
+                      onBlur={async () => {
+                        const existingNama = await validateNRP(manualForm.nrp, manualForm.nama);
+                        if (existingNama) {
+                          setNrpConflict({ nrp: manualForm.nrp, existingNama });
+                        }
+                      }}
                       required
                     />
                   </div>
                </div>
+               {nrpConflict && (
+                 <div className={`p-4 rounded-2xl border flex items-start gap-4 animate-in slide-in-from-top-2 duration-300 ${isDarkMode ? 'bg-rose-500/10 border-rose-500/30' : 'bg-rose-50 border-rose-100'}`}>
+                    <span className="material-symbols-outlined text-rose-500 mt-0.5">warning</span>
+                    <div className="flex-1">
+                       <p className={`text-xs font-black uppercase tracking-tight ${isDarkMode ? 'text-rose-400' : 'text-rose-600'}`}>Konflik Data Personel</p>
+                       <p className={`text-[10px] font-bold mt-1 ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                          NRP <span className="font-black text-rose-500">{nrpConflict.nrp}</span> sudah terdaftar atas nama <span className="font-black text-rose-500">{nrpConflict.existingNama}</span>. Silakan periksa kembali kesesuaian data.
+                       </p>
+                       <button 
+                         type="button"
+                         onClick={() => setNrpConflict(null)}
+                         className="mt-3 text-[9px] font-black uppercase tracking-widest text-rose-500 hover:underline"
+                       >
+                         Saya Mengerti
+                       </button>
+                    </div>
+                 </div>
+               )}
                <div className="grid grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Pangkat</label>

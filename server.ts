@@ -524,6 +524,42 @@ async function startServer() {
     });
   });
 
+  app.get('/api/validate-nrp', isAdmin, async (req: any, res: any) => {
+    const { nrp, nama } = req.query;
+    if (!nrp) return res.status(400).json({ success: false, message: 'NRP wajib diisi' });
+
+    try {
+      // Data isolation: check within kesatuan if not superadmin
+      let query = 'SELECT nama FROM reset_requests WHERE nrp = ?';
+      let params = [nrp];
+
+      if (req.user.role !== 'superadmin') {
+        query += ' AND LOWER(TRIM(kesatuan)) = LOWER(TRIM(?))';
+        params.push(req.user.kesatuan);
+      }
+
+      const [rows]: any = await pool.query(query, params);
+
+      if (rows.length > 0) {
+        const existingNama = rows[0].nama.trim();
+        const inputNama = (nama || '').trim();
+
+        if (existingNama.toLowerCase() !== inputNama.toLowerCase()) {
+          return res.json({ 
+            success: true, 
+            conflict: true, 
+            existingNama 
+          });
+        }
+      }
+
+      res.json({ success: true, conflict: false });
+    } catch (error) {
+      console.error('NRP validation failed:', error);
+      res.status(500).json({ success: false, message: 'Gagal melakukan validasi NRP' });
+    }
+  });
+
   app.post('/api/requests', isAdmin, upload.single('dokumen_kta_file'), async (req: any, res: any) => {
     const r = req.body;
     const filename = req.file ? req.file.filename : (r.dokumen_kta || null);
