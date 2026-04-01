@@ -129,6 +129,17 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
     return status;
   };
 
+  const getPriorityColor = (priority?: RequestPriority) => {
+    switch (priority) {
+      case RequestPriority.MENDESAK:
+        return isDarkMode ? 'bg-rose-500/10 border-rose-500/30 text-rose-400' : 'bg-rose-50 border-rose-100 text-rose-600';
+      case RequestPriority.PENTING:
+        return isDarkMode ? 'bg-amber-500/10 border-amber-500/30 text-amber-400' : 'bg-amber-50 border-amber-100 text-amber-600';
+      default:
+        return isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-100 text-slate-500';
+    }
+  };
+
   const [isEditHeaderModalOpen, setIsEditHeaderModalOpen] = useState(false);
   const [headerForm, setHeaderForm] = useState({
     title: siteSettings.requestsTitle || 'Manajemen Reset Password',
@@ -517,10 +528,10 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
   };
 
   return (
-    <main className={`p-4 md:p-6 space-y-5 min-h-screen font-sans print:bg-white print:p-0 animate-in fade-in duration-500 transition-colors duration-300 ${isDarkMode ? 'bg-slate-950' : 'bg-slate-50'}`}>
+    <main className={`p-4 md:p-6 space-y-4 min-h-screen font-sans print:bg-white print:p-0 animate-in fade-in duration-500 transition-colors duration-300 ${isDarkMode ? 'bg-slate-950' : 'bg-slate-50'}`}>
       
       {/* Judul Laporan Khusus Print - Sesuai Gambar */}
-      <div className={`hidden print:block mb-8 border-b-[3px] pb-8 ${isDarkMode ? 'border-white' : 'border-slate-900'}`}>
+      <div className={`hidden print:block mb-6 border-b-[3px] pb-6 ${isDarkMode ? 'border-white' : 'border-slate-900'}`}>
         <h1 className={`text-3xl font-black uppercase tracking-tight leading-none ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>LAPORAN REKAPITULASI PERMINTAAN RESET PASSWORD</h1>
         <p className={`text-[11px] font-bold mt-3 uppercase tracking-widest ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
           SISTEM ADMINISTRASI {siteSettings.name.toUpperCase()} | DICETAK: {new Date().toLocaleDateString('id-ID')}, {new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
@@ -528,16 +539,16 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
       </div>
 
       {/* Header & Export Buttons */}
-      <div className="flex flex-col xl:flex-row xl:items-start justify-between gap-4 print:hidden">
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 print:hidden">
         <div className="flex items-center gap-4">
-          <div className={`w-14 h-14 rounded-[1.25rem] flex items-center justify-center shadow-2xl ${isDarkMode ? 'bg-sky-600 text-white shadow-sky-900/20' : 'bg-slate-900 text-white shadow-slate-200'}`}>
+          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-2xl ${isDarkMode ? 'bg-blue-600 text-white shadow-blue-900/20' : 'bg-slate-900 text-white shadow-slate-200'}`}>
              <span className="material-symbols-outlined text-2xl">lock_reset</span>
           </div>
           <div className="group relative">
-            <h1 className={`text-2xl font-black tracking-tighter leading-none ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+            <h1 className={`text-xl font-black tracking-tighter leading-none ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
               {siteSettings.requestsTitle || 'Manajemen Reset Password'}
             </h1>
-            <p className="text-[10px] text-slate-400 font-bold mt-1.5 uppercase tracking-[0.15em]">
+            <p className="text-[9px] text-slate-400 font-bold mt-1.5 uppercase tracking-[0.15em]">
               {siteSettings.requestsSubtitle || 'Pantau dan eksekusi permohonan akses personel'}
             </p>
             {isSuperAdmin && (
@@ -549,7 +560,7 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
                   });
                   setIsEditHeaderModalOpen(true);
                 }}
-                className="absolute -right-8 top-0 p-1 opacity-0 group-hover:opacity-100 transition-opacity text-sky-500 hover:text-sky-600"
+                className="absolute -right-8 top-0 p-1 opacity-0 group-hover:opacity-100 transition-opacity text-blue-500 hover:text-blue-600"
               >
                 <span className="material-symbols-outlined text-sm">edit</span>
               </button>
@@ -562,14 +573,14 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
             <>
               <button 
                 onClick={() => setIsManualModalOpen(true)}
-                className="flex items-center gap-2.5 px-5 py-3 bg-blue-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-700 transition-all shadow-[0_0_20px_rgba(37,99,235,0.4)] active:scale-[0.97]"
+                className="flex items-center gap-2.5 h-[42px] px-5 bg-blue-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-700 transition-all shadow-lg shadow-blue-900/20 active:scale-[0.97]"
               >
                 <span className="material-symbols-outlined text-lg">add_circle</span>
                 TAMBAH MANUAL
               </button>
               <button 
                 onClick={() => fileInputRef.current?.click()}
-                className="flex items-center gap-2.5 px-5 py-3 bg-emerald-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-[0_0_20px_rgba(16,185,129,0.4)] active:scale-[0.97]"
+                className="flex items-center gap-2.5 h-[42px] px-5 bg-emerald-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-900/20 active:scale-[0.97]"
               >
                 <span className="material-symbols-outlined text-lg">upload_file</span>
                 IMPORT EXCEL
@@ -579,11 +590,11 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
             </>
           )}
 
-          <button onClick={exportExcel} className={`flex items-center gap-2.5 px-4 py-3 border rounded-2xl text-[10px] font-black transition-all shadow-sm active:scale-[0.97] ${isDarkMode ? 'bg-slate-900 border-slate-800 text-slate-400 hover:bg-slate-800' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+          <button onClick={exportExcel} className={`flex items-center gap-2.5 h-[42px] px-4 border rounded-xl text-[10px] font-black transition-all shadow-sm active:scale-[0.97] ${isDarkMode ? 'bg-slate-900 border-slate-800 text-slate-400 hover:bg-slate-800' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
             <span className="material-symbols-outlined text-emerald-500 text-lg">table_view</span>
             EXPORT XLS
           </button>
-          <button onClick={() => window.print()} className={`flex items-center gap-2.5 px-4 py-3 border rounded-2xl text-[10px] font-black transition-all shadow-sm active:scale-[0.97] ${isDarkMode ? 'bg-slate-900 border-slate-800 text-slate-400 hover:bg-slate-800' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+          <button onClick={() => window.print()} className={`flex items-center gap-2.5 h-[42px] px-4 border rounded-xl text-[10px] font-black transition-all shadow-sm active:scale-[0.97] ${isDarkMode ? 'bg-slate-900 border-slate-800 text-slate-400 hover:bg-slate-800' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
             <span className="material-symbols-outlined text-rose-500 text-lg">picture_as_pdf</span>
             PDF
           </button>
@@ -613,21 +624,21 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
       </div>
 
       {/* Filter Bar */}
-      <div className={`p-4 rounded-2xl border shadow-sm flex flex-col lg:flex-row items-center gap-3 print:hidden transition-colors duration-300 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
-        <div className="relative flex-1 w-full">
+      <div className={`p-3 rounded-2xl border shadow-sm flex flex-wrap items-center gap-3 print:hidden transition-colors duration-300 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
+        <div className="relative flex-1 min-w-[280px]">
           <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-lg">search</span>
           <input 
             type="text" 
             placeholder="Cari berdasarkan Nama, NRP, atau Kesatuan..." 
-            className={`w-full pl-11 pr-5 py-2.5 border rounded-xl text-xs font-bold transition-all placeholder:text-slate-300 focus:outline-none focus:ring-4 focus:ring-blue-500/10 ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-100 text-slate-700'}`}
+            className={`w-full h-[42px] pl-11 pr-5 border rounded-xl text-xs font-bold transition-all placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-blue-500/10 ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-100 text-slate-700'}`}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
         
-        <div className="flex flex-wrap items-center gap-1.5 w-full lg:w-auto">
+        <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
           <select 
-            className={`px-3 py-2.5 border rounded-xl text-[9px] font-black outline-none min-w-[130px] cursor-pointer transition-all uppercase tracking-widest ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+            className={`h-[42px] px-3 border rounded-xl text-[9px] font-black outline-none min-w-[140px] cursor-pointer transition-all uppercase tracking-widest ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
           >
@@ -639,7 +650,7 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
           </select>
 
           <select 
-            className={`px-3 py-2.5 border rounded-xl text-[9px] font-black outline-none min-w-[130px] cursor-pointer transition-all uppercase tracking-widest ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+            className={`h-[42px] px-3 border rounded-xl text-[9px] font-black outline-none min-w-[140px] cursor-pointer transition-all uppercase tracking-widest ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
             value={filterPriority}
             onChange={(e) => setFilterPriority(e.target.value)}
           >
@@ -649,31 +660,31 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
             <option value="MENDESAK">Mendesak</option>
           </select>
 
-          <div className="flex items-center gap-1.5">
-            <div className="flex flex-col gap-0.5">
-              <span className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">Mulai</span>
+          <div className="flex items-center gap-2">
+            <div className="relative">
               <input 
                 type="date" 
-                className={`px-2 py-1.5 border rounded-xl text-[9px] font-black outline-none uppercase ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-white border-slate-200 text-slate-600'}`} 
+                className={`h-[42px] px-3 border rounded-xl text-[9px] font-black outline-none uppercase ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-white border-slate-200 text-slate-600'}`} 
                 value={startDate} 
                 onChange={(e) => setStartDate(e.target.value)} 
               />
+              <span className="absolute -top-2 left-2 px-1 text-[7px] font-black bg-inherit text-slate-400 uppercase tracking-widest">Mulai</span>
             </div>
-            <div className="flex flex-col gap-0.5">
-              <span className="text-[7px] font-black text-slate-400 uppercase tracking-widest ml-1">Selesai</span>
+            <div className="relative">
               <input 
                 type="date" 
-                className={`px-2 py-1.5 border rounded-xl text-[9px] font-black outline-none uppercase ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-white border-slate-200 text-slate-600'}`} 
+                className={`h-[42px] px-3 border rounded-xl text-[9px] font-black outline-none uppercase ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-white border-slate-200 text-slate-600'}`} 
                 value={endDate} 
                 onChange={(e) => setEndDate(e.target.value)} 
               />
+              <span className="absolute -top-2 left-2 px-1 text-[7px] font-black bg-inherit text-slate-400 uppercase tracking-widest">Selesai</span>
             </div>
           </div>
 
-          <button onClick={handleApplyFilter} className="px-5 py-2.5 bg-sky-600 text-white rounded-xl font-black text-[9px] uppercase tracking-widest hover:bg-sky-700 transition-all active:scale-[0.97] shadow-lg shadow-sky-900/20">
+          <button onClick={handleApplyFilter} className="h-[42px] px-6 bg-blue-600 text-white rounded-xl font-black text-[9px] uppercase tracking-widest hover:bg-blue-700 transition-all active:scale-[0.97] shadow-lg shadow-blue-900/20">
             TERAPKAN
           </button>
-          <button onClick={handleResetFilter} className={`px-3 py-2.5 border rounded-xl font-black text-[9px] transition-all uppercase tracking-widest ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-500 hover:bg-slate-700' : 'bg-white border-slate-200 text-slate-400 hover:bg-slate-50'}`}>
+          <button onClick={handleResetFilter} className={`h-[42px] px-4 border rounded-xl font-black text-[9px] transition-all uppercase tracking-widest ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-500 hover:bg-slate-700' : 'bg-white border-slate-200 text-slate-400 hover:bg-slate-50'}`}>
             RESET
           </button>
         </div>
@@ -718,8 +729,8 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className={`border-b-2 text-[10px] font-black uppercase tracking-widest print:bg-slate-50 print:text-slate-900 transition-colors duration-300 ${isDarkMode ? 'bg-slate-800/50 border-slate-800 text-slate-500' : 'bg-slate-50/50 border-slate-100 text-slate-400'}`}>
-                <th className="px-4 py-3 text-center w-12 print:hidden">
+              <tr className={`border-b text-[10px] font-black uppercase tracking-widest print:bg-slate-50 print:text-slate-900 transition-colors duration-300 ${isDarkMode ? 'bg-slate-800/50 border-slate-800 text-slate-500' : 'bg-slate-50/50 border-slate-100 text-slate-400'}`}>
+                <th className="px-6 py-4 text-center w-12 print:hidden">
                   <input 
                     type="checkbox" 
                     className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
@@ -727,36 +738,36 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
                     onChange={handleSelectAll}
                   />
                 </th>
-                <th className="px-4 py-3 text-center w-12">NO.</th>
-                <th className="px-4 py-3">WAKTU REQUEST</th>
-                <th className="px-4 py-3">PERSONEL</th>
-                <th className="px-4 py-3">KESATUAN</th>
-                <th className="px-4 py-3 text-center">STATUS</th>
-                <th className="px-4 py-3 text-center">PRIORITAS</th>
-                <th className="px-4 py-3 text-center print:table-cell hidden">PASSWORD BARU</th>
-                <th className="px-4 py-3 text-center print:hidden">AKSI</th>
+                <th className="px-6 py-4 text-center w-12">NO.</th>
+                <th className="px-6 py-4">WAKTU REQUEST</th>
+                <th className="px-6 py-4">PERSONEL</th>
+                <th className="px-6 py-4">KESATUAN</th>
+                <th className="px-6 py-4 text-center">STATUS</th>
+                <th className="px-6 py-4 text-center">PRIORITAS</th>
+                <th className="px-6 py-4 text-center print:table-cell hidden">PASSWORD BARU</th>
+                <th className="px-6 py-4 text-center print:hidden">AKSI</th>
               </tr>
             </thead>
             <tbody className={`divide-y transition-colors duration-300 ${isDarkMode ? 'divide-slate-800' : 'divide-slate-50'} print:divide-slate-200`}>
               {isLoading ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <tr key={`skeleton-${i}`} className="animate-pulse">
-                    <td className="px-4 py-4 text-center print:hidden"><div className={`h-4 w-4 rounded mx-auto ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`}></div></td>
-                    <td className="px-4 py-4 text-center"><div className={`h-4 w-8 rounded mx-auto ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`}></div></td>
-                    <td className="px-4 py-4"><div className={`h-4 w-24 rounded mb-2 ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`}></div><div className={`h-3 w-16 rounded ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`}></div></td>
-                    <td className="px-4 py-4"><div className={`h-5 w-40 rounded mb-2 ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`}></div><div className={`h-3 w-20 rounded ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`}></div></td>
-                    <td className="px-4 py-4"><div className={`h-8 w-32 rounded-xl ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`}></div></td>
-                    <td className="px-4 py-4 text-center"><div className={`h-8 w-24 rounded-full mx-auto ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`}></div></td>
-                    <td className="px-4 py-4 text-center"><div className={`h-6 w-20 rounded-lg mx-auto ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`}></div></td>
-                    <td className="px-4 py-4 text-center hidden"><div className={`h-4 w-20 rounded mx-auto ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`}></div></td>
-                    <td className="px-4 py-4 text-center print:hidden"><div className={`h-10 w-24 rounded-2xl mx-auto ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`}></div></td>
+                    <td className="px-6 py-5 text-center print:hidden"><div className={`h-4 w-4 rounded mx-auto ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`}></div></td>
+                    <td className="px-6 py-5 text-center"><div className={`h-4 w-8 rounded mx-auto ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`}></div></td>
+                    <td className="px-6 py-5"><div className={`h-4 w-24 rounded mb-2 ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`}></div><div className={`h-3 w-16 rounded ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`}></div></td>
+                    <td className="px-6 py-5"><div className={`h-5 w-40 rounded mb-2 ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`}></div><div className={`h-3 w-20 rounded ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`}></div></td>
+                    <td className="px-6 py-5"><div className={`h-8 w-32 rounded-xl ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`}></div></td>
+                    <td className="px-6 py-5 text-center"><div className={`h-8 w-24 rounded-full mx-auto ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`}></div></td>
+                    <td className="px-6 py-5 text-center"><div className={`h-6 w-20 rounded-lg mx-auto ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`}></div></td>
+                    <td className="px-6 py-5 text-center hidden"><div className={`h-4 w-20 rounded mx-auto ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`}></div></td>
+                    <td className="px-6 py-5 text-center print:hidden"><div className={`h-10 w-24 rounded-2xl mx-auto ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`}></div></td>
                   </tr>
                 ))
               ) : (
                 <>
                   {filteredRequests.map((req, index) => (
-                    <tr key={req.id} className={`transition-colors group ${isDarkMode ? 'hover:bg-slate-800/30' : 'hover:bg-slate-50/30'}`}>
-                      <td className="px-4 py-3 text-center print:hidden">
+                    <tr key={req.id} className={`transition-all duration-300 group ${isDarkMode ? 'hover:bg-slate-800/30' : 'hover:bg-slate-50/50'} ${selectedIds.includes(req.id) ? (isDarkMode ? 'bg-blue-900/10' : 'bg-blue-50/30') : ''}`}>
+                      <td className="px-6 py-4 text-center print:hidden">
                         <input 
                           type="checkbox" 
                           className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
@@ -764,90 +775,90 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
                           onChange={() => handleSelectOne(req.id)}
                         />
                       </td>
-                      <td className={`px-4 py-3 text-center text-xs font-black print:text-slate-900 ${isDarkMode ? 'text-slate-600' : 'text-slate-400'}`}>{(currentPage - 1) * itemsPerPage + index + 1}</td>
-                      <td className="px-4 py-3">
-                        <div className={`text-xs font-black print:text-slate-900 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>{new Date(req.createdAt).toLocaleDateString('id-ID')}</div>
-                        <div className="text-[10px] text-slate-400 font-bold mt-0.5 uppercase tracking-widest print:text-slate-500">{new Date(req.createdAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</div>
+                      <td className={`px-6 py-4 text-center text-[10px] font-black print:text-slate-900 ${isDarkMode ? 'text-slate-600' : 'text-slate-400'}`}>{(currentPage - 1) * itemsPerPage + index + 1}</td>
+                      <td className="px-6 py-4">
+                        <div className={`text-[10px] font-black print:text-slate-900 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>{new Date(req.createdAt).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
+                        <div className="text-[9px] text-slate-400 font-bold mt-0.5 uppercase tracking-widest print:text-slate-500">{new Date(req.createdAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB</div>
                       </td>
-                      <td className="px-4 py-3">
-                        <div className={`text-sm font-black uppercase tracking-tight print:text-slate-900 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{req.nama}</div>
-                        <div className="flex items-center gap-2 mt-0.5">
-                           <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest print:text-slate-500">{req.pangkat}</span>
-                           <span className={`w-1 h-1 rounded-full print:bg-slate-300 ${isDarkMode ? 'bg-slate-700' : 'bg-slate-200'}`}></span>
-                           <span className={`text-[10px] font-black font-mono print:text-slate-600 ${isDarkMode ? 'text-slate-500' : 'text-slate-500'}`}>{req.nrp}</span>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-black text-xs shadow-sm ${isDarkMode ? 'bg-slate-800 text-blue-400' : 'bg-slate-100 text-blue-600'}`}>
+                            {req.nama.charAt(0)}
+                          </div>
+                          <div className="flex flex-col">
+                            <div className={`text-[11px] font-black uppercase tracking-tight print:text-slate-900 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{req.nama}</div>
+                            <div className="flex items-center gap-2 mt-0.5">
+                               <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest print:text-slate-500">{req.pangkat}</span>
+                               <span className={`w-1 h-1 rounded-full print:bg-slate-300 ${isDarkMode ? 'bg-slate-700' : 'bg-slate-200'}`}></span>
+                               <span className={`text-[9px] font-black font-mono print:text-slate-600 ${isDarkMode ? 'text-slate-500' : 'text-slate-500'}`}>{req.nrp}</span>
+                            </div>
+                          </div>
                         </div>
                       </td>
-                      <td className="px-4 py-3">
-                        <span className={`px-3 py-1.5 rounded-xl text-[9px] font-black uppercase flex items-center gap-2 w-fit transition-all print:bg-transparent print:p-0 print:text-slate-900 print:font-black ${isDarkMode ? 'bg-slate-800 text-slate-400 group-hover:bg-sky-600 group-hover:text-white' : 'bg-slate-100 text-slate-500 group-hover:bg-slate-900 group-hover:text-white'}`}>
+                      <td className="px-6 py-4">
+                        <span className={`px-3 py-1.5 rounded-xl text-[9px] font-black uppercase flex items-center gap-2 w-fit transition-all print:bg-transparent print:p-0 print:text-slate-900 print:font-black ${isDarkMode ? 'bg-slate-800 text-slate-400 group-hover:bg-blue-600 group-hover:text-white' : 'bg-slate-100 text-slate-500 group-hover:bg-slate-900 group-hover:text-white'}`}>
                           <span className="material-symbols-outlined text-xs print:text-base">account_balance</span>
                           {req.kesatuan}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-center">
-                        <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest print:bg-transparent print:p-0 print:text-xs print:font-black ${
+                      <td className="px-6 py-4 text-center">
+                        <span className={`inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest print:bg-transparent print:p-0 print:text-xs print:font-black ${
                           req.status === RequestStatus.MENUNGGU ? (isDarkMode ? 'bg-amber-500/10 text-amber-400' : 'bg-amber-50 text-amber-600') :
                           req.status === RequestStatus.DIPROSES ? (isDarkMode ? 'bg-blue-500/10 text-blue-400' : 'bg-blue-50 text-blue-600') : 
                           req.status === RequestStatus.DITOLAK ? (isDarkMode ? 'bg-rose-500/10 text-rose-400' : 'bg-rose-50 text-rose-600') :
                           (isDarkMode ? 'bg-emerald-500/10 text-emerald-400' : 'bg-emerald-50 text-emerald-600')
-                        } ${
-                          req.status === RequestStatus.MENUNGGU ? 'print:text-amber-600' :
-                          req.status === RequestStatus.DIPROSES ? 'print:text-blue-600' : 
-                          req.status === RequestStatus.DITOLAK ? 'print:text-rose-600' : 'print:text-emerald-600'
                         }`}>
                           <span className={`w-1.5 h-1.5 rounded-full ${req.status === RequestStatus.MENUNGGU ? 'bg-amber-500' : req.status === RequestStatus.DIPROSES ? 'bg-blue-500' : req.status === RequestStatus.DITOLAK ? 'bg-rose-500' : 'bg-emerald-500'} print:hidden`}></span>
                           {getStatusLabel(req.status)}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-center">
-                        <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-lg ${
-                          req.prioritas === RequestPriority.MENDESAK ? (isDarkMode ? 'bg-rose-500/10 text-rose-400' : 'bg-rose-100 text-rose-600') :
-                          req.prioritas === RequestPriority.PENTING ? (isDarkMode ? 'bg-amber-500/10 text-amber-400' : 'bg-amber-100 text-amber-600') :
-                          (isDarkMode ? 'bg-slate-800 text-slate-500' : 'bg-slate-100 text-slate-400')
-                        }`}>
+                      <td className="px-6 py-4 text-center">
+                        <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border ${getPriorityColor(req.prioritas)}`}>
+                          <span className="material-symbols-outlined text-[10px]">{req.prioritas === RequestPriority.MENDESAK ? 'priority_high' : 'circle'}</span>
                           {req.prioritas || 'NORMAL'}
-                        </span>
+                        </div>
                       </td>
-                      <td className={`px-4 py-3 text-center print:table-cell hidden font-mono text-[10px] font-black uppercase ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+                      <td className={`px-6 py-4 text-center print:table-cell hidden font-mono text-[10px] font-black uppercase ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
                         {req.reset_password || '-'}
                       </td>
-                      <td className="px-4 py-3 text-center print:hidden">
-                        <div className="flex items-center justify-center gap-2">
+                      <td className="px-6 py-4 text-center print:hidden">
+                        <div className="flex items-center justify-center gap-1.5">
                           <button 
                             onClick={() => { setViewingReq(req); setShowDetailPassword(false); }}
-                            className={`px-4 py-2.5 border-2 rounded-2xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-1.5 shadow-sm ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-400 hover:border-sky-500 hover:text-sky-400' : 'bg-white border-slate-100 text-slate-600 hover:border-blue-500 hover:text-blue-600'}`}
+                            className={`p-2 rounded-xl transition-all ${isDarkMode ? 'text-slate-400 hover:bg-slate-800 hover:text-white' : 'text-slate-400 hover:bg-slate-100 hover:text-slate-900'}`}
+                            title="Detail"
                           >
-                            <span className="material-symbols-outlined text-sm">visibility</span>
-                            Detail
+                            <span className="material-symbols-outlined text-lg">visibility</span>
                           </button>
                           
                           {(isSuperAdmin || isAdminPolres) && (
                             <>
                               {req.status === RequestStatus.MENUNGGU && (
-                                 <div className="flex gap-1.5">
-                                   <button 
-                                      onClick={() => handleStartProcess(req.id)}
-                                      className="px-4 py-2.5 bg-indigo-600 text-white rounded-2xl text-[9px] font-black uppercase tracking-widest hover:bg-indigo-700 transition-all flex items-center gap-1.5 shadow-xl shadow-indigo-900/20"
-                                   >
-                                     <span className="material-symbols-outlined text-sm">play_arrow</span>
-                                     Mulai
-                                   </button>
-                                   <button 
-                                      onClick={() => { setRejectingReq(req); setRejectionReason(''); }}
-                                      className="px-4 py-2.5 bg-rose-600 text-white rounded-2xl text-[9px] font-black uppercase tracking-widest hover:bg-rose-700 transition-all flex items-center gap-1.5 shadow-xl shadow-rose-900/20"
-                                   >
-                                     <span className="material-symbols-outlined text-sm">block</span>
-                                     Tolak
-                                   </button>
-                                 </div>
+                                <div className="flex gap-1">
+                                  <button 
+                                    onClick={() => handleStartProcess(req.id)}
+                                    className="p-2 rounded-xl text-blue-500 hover:bg-blue-500/10 transition-all"
+                                    title="Mulai Proses"
+                                  >
+                                    <span className="material-symbols-outlined text-lg">play_arrow</span>
+                                  </button>
+                                  <button 
+                                    onClick={() => { setRejectingReq(req); setRejectionReason(''); }}
+                                    className="p-2 rounded-xl text-rose-500 hover:bg-rose-500/10 transition-all"
+                                    title="Tolak"
+                                  >
+                                    <span className="material-symbols-outlined text-lg">block</span>
+                                  </button>
+                                </div>
                               )}
                               {req.status === RequestStatus.DIPROSES && (
-                                 <button 
-                                    onClick={() => { setSelectedReq(req); setNewPassword(''); setShowWeakWarning(false); }}
-                                    className={`px-4 py-2.5 rounded-2xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-1.5 shadow-xl ${isDarkMode ? 'bg-white text-slate-900 hover:bg-sky-400 hover:text-white shadow-white/5' : 'bg-slate-900 text-white hover:bg-blue-600 shadow-slate-200'}`}
-                                 >
-                                   <span className="material-symbols-outlined text-sm">flash_on</span>
-                                   Selesai
-                                 </button>
+                                <button 
+                                  onClick={() => { setSelectedReq(req); setNewPassword(''); setShowWeakWarning(false); }}
+                                  className="p-2 rounded-xl text-emerald-500 hover:bg-emerald-500/10 transition-all"
+                                  title="Reset Password"
+                                >
+                                  <span className="material-symbols-outlined text-lg">key</span>
+                                </button>
                               )}
                             </>
                           )}
@@ -873,22 +884,44 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
       </div>
 
       {/* Pagination Controls */}
-      <div className="flex items-center justify-between px-4 py-2 print:hidden">
-        <div className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">
-          MENAMPILKAN {(currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, totalItems)} DARI {totalItems} DATA
+      <div className="flex flex-col md:flex-row items-center justify-between gap-4 pt-6 pb-12 print:hidden">
+        <div className={`text-[10px] font-black uppercase tracking-widest ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+          Menampilkan <span className={isDarkMode ? 'text-white' : 'text-slate-900'}>{totalItems === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1}</span> - <span className={isDarkMode ? 'text-white' : 'text-slate-900'}>{Math.min(currentPage * itemsPerPage, totalItems)}</span> dari <span className={isDarkMode ? 'text-white' : 'text-slate-900'}>{totalItems}</span> data
         </div>
-        <div className="flex items-center gap-1.5">
+        
+        <div className="flex items-center gap-2">
           <button 
             onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
             disabled={currentPage === 1 || totalItems === 0}
-            className={`w-8 h-8 rounded-xl border flex items-center justify-center transition-all ${currentPage === 1 || totalItems === 0 ? 'opacity-20 cursor-not-allowed' : 'hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+            className={`w-10 h-10 rounded-2xl border flex items-center justify-center transition-all shadow-sm ${currentPage === 1 || totalItems === 0 ? 'opacity-20 cursor-not-allowed' : (isDarkMode ? 'border-slate-800 bg-slate-900 hover:bg-slate-800 text-white' : 'border-slate-100 bg-white hover:bg-slate-50 text-slate-900')}`}
           >
             <span className="material-symbols-outlined text-lg">chevron_left</span>
           </button>
+          
+          <div className="flex items-center gap-1">
+            {Array.from({ length: Math.min(5, totalPages) }).map((_, i) => {
+              let pageNum;
+              if (totalPages <= 5) pageNum = i + 1;
+              else if (currentPage <= 3) pageNum = i + 1;
+              else if (currentPage >= totalPages - 2) pageNum = totalPages - 4 + i;
+              else pageNum = currentPage - 2 + i;
+              
+              return (
+                <button
+                  key={pageNum}
+                  onClick={() => setCurrentPage(pageNum)}
+                  className={`w-10 h-10 rounded-2xl text-[10px] font-black transition-all shadow-sm border ${currentPage === pageNum ? (isDarkMode ? 'bg-blue-600 border-blue-500 text-white shadow-blue-900/20' : 'bg-slate-900 border-slate-900 text-white shadow-slate-200') : (isDarkMode ? 'bg-slate-900 border-slate-800 text-slate-400 hover:bg-slate-800' : 'bg-white border-slate-100 text-slate-600 hover:bg-slate-50')}`}
+                >
+                  {pageNum}
+                </button>
+              );
+            })}
+          </div>
+
           <button 
             onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
             disabled={currentPage === totalPages || totalItems === 0}
-            className={`w-8 h-8 rounded-xl border flex items-center justify-center transition-all ${currentPage === totalPages || totalItems === 0 ? 'opacity-20 cursor-not-allowed' : 'hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+            className={`w-10 h-10 rounded-2xl border flex items-center justify-center transition-all shadow-sm ${currentPage === totalPages || totalItems === 0 ? 'opacity-20 cursor-not-allowed' : (isDarkMode ? 'border-slate-800 bg-slate-900 hover:bg-slate-800 text-white' : 'border-slate-100 bg-white hover:bg-slate-50 text-slate-900')}`}
           >
             <span className="material-symbols-outlined text-lg">chevron_right</span>
           </button>
