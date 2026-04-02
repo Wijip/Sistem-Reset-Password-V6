@@ -107,6 +107,7 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
 
   // State untuk Input Manual
   const [isManualModalOpen, setIsManualModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [nrpConflict, setNrpConflict] = useState<{ nrp: string, existingNama: string } | null>(null);
   const [importErrors, setImportErrors] = useState<{ row: number, nrp: string, nama: string, existingNama: string }[]>([]);
   const [manualForm, setManualForm] = useState({
@@ -284,6 +285,39 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
     return null;
   };
 
+  const downloadTemplate = () => {
+    const templateData = [
+      {
+        'No': 1,
+        'Waktu Request': new Date().toLocaleString('id-ID'),
+        'Personel (Nama/NRP)': 'CONTOH NAMA / 12345678',
+        'Kesatuan': 'POLDA JATIM',
+        'Status': 'MENUNGGU',
+        'Prioritas': 'Normal'
+      }
+    ];
+    
+    const ws = XLSX.utils.json_to_sheet(templateData);
+    
+    // Set column widths
+    const wscols = [
+      {wch: 5},
+      {wch: 25},
+      {wch: 35},
+      {wch: 25},
+      {wch: 15},
+      {wch: 15}
+    ];
+    ws['!cols'] = wscols;
+
+    // Protect headers (visual/metadata only in JS-XLSX, actual protection is complex)
+    ws['!protect'] = { password: 'password' };
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Template Import");
+    XLSX.writeFile(wb, `template_reset_password.xlsx`);
+  };
+
   const handleImportExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -292,7 +326,7 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
     reader.onload = async (event) => {
       try {
         const bstr = event.target?.result;
-        const wb = XLSX.read(bstr, { type: 'binary', cellDates: false });
+        const wb = XLSX.read(bstr, { type: 'binary', cellText: true, cellDates: true });
         const wsname = wb.SheetNames[0];
         const ws = wb.Sheets[wsname];
         const data = XLSX.utils.sheet_to_json(ws, { raw: false, defval: '' }) as any[];
@@ -302,9 +336,22 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
 
         for (let i = 0; i < data.length; i++) {
           const item = data[i];
-          const nrp = String(item.NRP || item.nrp || item.Nrp || item['NRP/NIP'] || '').trim();
-          const nama = String(item.Nama || item.nama || item.NAMA || '').trim();
           
+          let nrp = String(item.NRP || item.nrp || item.Nrp || item['NRP/NIP'] || '').trim();
+          let nama = String(item.Nama || item.nama || item.NAMA || '').trim();
+          
+          // Handle template column "Personel (Nama/NRP)"
+          const personelRaw = String(item['Personel (Nama/NRP)'] || item.Personel || '').trim();
+          if (personelRaw && (!nrp || !nama)) {
+            if (personelRaw.includes('/')) {
+              const parts = personelRaw.split('/');
+              nama = parts[0].trim();
+              nrp = parts[1].trim();
+            } else {
+              nama = personelRaw;
+            }
+          }
+
           if (!nrp) continue;
 
           const existingNama = await validateNRP(nrp, nama);
@@ -579,11 +626,22 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
                 TAMBAH MANUAL
               </button>
               <button 
-                onClick={() => fileInputRef.current?.click()}
+                onClick={() => setIsImportModalOpen(true)}
                 className="flex items-center gap-2.5 h-[42px] px-5 bg-emerald-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-900/20 active:scale-[0.97]"
               >
                 <span className="material-symbols-outlined text-lg">upload_file</span>
                 IMPORT EXCEL
+              </button>
+              <button 
+                onClick={downloadTemplate}
+                className={`flex items-center gap-2.5 h-[42px] px-4 border-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-sm active:scale-[0.97] ${
+                  isDarkMode 
+                    ? 'bg-slate-900 border-slate-800 text-slate-400 hover:bg-slate-800 hover:text-white' 
+                    : 'bg-white border-slate-100 text-slate-500 hover:bg-slate-50 hover:border-slate-200'
+                }`}
+              >
+                <span className="material-symbols-outlined text-lg">download</span>
+                UNDUH TEMPLATE FORM
               </button>
               <input type="file" ref={fileInputRef} className="hidden" accept=".xlsx, .xls" onChange={handleImportExcel} />
               <div className={`w-px h-8 mx-2 hidden xl:block ${isDarkMode ? 'bg-slate-800' : 'bg-slate-200'}`}></div>
@@ -927,6 +985,59 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
           </button>
         </div>
       </div>
+
+      {/* MODAL IMPORT EXCEL */}
+      {isImportModalOpen && (
+        <div className="fixed inset-0 z-[220] flex items-center justify-center p-6 bg-slate-900/70 backdrop-blur-xl animate-in fade-in duration-300">
+          <div className={`rounded-[2.5rem] w-full max-w-md shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 transition-colors duration-300 ${isDarkMode ? 'bg-slate-900 border border-slate-800' : 'bg-white'}`}>
+            <div className={`p-8 border-b flex items-center justify-between transition-colors duration-300 ${isDarkMode ? 'bg-slate-800/50 border-slate-800' : 'bg-emerald-50/30 border-emerald-100'}`}>
+              <div className="flex items-center gap-4">
+                 <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${isDarkMode ? 'bg-emerald-500/10 text-emerald-400' : 'bg-emerald-50 text-emerald-600'}`}>
+                    <span className="material-symbols-outlined text-3xl">upload_file</span>
+                 </div>
+                 <div>
+                    <h3 className={`font-black text-lg uppercase tracking-tight leading-none ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>Import Excel</h3>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-2">Pilih file untuk diimport</p>
+                 </div>
+              </div>
+              <button onClick={() => setIsImportModalOpen(false)} className={`p-3 rounded-full transition-all ${isDarkMode ? 'text-slate-400 hover:bg-slate-800 hover:text-white' : 'text-slate-400 hover:bg-rose-50 hover:text-rose-500'}`}>
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+            
+            <div className="p-8 space-y-6">
+               <div className={`p-4 rounded-2xl border flex items-start gap-4 transition-colors ${isDarkMode ? 'bg-amber-500/10 border-amber-500/30 text-amber-400' : 'bg-amber-50 border-amber-100 text-amber-600'}`}>
+                  <span className="material-symbols-outlined text-xl mt-0.5">warning</span>
+                  <p className="text-[11px] font-bold leading-relaxed">
+                     Pastikan Anda menggunakan template resmi agar format data sesuai dengan sistem.
+                  </p>
+               </div>
+
+               <div className="flex flex-col gap-3">
+                  <button 
+                    onClick={() => {
+                      setIsImportModalOpen(false);
+                      fileInputRef.current?.click();
+                    }}
+                    className="w-full py-4 bg-emerald-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-900/20 active:scale-[0.97] flex items-center justify-center gap-2"
+                  >
+                    <span className="material-symbols-outlined text-lg">file_open</span>
+                    PILIH FILE EXCEL
+                  </button>
+                  <button 
+                    onClick={downloadTemplate}
+                    className={`w-full py-4 border-2 rounded-2xl font-black text-xs uppercase tracking-widest transition-all active:scale-[0.97] flex items-center justify-center gap-2 ${
+                      isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700' : 'bg-white border-slate-100 text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    <span className="material-symbols-outlined text-lg">download</span>
+                    UNDUH TEMPLATE FORM
+                  </button>
+               </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* MODAL ERROR IMPORT */}
       {importErrors.length > 0 && (
