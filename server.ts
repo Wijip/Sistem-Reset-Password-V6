@@ -182,6 +182,76 @@ async function initializeDatabase() {
     if (!columnNames.includes('reset_info')) await pool.query('ALTER TABLE reset_requests ADD COLUMN reset_info TEXT');
     if (!columnNames.includes('alasan_penolakan')) await pool.query('ALTER TABLE reset_requests ADD COLUMN alasan_penolakan TEXT');
 
+    // Table: Units (Kesatuan)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS units (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        nama VARCHAR(255) NOT NULL UNIQUE,
+        tipe ENUM('POLDA', 'POLRES', 'POLSEK') NOT NULL,
+        induk VARCHAR(255)
+      )
+    `);
+
+    // Populate Units if empty
+    const [unitCount]: any = await pool.query('SELECT COUNT(*) as count FROM units');
+    if (unitCount[0].count === 0) {
+      console.log('[DATABASE] Menambahkan data referensi kesatuan...');
+      const initialUnits = [
+        { nama: 'Polda Jatim', tipe: 'POLDA', induk: null },
+        { nama: 'POLRESTABES SURABAYA', tipe: 'POLRES', induk: 'Polda Jatim' },
+        { nama: 'POLRESTA SIDOARJO', tipe: 'POLRES', induk: 'Polda Jatim' },
+        { nama: 'POLRESTA BANYUWANGI', tipe: 'POLRES', induk: 'Polda Jatim' },
+        { nama: 'POLRES MALANG KOTA', tipe: 'POLRES', induk: 'Polda Jatim' },
+        { nama: 'POLRES GRESIK', tipe: 'POLRES', induk: 'Polda Jatim' },
+        { nama: 'POLRES MALANG', tipe: 'POLRES', induk: 'Polda Jatim' },
+        { nama: 'POLRES PASURUAN', tipe: 'POLRES', induk: 'Polda Jatim' },
+        { nama: 'POLRES PASURUAN KOTA', tipe: 'POLRES', induk: 'Polda Jatim' },
+        { nama: 'POLRES PROBOLINGGO', tipe: 'POLRES', induk: 'Polda Jatim' },
+        { nama: 'POLRES PROBOLINGGO KOTA', tipe: 'POLRES', induk: 'Polda Jatim' },
+        { nama: 'POLRES BATU', tipe: 'POLRES', induk: 'Polda Jatim' },
+        { nama: 'POLRES LUMAJANG', tipe: 'POLRES', induk: 'Polda Jatim' },
+        { nama: 'POLRES BONDOWOSO', tipe: 'POLRES', induk: 'Polda Jatim' },
+        { nama: 'POLRES SITUBONDO', tipe: 'POLRES', induk: 'Polda Jatim' },
+        { nama: 'POLRES JEMBER', tipe: 'POLRES', induk: 'Polda Jatim' },
+        { nama: 'POLRES KEDIRI', tipe: 'POLRES', induk: 'Polda Jatim' },
+        { nama: 'POLRES KEDIRI KOTA', tipe: 'POLRES', induk: 'Polda Jatim' },
+        { nama: 'POLRES TULUNGAGUNG', tipe: 'POLRES', induk: 'Polda Jatim' },
+        { nama: 'POLRES BLITAR', tipe: 'POLRES', induk: 'Polda Jatim' },
+        { nama: 'POLRES BLITAR KOTA', tipe: 'POLRES', induk: 'Polda Jatim' },
+        { nama: 'POLRES TRENGGALEK', tipe: 'POLRES', induk: 'Polda Jatim' },
+        { nama: 'POLRES NGANJUK', tipe: 'POLRES', induk: 'Polda Jatim' },
+        { nama: 'POLRES JOMBANG', tipe: 'POLRES', induk: 'Polda Jatim' },
+        { nama: 'POLRES MADIUN', tipe: 'POLRES', induk: 'Polda Jatim' },
+        { nama: 'POLRES MADIUN KOTA', tipe: 'POLRES', induk: 'Polda Jatim' },
+        { nama: 'POLRES NGAWI', tipe: 'POLRES', induk: 'Polda Jatim' },
+        { nama: 'POLRES MAGETAN', tipe: 'POLRES', induk: 'Polda Jatim' },
+        { nama: 'POLRES PONOROGO', tipe: 'POLRES', induk: 'Polda Jatim' },
+        { nama: 'POLRES PACITAN', tipe: 'POLRES', induk: 'Polda Jatim' },
+        { nama: 'POLRES BOJONEGORO', tipe: 'POLRES', induk: 'Polda Jatim' },
+        { nama: 'POLRES TUBAN', tipe: 'POLRES', induk: 'Polda Jatim' },
+        { nama: 'POLRES LAMONGAN', tipe: 'POLRES', induk: 'Polda Jatim' },
+        { nama: 'POLRES MOJOKERTO', tipe: 'POLRES', induk: 'Polda Jatim' },
+        { nama: 'POLRES MOJOKERTO KOTA', tipe: 'POLRES', induk: 'Polda Jatim' },
+        { nama: 'POLRES BANGKALAN', tipe: 'POLRES', induk: 'Polda Jatim' },
+        { nama: 'POLRES SAMPANG', tipe: 'POLRES', induk: 'Polda Jatim' },
+        { nama: 'POLRES PAMEKASAN', tipe: 'POLRES', induk: 'Polda Jatim' },
+        { nama: 'POLRES SUMENEP', tipe: 'POLRES', induk: 'Polda Jatim' },
+        { nama: 'POLRES PELABUHAN TANJUNG PERAK', tipe: 'POLRES', induk: 'Polda Jatim' },
+        { nama: 'POLSEK GENTENG', tipe: 'POLSEK', induk: 'POLRESTABES SURABAYA' },
+        { nama: 'POLSEK TEGALSARI', tipe: 'POLSEK', induk: 'POLRESTABES SURABAYA' },
+        { nama: 'POLSEK BUBUTAN', tipe: 'POLSEK', induk: 'POLRESTABES SURABAYA' },
+        { nama: 'POLSEK SIMOKERTO', tipe: 'POLSEK', induk: 'POLRESTABES SURABAYA' },
+        { nama: 'POLSEK WONOKROMO', tipe: 'POLSEK', induk: 'POLRESTABES SURABAYA' },
+        { nama: 'POLSEK SIDOARJO KOTA', tipe: 'POLSEK', induk: 'POLRESTA SIDOARJO' },
+        { nama: 'POLSEK WARU', tipe: 'POLSEK', induk: 'POLRESTA SIDOARJO' },
+        { nama: 'POLSEK GEDANGAN', tipe: 'POLSEK', induk: 'POLRESTA SIDOARJO' },
+      ];
+
+      for (const u of initialUnits) {
+        await pool.query('INSERT INTO units (nama, tipe, induk) VALUES (?, ?, ?)', [u.nama, u.tipe, u.induk]);
+      }
+    }
+
     // Table: Logs
     await pool.query(`
       CREATE TABLE IF NOT EXISTS logs (
@@ -301,6 +371,35 @@ async function startServer() {
   const pool = await initializeDatabase();
 
   // API Routes
+  app.get('/api/units', isAdmin, async (req: any, res: any) => {
+    try {
+      let query = 'SELECT * FROM units';
+      let params: any[] = [];
+
+      // Role-based filtering for units list
+      if (req.user.role !== 'superadmin') {
+        query += ' WHERE LOWER(TRIM(nama)) = LOWER(TRIM(?))';
+        params.push(req.user.kesatuan || '');
+      }
+
+      // Order by hierarchy: POLDA first, then POLRES, then POLSEK, then alphabetically
+      query += ` ORDER BY 
+        CASE 
+          WHEN tipe = 'POLDA' THEN 1 
+          WHEN tipe = 'POLRES' THEN 2 
+          WHEN tipe = 'POLSEK' THEN 3 
+          ELSE 4 
+        END ASC, 
+        nama ASC`;
+
+      const [rows]: any = await pool.query(query, params);
+      res.json({ success: true, data: rows });
+    } catch (error) {
+      console.error('Failed to fetch units:', error);
+      res.status(500).json({ success: false, message: 'Gagal mengambil data kesatuan' });
+    }
+  });
+
   app.get('/api/personnel', isAdmin, async (req: any, res: any) => {
     const page = parseInt(req.query.page || '1');
     const limit = parseInt(req.query.limit || '10');

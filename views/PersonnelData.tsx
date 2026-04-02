@@ -43,10 +43,47 @@ const PersonnelData: React.FC<PersonnelDataProps> = ({ personnel, setPersonnel, 
   const [searchTerm, setSearchTerm] = useState('');
   const [activeSearch, setActiveSearch] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [allUnits, setAllUnits] = useState<{id: number, nama: string, tipe: string}[]>([]);
+  const [isUnitDropdownOpen, setIsUnitDropdownOpen] = useState(false);
+  const [unitSearch, setUnitSearch] = useState('');
+  const unitDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close unit dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (unitDropdownRef.current && !unitDropdownRef.current.contains(event.target as Node)) {
+        setIsUnitDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const filteredUnits = useMemo(() => {
+    if (!unitSearch) return allUnits;
+    return allUnits.filter(u => u.nama.toLowerCase().includes(unitSearch.toLowerCase()));
+  }, [allUnits, unitSearch]);
+
   const [editingId, setEditingId] = useState<string | null>(null);
   const [totalItems, setTotalItems] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const debouncedSearch = useDebounce(searchTerm, 500);
+
+  const fetchUnits = async () => {
+    try {
+      const res = await fetch('/api/units', { credentials: 'include' });
+      const result = await res.json();
+      if (result.success) {
+        setAllUnits(result.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch units:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchUnits();
+  }, []);
 
   // Sync debounced search to active search for "automatic" feel, but allow manual trigger
   useEffect(() => {
@@ -214,9 +251,12 @@ const PersonnelData: React.FC<PersonnelDataProps> = ({ personnel, setPersonnel, 
   const [selectedPersonnel, setSelectedPersonnel] = useState<Personnel | null>(null);
 
   const kesatuanList = useMemo(() => {
+    if (allUnits.length > 0) {
+      return allUnits.map(u => u.nama);
+    }
     const list = Array.from(new Set(visiblePersonnel.map(p => p.kesatuan))).sort();
     return list;
-  }, [visiblePersonnel]);
+  }, [visiblePersonnel, allUnits]);
 
   const totalPages = Math.ceil(totalItems / itemsPerPage);
 
@@ -538,18 +578,87 @@ const PersonnelData: React.FC<PersonnelDataProps> = ({ personnel, setPersonnel, 
                 {isSuperAdmin && (
                   <div className="flex items-center gap-3">
                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Unit:</span>
-                    <select 
-                      value={filterKesatuan}
-                      onChange={(e) => setFilterKesatuan(e.target.value)}
-                      className={`px-4 py-2.5 rounded-xl border text-xs font-bold focus:outline-none transition-all ${
-                        isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-700'
-                      }`}
-                    >
-                      <option value="ALL">Semua Unit</option>
-                      {kesatuanList.map(k => (
-                        <option key={k} value={k}>{k}</option>
-                      ))}
-                    </select>
+                    <div className="relative" ref={unitDropdownRef}>
+                      <div 
+                        onClick={() => setIsUnitDropdownOpen(!isUnitDropdownOpen)}
+                        className={`px-4 py-2.5 rounded-xl border flex items-center justify-between cursor-pointer transition-all min-w-[180px] ${
+                          isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-700'
+                        }`}
+                      >
+                        <span className="text-xs font-bold">
+                          {filterKesatuan === 'ALL' ? 'Semua Unit' : filterKesatuan}
+                        </span>
+                        <span className="material-symbols-outlined text-slate-400 text-sm">expand_more</span>
+                      </div>
+                      
+                      {isUnitDropdownOpen && (
+                        <div className={`absolute left-0 right-0 mt-2 rounded-2xl shadow-2xl border z-[120] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200 min-w-[220px] ${
+                          isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'
+                        }`}>
+                          <div className="p-3 border-b border-slate-100 dark:border-slate-800">
+                            <div className="relative">
+                              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">search</span>
+                              <input 
+                                type="text"
+                                placeholder="Cari kesatuan..."
+                                className={`w-full pl-9 pr-4 py-2 rounded-xl border text-xs font-bold focus:outline-none ${
+                                  isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-100 text-slate-800'
+                                }`}
+                                value={unitSearch}
+                                onChange={(e) => setUnitSearch(e.target.value)}
+                                onClick={(e) => e.stopPropagation()}
+                                autoFocus
+                              />
+                            </div>
+                          </div>
+                          <div className="max-h-60 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setFilterKesatuan('ALL');
+                                setIsUnitDropdownOpen(false);
+                                setUnitSearch('');
+                              }}
+                              className={`w-full text-left px-5 py-3 text-xs font-bold transition-colors ${
+                                filterKesatuan === 'ALL' 
+                                  ? (isDarkMode ? 'bg-sky-500/10 text-sky-400' : 'bg-sky-50 text-sky-600')
+                                  : (isDarkMode ? 'text-slate-300 hover:bg-slate-800' : 'text-slate-700 hover:bg-slate-50')
+                              }`}
+                            >
+                              Semua Unit
+                            </button>
+                            {filteredUnits.length > 0 ? (
+                              filteredUnits.map((u) => (
+                                <button
+                                  key={u.id}
+                                  type="button"
+                                  onClick={() => {
+                                    setFilterKesatuan(u.nama);
+                                    setIsUnitDropdownOpen(false);
+                                    setUnitSearch('');
+                                  }}
+                                  className={`w-full text-left px-5 py-3 text-xs font-bold flex items-center justify-between transition-colors ${
+                                    filterKesatuan === u.nama 
+                                      ? (isDarkMode ? 'bg-sky-500/10 text-sky-400' : 'bg-sky-50 text-sky-600')
+                                      : (isDarkMode ? 'text-slate-300 hover:bg-slate-800' : 'text-slate-700 hover:bg-slate-50')
+                                  }`}
+                                >
+                                  <span>{u.nama}</span>
+                                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-black ${
+                                    u.tipe === 'POLDA' ? 'bg-rose-500/10 text-rose-500' : 
+                                    u.tipe === 'POLRES' ? 'bg-blue-500/10 text-blue-500' : 'bg-slate-500/10 text-slate-500'
+                                  }`}>
+                                    {u.tipe}
+                                  </span>
+                                </button>
+                              ))
+                            ) : (
+                              <div className="px-5 py-4 text-xs text-slate-500 italic text-center">Tidak ada hasil</div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
@@ -950,19 +1059,72 @@ const PersonnelData: React.FC<PersonnelDataProps> = ({ personnel, setPersonnel, 
                   <div className="space-y-1.5">
                     <label className="text-xs font-black text-slate-500 uppercase tracking-wider pl-1">Kesatuan</label>
                     {isSuperAdmin ? (
-                      <select 
-                        className={`w-full px-4 py-3 rounded-xl border focus:outline-none focus:ring-2 focus:ring-sky-500/20 font-bold text-sm transition-colors duration-300 ${
-                          isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
-                        }`}
-                        value={formData.kesatuan}
-                        onChange={(e) => setFormData({...formData, kesatuan: e.target.value})}
-                        required
-                      >
-                        <option value="">Pilih Kesatuan</option>
-                        {kesatuanList.map(k => (
-                          <option key={k} value={k}>{k}</option>
-                        ))}
-                      </select>
+                      <div className="relative" ref={unitDropdownRef}>
+                        <div 
+                          onClick={() => setIsUnitDropdownOpen(!isUnitDropdownOpen)}
+                          className={`w-full px-4 py-3 rounded-xl border flex items-center justify-between cursor-pointer transition-colors duration-300 ${
+                            isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
+                          }`}
+                        >
+                          <span className={formData.kesatuan ? 'font-bold text-sm' : 'text-slate-400 text-sm'}>
+                            {formData.kesatuan || 'Pilih Kesatuan'}
+                          </span>
+                          <span className="material-symbols-outlined text-slate-400">expand_more</span>
+                        </div>
+                        
+                        {isUnitDropdownOpen && (
+                          <div className={`absolute left-0 right-0 mt-2 rounded-2xl shadow-2xl border z-[120] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200 ${
+                            isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'
+                          }`}>
+                            <div className="p-3 border-b border-slate-100 dark:border-slate-800">
+                              <div className="relative">
+                                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">search</span>
+                                <input 
+                                  type="text"
+                                  placeholder="Cari kesatuan..."
+                                  className={`w-full pl-9 pr-4 py-2 rounded-xl border text-xs font-bold focus:outline-none ${
+                                    isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-100 text-slate-800'
+                                  }`}
+                                  value={unitSearch}
+                                  onChange={(e) => setUnitSearch(e.target.value)}
+                                  onClick={(e) => e.stopPropagation()}
+                                  autoFocus
+                                />
+                              </div>
+                            </div>
+                            <div className="max-h-60 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700">
+                              {filteredUnits.length > 0 ? (
+                                filteredUnits.map((u) => (
+                                  <button
+                                    key={u.id}
+                                    type="button"
+                                    onClick={() => {
+                                      setFormData({...formData, kesatuan: u.nama});
+                                      setIsUnitDropdownOpen(false);
+                                      setUnitSearch('');
+                                    }}
+                                    className={`w-full text-left px-5 py-3 text-xs font-bold flex items-center justify-between transition-colors ${
+                                      formData.kesatuan === u.nama 
+                                        ? (isDarkMode ? 'bg-sky-500/10 text-sky-400' : 'bg-sky-50 text-sky-600')
+                                        : (isDarkMode ? 'text-slate-300 hover:bg-slate-800' : 'text-slate-700 hover:bg-slate-50')
+                                    }`}
+                                  >
+                                    <span>{u.nama}</span>
+                                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-black ${
+                                      u.tipe === 'POLDA' ? 'bg-rose-500/10 text-rose-500' : 
+                                      u.tipe === 'POLRES' ? 'bg-blue-500/10 text-blue-500' : 'bg-slate-500/10 text-slate-500'
+                                    }`}>
+                                      {u.tipe}
+                                    </span>
+                                  </button>
+                                ))
+                              ) : (
+                                <div className="px-5 py-4 text-xs text-slate-500 italic text-center">Tidak ada hasil</div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     ) : (
                       <input 
                         type="text" 
