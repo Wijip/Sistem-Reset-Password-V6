@@ -11,6 +11,7 @@ import fs from 'fs';
 import bcrypt from 'bcryptjs';
 import session from 'express-session';
 import cookieParser from 'cookie-parser';
+import * as XLSX from 'xlsx';
 
 import jwt from 'jsonwebtoken';
 import nodemailer from 'nodemailer';
@@ -630,6 +631,122 @@ async function startServer() {
       page,
       limit
     });
+  });
+
+  app.get('/api/download-template', isAdmin, (req: any, res: any) => {
+    const headers = [
+      ['No', 'Waktu Request', 'Personel (Nama/NRP)', 'Kesatuan', 'Status', 'Prioritas']
+    ];
+    
+    const ws = XLSX.utils.aoa_to_sheet(headers);
+    
+    // Set column widths
+    const wscols = [
+      {wch: 5},
+      {wch: 25},
+      {wch: 35},
+      {wch: 25},
+      {wch: 15},
+      {wch: 15}
+    ];
+    ws['!cols'] = wscols;
+
+    // Force NRP column (3rd column, index 2) to be text
+    // Actually "Personel (Nama/NRP)" is the 3rd column.
+    // We can use cell types or formatting.
+    
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Template Import");
+    
+    const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+    
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename=template_reset_password.xlsx');
+    res.send(buffer);
+  });
+
+  app.get('/api/export-data', isAdmin, async (req: any, res: any) => {
+    const status = req.query.status;
+    const priority = req.query.priority;
+    const search = req.query.search;
+
+    let query = 'SELECT * FROM reset_requests';
+    let params: any[] = [];
+    let whereClauses: string[] = [];
+
+    if (req.user.role !== 'superadmin') {
+      whereClauses.push('LOWER(TRIM(kesatuan)) = LOWER(TRIM(?))');
+      params.push(req.user.kesatuan || '');
+    }
+
+    if (status && status !== 'Semua') {
+      whereClauses.push('status = ?');
+      params.push(status);
+    }
+    if (priority && priority !== 'Semua') {
+      whereClauses.push('prioritas = ?');
+      params.push(priority);
+    }
+    if (search) {
+      whereClauses.push('(nama LIKE ? OR nrp LIKE ? OR kesatuan LIKE ?)');
+      const s = `%${search}%`;
+      params.push(s, s, s);
+    }
+
+    if (whereClauses.length > 0) {
+      query += ' WHERE ' + whereClauses.join(' AND ');
+    }
+
+    query += ' ORDER BY createdAt DESC';
+
+    const [rows]: any = await pool.query(query, params);
+
+    const dataToExport = rows.map((r: any, index: number) => ({
+      'No': index + 1,
+      'Waktu Request': new Date(r.createdAt).toLocaleString('id-ID'),
+      'Nama': r.nama,
+      'Pangkat': r.pangkat,
+      'NRP/NIP': r.nrp,
+      'Kesatuan': r.kesatuan,
+      'Jabatan': r.jabatan,
+      'Status': r.status,
+      'Password Baru': r.reset_password || '-'
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(dataToExport);
+    
+    // Force NRP/NIP column (index 4) to be text
+    const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
+    for (let R = range.s.r + 1; R <= range.e.r; ++R) {
+      const cell_address = { c: 4, r: R };
+      const cell_ref = XLSX.utils.encode_cell(cell_address);
+      if (ws[cell_ref]) {
+        ws[cell_ref].t = 's'; // Set type to string
+      }
+    }
+
+    // Set column widths
+    const wscols = [
+      {wch: 5},
+      {wch: 25},
+      {wch: 25},
+      {wch: 15},
+      {wch: 20},
+      {wch: 25},
+      {wch: 25},
+      {wch: 15},
+      {wch: 20}
+    ];
+    ws['!cols'] = wscols;
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Permintaan Reset");
+    
+    const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+    
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename=permintaan_reset_${Date.now()}.xlsx`);
+    res.send(buffer);
   });
 
   app.get('/api/validate-nrp', isAdmin, async (req: any, res: any) => {

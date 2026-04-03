@@ -252,21 +252,12 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
   };
 
   const exportExcel = () => {
-    const dataToExport = filteredRequests.map(r => ({
-      'Waktu Request': new Date(r.createdAt).toLocaleString('id-ID'),
-      'Nama': r.nama,
-      'Pangkat': r.pangkat,
-      'NRP/NIP': r.nrp,
-      'Kesatuan': r.kesatuan,
-      'Jabatan': r.jabatan,
-      'Status': getStatusLabel(r.status),
-      'Password Baru': r.reset_password || '-'
-    }));
-    
-    const ws = XLSX.utils.json_to_sheet(dataToExport);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Permintaan Reset");
-    XLSX.writeFile(wb, `permintaan_reset_${Date.now()}.xlsx`);
+    const params = new URLSearchParams({
+      search: appliedFilters.search,
+      status: appliedFilters.status,
+      priority: appliedFilters.priority
+    });
+    window.location.href = `/api/export-data?${params.toString()}`;
   };
 
   const validateNRP = async (nrp: string, nama: string) => {
@@ -286,36 +277,7 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
   };
 
   const downloadTemplate = () => {
-    const templateData = [
-      {
-        'No': 1,
-        'Waktu Request': new Date().toLocaleString('id-ID'),
-        'Personel (Nama/NRP)': 'CONTOH NAMA / 12345678',
-        'Kesatuan': 'POLDA JATIM',
-        'Status': 'MENUNGGU',
-        'Prioritas': 'Normal'
-      }
-    ];
-    
-    const ws = XLSX.utils.json_to_sheet(templateData);
-    
-    // Set column widths
-    const wscols = [
-      {wch: 5},
-      {wch: 25},
-      {wch: 35},
-      {wch: 25},
-      {wch: 15},
-      {wch: 15}
-    ];
-    ws['!cols'] = wscols;
-
-    // Protect headers (visual/metadata only in JS-XLSX, actual protection is complex)
-    ws['!protect'] = { password: 'password' };
-
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Template Import");
-    XLSX.writeFile(wb, `template_reset_password.xlsx`);
+    window.location.href = '/api/download-template';
   };
 
   const handleImportExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
