@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import { 
   BarChart, 
@@ -25,6 +25,15 @@ const Reports: React.FC<ReportsProps> = ({ requests, showToast, siteSettings, cu
   const isDarkMode = siteSettings?.darkMode;
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+
+  useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const isMobile = windowWidth < 768;
 
   const filteredRequests = useMemo(() => {
     return requests.filter(req => {
@@ -143,28 +152,28 @@ const Reports: React.FC<ReportsProps> = ({ requests, showToast, siteSettings, cu
   };
 
   return (
-    <main className="p-6 md:p-10 space-y-8 max-w-[1600px] mx-auto print:p-0">
+    <main className="p-4 md:p-10 space-y-6 md:space-y-8 max-w-[1600px] mx-auto print:p-0">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 print:hidden">
         <div>
-          <h1 className={`text-3xl font-extrabold tracking-tight ${isDarkMode ? 'text-white' : 'text-[#1e293b]'}`}>Laporan Rekapitulasi</h1>
-          <p className="text-sm text-slate-500 font-medium mt-1">Visualisasi data dan export laporan bulanan sistem reset password.</p>
+          <h1 className={`text-2xl md:text-3xl font-extrabold tracking-tight ${isDarkMode ? 'text-white' : 'text-[#1e293b]'}`}>Laporan Rekapitulasi</h1>
+          <p className="text-xs md:text-sm text-slate-500 font-medium mt-1">Visualisasi data dan export laporan bulanan sistem reset password.</p>
         </div>
-        <div className="flex flex-wrap items-center gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-end gap-4">
           <div className="flex items-center gap-3">
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-1 flex-1 sm:flex-none">
               <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Mulai</span>
               <input 
                 type="date" 
-                className={`px-4 py-2 border rounded-xl text-[10px] font-black outline-none uppercase ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-white border-slate-200 text-slate-600'}`} 
+                className={`w-full sm:w-auto px-4 py-2 border rounded-xl text-[10px] font-black outline-none uppercase ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-white border-slate-200 text-slate-600'}`} 
                 value={startDate} 
                 onChange={(e) => setStartDate(e.target.value)} 
               />
             </div>
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-1 flex-1 sm:flex-none">
               <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Selesai</span>
               <input 
                 type="date" 
-                className={`px-4 py-2 border rounded-xl text-[10px] font-black outline-none uppercase ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-white border-slate-200 text-slate-600'}`} 
+                className={`w-full sm:w-auto px-4 py-2 border rounded-xl text-[10px] font-black outline-none uppercase ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-white border-slate-200 text-slate-600'}`} 
                 value={endDate} 
                 onChange={(e) => setEndDate(e.target.value)} 
               />
@@ -179,47 +188,47 @@ const Reports: React.FC<ReportsProps> = ({ requests, showToast, siteSettings, cu
               </button>
             )}
           </div>
-          <div className="flex items-center gap-3 pt-4 lg:pt-0">
-            <button onClick={exportExcel} className={`flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 transition-colors shadow-lg ${isDarkMode ? 'shadow-none' : 'shadow-blue-100'}`}>
-              <span className="material-symbols-outlined text-base">table_view</span>
-              Export XLS
+          <div className="grid grid-cols-3 sm:flex items-center gap-2 w-full sm:w-auto">
+            <button onClick={exportExcel} className={`flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg text-[10px] md:text-sm font-bold hover:bg-blue-700 transition-colors shadow-lg ${isDarkMode ? 'shadow-none' : 'shadow-blue-100'}`}>
+              <span className="material-symbols-outlined text-sm md:text-base">table_view</span>
+              XLS
             </button>
-            <button onClick={exportCSV} className={`flex items-center gap-2 px-4 py-2 border rounded-lg text-sm font-bold transition-colors ${
+            <button onClick={exportCSV} className={`flex items-center justify-center gap-2 px-3 py-2 border rounded-lg text-[10px] md:text-sm font-bold transition-colors ${
               isDarkMode ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20' : 'bg-emerald-50 border-emerald-100 text-emerald-700 hover:bg-emerald-100'
             }`}>
-              <span className="material-symbols-outlined text-base">download</span>
-              Export CSV
+              <span className="material-symbols-outlined text-sm md:text-base">download</span>
+              CSV
             </button>
-            <button onClick={exportPDF} className={`flex items-center gap-2 px-4 py-2 border rounded-lg text-sm font-bold transition-colors ${
+            <button onClick={exportPDF} className={`flex items-center justify-center gap-2 px-3 py-2 border rounded-lg text-[10px] md:text-sm font-bold transition-colors ${
               isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
             }`}>
-              <span className="material-symbols-outlined text-base">picture_as_pdf</span>
-              Export PDF
+              <span className="material-symbols-outlined text-sm md:text-base">picture_as_pdf</span>
+              PDF
             </button>
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 print:hidden">
-        <div className={`lg:col-span-2 p-6 rounded-2xl shadow-sm border transition-colors duration-300 ${
+        <div className={`lg:col-span-2 p-4 md:p-6 rounded-2xl shadow-sm border transition-colors duration-300 ${
           isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'
         }`}>
-          <div className="flex items-center justify-between mb-8">
-            <h3 className={`font-black text-sm uppercase tracking-wider ${isDarkMode ? 'text-slate-300' : 'text-slate-800'}`}>Tren Permintaan Reset</h3>
+          <div className="flex items-center justify-between mb-6 md:mb-8">
+            <h3 className={`font-black text-xs md:text-sm uppercase tracking-wider ${isDarkMode ? 'text-slate-300' : 'text-slate-800'}`}>Tren Permintaan Reset</h3>
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Permintaan</span>
+              <span className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest">Permintaan</span>
             </div>
           </div>
           
-          <div className="h-80 w-full">
+          <div className="h-64 md:h-80 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={barData} margin={{ top: 20, right: 30, left: -20, bottom: 0 }}>
+              <BarChart data={barData} margin={{ top: 20, right: 10, left: -30, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDarkMode ? '#1e293b' : '#f1f5f9'} />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 800, fill: isDarkMode ? '#475569' : '#94a3b8' }} dy={10} />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 9, fontWeight: 800, fill: isDarkMode ? '#475569' : '#94a3b8' }} dy={10} />
                 <YAxis hide />
-                <Tooltip cursor={{ fill: isDarkMode ? '#1e293b' : '#f8fafc' }} contentStyle={{ backgroundColor: isDarkMode ? '#0f172a' : '#ffffff', borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} itemStyle={{ fontWeight: 800, fontSize: '12px', color: '#0ea5e9' }} />
-                <Bar dataKey="permintaan" fill={isDarkMode ? '#334155' : '#cbd5e1'} radius={[4, 4, 0, 0]} barSize={60}>
+                <Tooltip cursor={{ fill: isDarkMode ? '#1e293b' : '#f8fafc' }} contentStyle={{ backgroundColor: isDarkMode ? '#0f172a' : '#ffffff', borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} itemStyle={{ fontWeight: 800, fontSize: '11px', color: '#0ea5e9' }} />
+                <Bar dataKey="permintaan" fill={isDarkMode ? '#334155' : '#cbd5e1'} radius={[4, 4, 0, 0]} barSize={isMobile ? 30 : 60}>
                   {barData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={index === 2 ? '#0ea5e9' : (isDarkMode ? '#334155' : '#cbd5e1')} className="hover:fill-sky-500 transition-colors cursor-pointer" />
                   ))}
@@ -229,14 +238,14 @@ const Reports: React.FC<ReportsProps> = ({ requests, showToast, siteSettings, cu
           </div>
         </div>
 
-        <div className={`p-6 rounded-2xl shadow-sm border flex flex-col transition-colors duration-300 ${
+        <div className={`p-4 md:p-6 rounded-2xl shadow-sm border flex flex-col transition-colors duration-300 ${
           isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'
         }`}>
-          <h3 className={`font-black text-sm uppercase tracking-wider mb-8 ${isDarkMode ? 'text-slate-300' : 'text-slate-800'}`}>Distribusi Status</h3>
-          <div className="relative flex-1 flex items-center justify-center min-h-[250px]">
+          <h3 className={`font-black text-xs md:text-sm uppercase tracking-wider mb-6 md:mb-8 ${isDarkMode ? 'text-slate-300' : 'text-slate-800'}`}>Distribusi Status</h3>
+          <div className="relative flex-1 flex items-center justify-center min-h-[200px] md:min-h-[250px]">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <Pie data={pieData.chart} cx="50%" cy="50%" innerRadius={70} outerRadius={95} paddingAngle={5} dataKey="value">
+                <Pie data={pieData.chart} cx="50%" cy="50%" innerRadius={isMobile ? 60 : 70} outerRadius={isMobile ? 85 : 95} paddingAngle={5} dataKey="value">
                   {pieData.chart.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
@@ -245,18 +254,20 @@ const Reports: React.FC<ReportsProps> = ({ requests, showToast, siteSettings, cu
               </PieChart>
             </ResponsiveContainer>
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-              <span className={`text-4xl font-black leading-none ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>{pieData.total}</span>
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Total</span>
+              <span className={`text-3xl md:text-4xl font-black leading-none ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>{pieData.total}</span>
+              <span className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Total</span>
             </div>
           </div>
         </div>
       </div>
 
       <div className="space-y-4 print:space-y-0">
-        <h3 className={`text-lg font-black print:mb-4 ${isDarkMode ? 'text-slate-200' : 'text-slate-800'}`}>
+        <h3 className={`text-base md:text-lg font-black print:mb-4 ${isDarkMode ? 'text-slate-200' : 'text-slate-800'}`}>
           {currentUser.role === UserRole.SUPERADMIN ? 'Ringkasan per Polres' : `Ringkasan ${currentUser.kesatuan}`}
         </h3>
-        <div className={`rounded-2xl shadow-sm border overflow-hidden print:border-none print:shadow-none transition-colors duration-300 ${
+        
+        {/* TABLE VIEW (DESKTOP) */}
+        <div className={`hidden md:block rounded-2xl shadow-sm border overflow-hidden print:border-none print:shadow-none transition-colors duration-300 ${
           isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'
         }`}>
           <div className="overflow-x-auto">
@@ -287,6 +298,48 @@ const Reports: React.FC<ReportsProps> = ({ requests, showToast, siteSettings, cu
               </tbody>
             </table>
           </div>
+        </div>
+
+        {/* CARD VIEW (MOBILE) */}
+        <div className="md:hidden space-y-4">
+          {polresSummary.map((item, idx) => (
+            <div 
+              key={idx}
+              className={`p-4 rounded-2xl border shadow-sm space-y-4 transition-colors ${
+                isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'
+              }`}
+            >
+              <div className="flex justify-between items-center">
+                <div className={`text-sm font-black ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>
+                  {item.name}
+                </div>
+                <div className="px-2 py-1 bg-emerald-50 dark:bg-emerald-500/10 rounded-lg">
+                  <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
+                    {item.ratio}% Rasio
+                  </span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-4 gap-2">
+                <div className="flex flex-col items-center p-2 rounded-xl bg-slate-50 dark:bg-slate-800/50">
+                  <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Total</span>
+                  <span className={`text-sm font-black ${isDarkMode ? 'text-slate-200' : 'text-slate-700'}`}>{item.total}</span>
+                </div>
+                <div className="flex flex-col items-center p-2 rounded-xl bg-slate-50 dark:bg-slate-800/50">
+                  <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Backlog</span>
+                  <span className={`text-sm font-black ${isDarkMode ? 'text-amber-500' : 'text-amber-600'}`}>{item.backlog}</span>
+                </div>
+                <div className="flex flex-col items-center p-2 rounded-xl bg-slate-50 dark:bg-slate-800/50">
+                  <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Selesai</span>
+                  <span className={`text-sm font-black ${isDarkMode ? 'text-emerald-500' : 'text-emerald-600'}`}>{item.selesai}</span>
+                </div>
+                <div className="flex flex-col items-center p-2 rounded-xl bg-slate-50 dark:bg-slate-800/50">
+                  <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Ditolak</span>
+                  <span className={`text-sm font-black ${isDarkMode ? 'text-rose-500' : 'text-rose-600'}`}>{item.ditolak}</span>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
       <style>{`

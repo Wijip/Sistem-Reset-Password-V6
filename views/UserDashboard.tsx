@@ -127,49 +127,49 @@ const UserDashboard: React.FC<UserDashboardProps> = ({
     >
       
       {/* HEADER SECTION - Match Screenshot */}
-      <div className={`rounded-xl p-5 flex items-center justify-between shadow-sm border transition-colors duration-300 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
-        <div className="flex items-center gap-4">
-          <div className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-sm ${isDarkMode ? 'bg-blue-500/10 text-blue-400' : 'bg-blue-50 text-blue-600'}`}>
-            <span className="material-symbols-outlined text-2xl">shield</span>
+      <div className={`rounded-xl p-4 md:p-5 flex items-center justify-between shadow-sm border transition-colors duration-300 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
+        <div className="flex items-center gap-3 md:gap-4">
+          <div className={`w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center shadow-sm ${isDarkMode ? 'bg-blue-500/10 text-blue-400' : 'bg-blue-50 text-blue-600'}`}>
+            <span className="material-symbols-outlined text-xl md:text-2xl">shield</span>
           </div>
           <div>
-            <h1 className={`text-base font-bold leading-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Sistem Reset Password</h1>
-            <p className="text-xs text-slate-400 font-medium">Polda Jatim — Dashboard Personel</p>
+            <h1 className={`text-sm md:text-base font-bold leading-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Sistem Reset Password</h1>
+            <p className="text-[10px] md:text-xs text-slate-400 font-medium">Polda Jatim — Dashboard Personel</p>
           </div>
         </div>
         <button 
           onClick={() => window.location.hash = '/login'}
-          className={`p-2.5 rounded-lg border transition-all ${isDarkMode ? 'border-slate-800 text-slate-500 hover:text-slate-300' : 'border-slate-200 text-slate-400 hover:text-slate-900'}`}
+          className={`p-2 md:p-2.5 rounded-lg border transition-all ${isDarkMode ? 'border-slate-800 text-slate-500 hover:text-slate-300' : 'border-slate-200 text-slate-400 hover:text-slate-900'}`}
         >
-          <span className="material-symbols-outlined">logout</span>
+          <span className="material-symbols-outlined text-xl">logout</span>
         </button>
       </div>
 
       {/* ACTION CARD - Match Screenshot */}
-      <div className={`rounded-xl p-8 shadow-sm border space-y-6 transition-colors duration-300 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
+      <div className={`rounded-xl p-6 md:p-8 shadow-sm border space-y-4 md:space-y-6 transition-colors duration-300 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
         <div className="flex items-center gap-3">
            <span className="material-symbols-outlined text-blue-600">badge</span>
            <h2 className={`text-sm font-bold ${isDarkMode ? 'text-slate-200' : 'text-slate-800'}`}>Ajukan Permintaan Reset</h2>
         </div>
-        <p className={`text-xs leading-relaxed max-w-3xl ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+        <p className={`text-[11px] md:text-xs leading-relaxed max-w-3xl ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
           Gunakan tombol di bawah untuk mengajukan permintaan reset password akun dinas. <br/>
           Jika Anda lupa password atau akun terkunci, ajukan permintaan reset melalui tombol berikut.
         </p>
         
-        <div className="flex flex-wrap items-center gap-4">
+        <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 md:gap-4">
           <button 
             onClick={() => setIsModalOpen(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-10 py-3 rounded-lg font-bold text-xs flex items-center justify-center gap-3 transition-all flex-1 md:flex-none shadow-lg shadow-blue-500/20"
+            className="bg-blue-600 hover:bg-blue-700 text-white px-6 md:px-10 py-3.5 rounded-lg font-bold text-xs flex items-center justify-center gap-3 transition-all shadow-lg shadow-blue-500/20 active:scale-95"
           >
             <span className="material-symbols-outlined text-xl">send</span>
             Ajukan Reset Password
           </button>
-          <button className={`flex items-center gap-2 px-6 py-3 border rounded-lg text-xs font-bold transition-colors ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'}`}>
+          <button className={`flex items-center justify-center gap-2 px-6 py-3.5 border rounded-lg text-xs font-bold transition-colors active:scale-95 ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'}`}>
              <span className="material-symbols-outlined text-xl">help</span>
              Bantuan
           </button>
         </div>
-        <p className="text-[11px] text-slate-400 font-medium">Setelah pengajuan dikirim, Anda akan menerima notifikasi pada halaman ini ketika status berubah.</p>
+        <p className="text-[10px] md:text-[11px] text-slate-400 font-medium italic">Setelah pengajuan dikirim, Anda akan menerima notifikasi pada halaman ini ketika status berubah.</p>
       </div>
 
       {/* RIWAYAT PENGAJUAN TABLE - Match Screenshot Layout */}
@@ -184,45 +184,47 @@ const UserDashboard: React.FC<UserDashboardProps> = ({
           </div>
 
           {/* TABLE TOOLBAR - Match Screenshot */}
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="relative flex-1 min-w-[240px]">
+          <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3">
+            <div className="relative flex-1">
               <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">search</span>
               <input 
                 type="text" 
                 placeholder="Cari ID, nama, NRP..." 
-                className={`w-full pl-10 pr-4 py-2 border rounded-lg text-xs font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/10 transition-colors ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-100'}`}
+                className={`w-full h-[44px] pl-10 pr-4 py-2 border rounded-lg text-xs font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/10 transition-colors ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-100'}`}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            <select 
-              className={`px-4 py-2 border rounded-lg text-xs font-medium outline-none min-w-[140px] transition-colors ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-white border-slate-200 text-slate-600'}`}
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-            >
-              <option>Semua status</option>
-              <option>Terkirim</option>
-              <option>Di Proses</option>
-              <option>Selesai</option>
-            </select>
-            <button className={`px-4 py-2 border rounded-lg text-xs font-bold transition-colors ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'}`}>Segarkan</button>
-            <button className={`flex items-center gap-2 px-4 py-2 border rounded-lg text-xs font-bold transition-colors ${isDarkMode ? 'bg-slate-800 border-slate-700 text-emerald-400 hover:bg-slate-700' : 'bg-white border-slate-200 text-emerald-600 hover:bg-emerald-50'}`}>
-               <span className="material-symbols-outlined text-lg">table_view</span>
-               Export Excel
-            </button>
-            <button className={`flex items-center gap-2 px-4 py-2 border rounded-lg text-xs font-bold transition-colors ${isDarkMode ? 'bg-slate-800 border-slate-700 text-rose-400 hover:bg-slate-700' : 'bg-white border-slate-200 text-rose-600 hover:bg-rose-50'}`}>
-               <span className="material-symbols-outlined text-lg">picture_as_pdf</span>
-               Export PDF
-            </button>
-            <button className={`flex items-center gap-2 px-4 py-2 border rounded-lg text-xs font-bold transition-colors ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'}`}>
-               <span className="material-symbols-outlined text-lg">upload</span>
-               Import
-            </button>
+            <div className="flex items-center gap-2">
+              <select 
+                className={`flex-1 md:flex-none h-[44px] px-4 border rounded-lg text-xs font-medium outline-none transition-colors ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-white border-slate-200 text-slate-600'}`}
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+              >
+                <option>Semua status</option>
+                <option>Terkirim</option>
+                <option>Di Proses</option>
+                <option>Selesai</option>
+              </select>
+              <button className={`h-[44px] px-4 border rounded-lg text-xs font-bold transition-colors active:scale-95 ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'}`}>
+                <span className="material-symbols-outlined text-lg">refresh</span>
+              </button>
+            </div>
+            <div className="hidden md:flex items-center gap-2">
+              <button className={`flex items-center gap-2 px-4 py-2 border rounded-lg text-xs font-bold transition-colors ${isDarkMode ? 'bg-slate-800 border-slate-700 text-emerald-400 hover:bg-slate-700' : 'bg-white border-slate-200 text-emerald-600 hover:bg-emerald-50'}`}>
+                 <span className="material-symbols-outlined text-lg">table_view</span>
+                 Export
+              </button>
+              <button className={`flex items-center gap-2 px-4 py-2 border rounded-lg text-xs font-bold transition-colors ${isDarkMode ? 'bg-slate-800 border-slate-700 text-rose-400 hover:bg-slate-700' : 'bg-white border-slate-200 text-rose-600 hover:bg-rose-50'}`}>
+                 <span className="material-symbols-outlined text-lg">picture_as_pdf</span>
+                 PDF
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* DATA TABLE - Extended to match all columns in screenshot */}
-        <div className="overflow-x-auto">
+        {/* DATA TABLE - Desktop */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left border-collapse min-w-[1400px]">
             <thead>
               <tr className={`border-y transition-colors ${isDarkMode ? 'bg-slate-800/30 border-slate-800' : 'bg-slate-50/30 border-slate-100'}`}>
@@ -282,29 +284,75 @@ const UserDashboard: React.FC<UserDashboardProps> = ({
             </tbody>
           </table>
         </div>
+
+        {/* DATA CARD VIEW - Mobile */}
+        <div className="md:hidden divide-y transition-colors duration-300 divide-slate-100 dark:divide-slate-800">
+          {myRequests.map((req) => (
+            <div 
+              key={req.id} 
+              className={`p-5 space-y-4 active:scale-[0.98] transition-all ${isDarkMode ? 'bg-slate-900' : 'bg-white'}`}
+              onClick={() => { setSelectedDetail(req); setShowPasswordInDetail(false); }}
+            >
+              <div className="flex justify-between items-start">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className={`px-1.5 py-0.5 rounded text-[8px] font-black font-mono ${isDarkMode ? 'bg-slate-800 text-slate-500' : 'bg-slate-100 text-slate-500'}`}>
+                      {req.id}
+                    </span>
+                    <span className="text-[10px] font-bold text-slate-400">{new Date(req.createdAt).toLocaleDateString('id-ID')}</span>
+                  </div>
+                  <h4 className={`text-sm font-black uppercase tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{req.nama}</h4>
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{req.pangkat} — {req.nrp}</p>
+                </div>
+                <span className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${
+                  req.status === RequestStatus.MENUNGGU ? (isDarkMode ? 'bg-amber-500/10 text-amber-500' : 'bg-amber-50 text-amber-600') :
+                  req.status === RequestStatus.DIPROSES ? (isDarkMode ? 'bg-blue-500/10 text-blue-500' : 'bg-blue-50 text-blue-600') : (isDarkMode ? 'bg-emerald-500/10 text-emerald-500' : 'bg-emerald-50 text-emerald-600')
+                }`}>
+                  {getStatusLabel(req.status)}
+                </span>
+              </div>
+              
+              <div className="flex items-center justify-between pt-2">
+                <div className="flex items-center gap-2">
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isDarkMode ? 'bg-slate-800 text-slate-400' : 'bg-slate-50 text-slate-500'}`}>
+                    <span className="material-symbols-outlined text-lg">account_balance</span>
+                  </div>
+                  <div className="text-[10px] font-black text-slate-500 uppercase tracking-tighter">{req.kesatuan}</div>
+                </div>
+                <button className="text-blue-600 text-[10px] font-black uppercase tracking-widest">Detail</button>
+              </div>
+            </div>
+          ))}
+          {myRequests.length === 0 && (
+            <div className="p-12 text-center">
+              <span className="material-symbols-outlined text-4xl opacity-20">history</span>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2">Belum ada riwayat</p>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* MODAL DETAIL */}
       <AnimatePresence>
         {selectedDetail && (
-          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
+          <div className="fixed inset-0 z-[110] flex items-end md:items-center justify-center md:p-4 bg-slate-900/60 backdrop-blur-md">
             <motion.div 
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              initial={{ opacity: 0, scale: 0.9, y: 100 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className={`rounded-3xl w-full max-w-lg shadow-2xl flex flex-col overflow-hidden ${isDarkMode ? 'bg-slate-900' : 'bg-white'}`}
+              exit={{ opacity: 0, scale: 0.9, y: 100 }}
+              className={`rounded-t-[2.5rem] md:rounded-3xl w-full max-w-lg shadow-2xl flex flex-col overflow-hidden ${isDarkMode ? 'bg-slate-900' : 'bg-white'}`}
             >
-              <div className={`p-8 border-b flex items-center justify-between ${isDarkMode ? 'border-slate-800' : 'border-slate-50'}`}>
+              <div className={`p-6 md:p-8 border-b flex items-center justify-between ${isDarkMode ? 'border-slate-800' : 'border-slate-50'}`}>
                 <div>
-                  <h3 className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Rincian Pengajuan</h3>
+                  <h3 className={`text-base md:text-lg font-bold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Rincian Pengajuan</h3>
                   <p className="text-[10px] font-bold text-slate-400 uppercase mt-1">ID TIKET: {selectedDetail.id}</p>
                 </div>
                 <button onClick={() => setSelectedDetail(null)} className="p-2 text-slate-400 hover:bg-slate-50 rounded-lg">
                   <span className="material-symbols-outlined">close</span>
                 </button>
               </div>
-              <div className="p-8 space-y-6">
-                <div className="grid grid-cols-2 gap-4">
+              <div className="p-6 md:p-8 space-y-6">
+                <div className="grid grid-cols-2 gap-3 md:gap-4">
                   <div className={`p-4 rounded-xl ${isDarkMode ? 'bg-slate-800' : 'bg-slate-50'}`}>
                     <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Status</p>
                     <span className="text-xs font-bold text-blue-600">{getStatusLabel(selectedDetail.status)}</span>
@@ -316,7 +364,7 @@ const UserDashboard: React.FC<UserDashboardProps> = ({
                 </div>
 
                 {selectedDetail.status === RequestStatus.SELESAI && (
-                  <div className={`p-6 border rounded-2xl space-y-3 ${isDarkMode ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-emerald-50 border-emerald-100'}`}>
+                  <div className={`p-5 md:p-6 border rounded-2xl space-y-3 ${isDarkMode ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-emerald-50 border-emerald-100'}`}>
                     <div className={`flex items-center gap-2 ${isDarkMode ? 'text-emerald-400' : 'text-emerald-700'}`}>
                        <span className="material-symbols-outlined text-xl">key</span>
                        <p className="text-[10px] font-black uppercase tracking-widest">Password Baru Anda</p>
@@ -325,7 +373,7 @@ const UserDashboard: React.FC<UserDashboardProps> = ({
                       <input 
                         type={showPasswordInDetail ? "text" : "password"} 
                         readOnly
-                        className={`w-full border px-5 py-3 rounded-xl text-lg font-mono font-black tracking-widest transition-colors ${isDarkMode ? 'bg-slate-800 border-slate-700 text-emerald-400' : 'bg-white border-emerald-200 text-emerald-800'}`}
+                        className={`w-full h-[52px] border px-5 rounded-xl text-lg font-mono font-black tracking-widest transition-colors ${isDarkMode ? 'bg-slate-800 border-slate-700 text-emerald-400' : 'bg-white border-emerald-200 text-emerald-800'}`}
                         value={selectedDetail.reset_password || ''}
                       />
                       <button onClick={() => setShowPasswordInDetail(!showPasswordInDetail)} className="absolute right-4 top-1/2 -translate-y-1/2 text-emerald-400">
@@ -335,7 +383,7 @@ const UserDashboard: React.FC<UserDashboardProps> = ({
                   </div>
                 )}
                 
-                <div className="space-y-4">
+                <div className="space-y-3 md:space-y-4">
                    <div className={`p-4 rounded-xl flex items-center justify-between ${isDarkMode ? 'bg-slate-800' : 'bg-slate-50'}`}>
                       <p className="text-xs font-medium text-slate-500">Kontak Person</p>
                       <p className={`text-xs font-bold ${isDarkMode ? 'text-slate-300' : 'text-slate-800'}`}>{selectedDetail.kontak_person || '-'}</p>
@@ -346,7 +394,7 @@ const UserDashboard: React.FC<UserDashboardProps> = ({
                    </div>
                 </div>
 
-                <button onClick={() => setSelectedDetail(null)} className={`w-full py-4 rounded-xl font-bold text-xs uppercase tracking-widest transition-colors ${isDarkMode ? 'bg-slate-100 text-slate-900 hover:bg-white' : 'bg-slate-900 text-white hover:bg-slate-800'}`}>Tutup</button>
+                <button onClick={() => setSelectedDetail(null)} className={`w-full h-[56px] rounded-xl font-bold text-xs uppercase tracking-widest transition-colors ${isDarkMode ? 'bg-slate-100 text-slate-900 hover:bg-white' : 'bg-slate-900 text-white hover:bg-slate-800'}`}>Tutup</button>
               </div>
             </motion.div>
           </div>
@@ -356,12 +404,12 @@ const UserDashboard: React.FC<UserDashboardProps> = ({
       {/* FORM MODAL - Updated to include Contact Person */}
       <AnimatePresence>
         {isModalOpen && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="fixed inset-0 z-[100] flex items-end md:items-center justify-center md:p-4 bg-slate-900/60 backdrop-blur-sm">
              <motion.div 
-               initial={{ opacity: 0, scale: 0.9, y: 20 }}
+               initial={{ opacity: 0, scale: 0.9, y: 100 }}
                animate={{ opacity: 1, scale: 1, y: 0 }}
-               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-               className={`rounded-2xl w-full max-w-xl shadow-2xl flex flex-col p-8 space-y-6 transition-colors ${isDarkMode ? 'bg-slate-900' : 'bg-white'}`}
+               exit={{ opacity: 0, scale: 0.9, y: 100 }}
+               className={`rounded-t-[2.5rem] md:rounded-2xl w-full max-w-xl shadow-2xl flex flex-col p-6 md:p-8 space-y-6 transition-colors ${isDarkMode ? 'bg-slate-900' : 'bg-white'}`}
              >
                 <div className={`flex items-center gap-3 border-b pb-4 ${isDarkMode ? 'border-slate-800' : 'border-slate-100'}`}>
                   <span className="material-symbols-outlined text-blue-600">edit_document</span>
@@ -380,7 +428,7 @@ const UserDashboard: React.FC<UserDashboardProps> = ({
                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Kontak Person (WhatsApp)</label>
                          <input 
                             type="text" 
-                            className={`w-full px-4 py-3 border rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-blue-500/10 transition-colors ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200'}`}
+                            className={`w-full h-[48px] px-4 border rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-blue-500/10 transition-colors ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200'}`}
                             placeholder="Contoh: 08123456789"
                             value={formKontak}
                             onChange={(e) => setFormKontak(e.target.value)}
@@ -391,7 +439,7 @@ const UserDashboard: React.FC<UserDashboardProps> = ({
                          <input 
                             type="text" 
                             readOnly
-                            className={`w-full px-4 py-3 border rounded-xl text-xs font-bold outline-none transition-colors ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-500' : 'bg-slate-50 border-slate-100 text-slate-500'}`}
+                            className={`w-full h-[48px] px-4 border rounded-xl text-xs font-bold outline-none transition-colors ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-500' : 'bg-slate-50 border-slate-100 text-slate-500'}`}
                             value={alasan}
                          />
                       </div>
@@ -409,11 +457,11 @@ const UserDashboard: React.FC<UserDashboardProps> = ({
                 </div>
                 
                 <div className="flex gap-3 pt-4">
-                   <button onClick={() => setIsModalOpen(false)} className={`flex-1 py-3.5 border rounded-xl font-bold text-xs transition-colors ${isDarkMode ? 'border-slate-800 text-slate-500 hover:bg-slate-800' : 'border-slate-200 text-slate-500 hover:bg-slate-50'}`}>Batal</button>
+                   <button onClick={() => setIsModalOpen(false)} className={`flex-1 h-[52px] border rounded-xl font-bold text-xs transition-colors ${isDarkMode ? 'border-slate-800 text-slate-500 hover:bg-slate-800' : 'border-slate-200 text-slate-500 hover:bg-slate-50'}`}>Batal</button>
                    <button 
                     onClick={handleAjukanReset} 
                     disabled={!formNama.trim() || !formNRP.trim() || !formKontak.trim()}
-                    className={`flex-1 py-3.5 bg-blue-600 text-white rounded-xl font-bold uppercase tracking-widest text-xs hover:bg-blue-700 shadow-lg shadow-blue-500/20 transition-all active:scale-95 ${(!formNama.trim() || !formNRP.trim() || !formKontak.trim()) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    className={`flex-1 h-[52px] bg-blue-600 text-white rounded-xl font-bold uppercase tracking-widest text-xs hover:bg-blue-700 shadow-lg shadow-blue-500/20 transition-all active:scale-95 ${(!formNama.trim() || !formNRP.trim() || !formKontak.trim()) ? 'opacity-50 cursor-not-allowed' : ''}`}
                    >
                     Kirim Pengajuan
                    </button>

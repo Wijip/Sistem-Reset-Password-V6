@@ -141,6 +141,7 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
     }
   };
 
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
   const [isEditHeaderModalOpen, setIsEditHeaderModalOpen] = useState(false);
   const [headerForm, setHeaderForm] = useState({
     title: siteSettings.requestsTitle || 'Manajemen Reset Password',
@@ -661,7 +662,7 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
       </div>
 
       {/* Statistical Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 print:hidden">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4 print:hidden">
         {[
           { label: 'Total Request', value: stats.total, sub: 'Seluruh pengajuan', icon: 'list_alt', color: 'blue', bg: isDarkMode ? 'bg-blue-500/10' : 'bg-blue-50', text: isDarkMode ? 'text-blue-400' : 'text-blue-500' },
           { label: isSuperAdmin ? 'Status: Diterima' : 'Status: Terkirim', value: stats.pending, sub: 'Butuh verifikasi segera', icon: 'hourglass_empty', color: 'amber', bg: isDarkMode ? 'bg-amber-500/10' : 'bg-amber-50', text: isDarkMode ? 'text-amber-400' : 'text-amber-500' },
@@ -669,33 +670,41 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
           { label: 'Status: Selesai', value: stats.completedToday, sub: 'Berhasil hari ini', icon: 'verified', color: 'emerald', bg: isDarkMode ? 'bg-emerald-500/10' : 'bg-emerald-50', text: isDarkMode ? 'text-emerald-400' : 'text-emerald-500' },
           { label: 'Prioritas Mendesak', value: stats.urgent, sub: 'Butuh tindakan cepat', icon: 'priority_high', color: 'rose', bg: isDarkMode ? 'bg-rose-500/10' : 'bg-rose-50', text: isDarkMode ? 'text-rose-400' : 'text-rose-500' }
         ].map((stat, i) => (
-          <div key={i} className={`p-5 rounded-[1.5rem] border shadow-sm flex items-start justify-between group hover:shadow-xl transition-all duration-300 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
-            <div className="space-y-1">
-              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{stat.label}</p>
-              <h4 className={`text-3xl font-black tracking-tighter ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{stat.value}</h4>
-              <p className="text-[9px] font-bold text-slate-400 mt-1">{stat.sub}</p>
+          <div key={i} className={`p-3 md:p-5 rounded-2xl md:rounded-[1.5rem] border shadow-sm flex items-start justify-between group hover:shadow-xl transition-all duration-300 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'} ${i === 4 ? 'col-span-2 lg:col-span-1' : ''}`}>
+            <div className="space-y-0.5 md:space-y-1">
+              <p className="text-[7px] md:text-[9px] font-black text-slate-400 uppercase tracking-widest">{stat.label}</p>
+              <h4 className={`text-xl md:text-3xl font-black tracking-tighter ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{stat.value}</h4>
+              <p className="text-[7px] md:text-[9px] font-bold text-slate-400 mt-0.5 md:mt-1">{stat.sub}</p>
             </div>
-            <div className={`w-11 h-11 rounded-xl flex items-center justify-center transition-transform group-hover:rotate-12 shadow-inner ${stat.bg} ${stat.text}`}>
-              <span className="material-symbols-outlined text-2xl">{stat.icon}</span>
+            <div className={`w-8 h-8 md:w-11 md:h-11 rounded-lg md:rounded-xl flex items-center justify-center transition-transform group-hover:rotate-12 shadow-inner ${stat.bg} ${stat.text}`}>
+              <span className="material-symbols-outlined text-lg md:text-2xl">{stat.icon}</span>
             </div>
           </div>
         ))}
       </div>
 
       {/* Filter Bar */}
-      <div className={`p-3 rounded-2xl border shadow-sm flex flex-wrap items-center gap-3 print:hidden transition-colors duration-300 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
-        <div className="relative flex-1 min-w-[280px]">
-          <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-lg">search</span>
-          <input 
-            type="text" 
-            placeholder="Cari berdasarkan Nama, NRP, atau Kesatuan..." 
-            className={`w-full h-[42px] pl-11 pr-5 border rounded-xl text-xs font-bold transition-all placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-blue-500/10 ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-100 text-slate-700'}`}
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+      <div className={`p-3 rounded-2xl border shadow-sm flex flex-col md:flex-row items-center gap-3 print:hidden transition-colors duration-300 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
+        <div className="flex items-center gap-2 w-full">
+          <div className="relative flex-1">
+            <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-lg">search</span>
+            <input 
+              type="text" 
+              placeholder="Cari Nama, NRP, atau Kesatuan..." 
+              className={`w-full h-[48px] md:h-[42px] pl-11 pr-5 border rounded-xl text-xs font-bold transition-all placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-blue-500/10 ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-100 text-slate-700'}`}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          <button 
+            onClick={() => setIsFilterModalOpen(true)}
+            className={`md:hidden flex items-center justify-center w-[48px] h-[48px] border rounded-xl transition-all ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-600'}`}
+          >
+            <span className="material-symbols-outlined">filter_list</span>
+          </button>
         </div>
         
-        <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+        <div className="hidden md:flex flex-wrap items-center gap-3 w-full lg:w-auto">
           <select 
             className={`h-[42px] px-3 border rounded-xl text-[9px] font-black outline-none min-w-[140px] cursor-pointer transition-all uppercase tracking-widest ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
             value={filterStatus}
@@ -785,7 +794,8 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
       )}
 
       <div className={`rounded-[1.5rem] border shadow-sm overflow-hidden print:border-[1pt] print:border-slate-300 print:rounded-3xl transition-colors duration-300 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
-        <div className="overflow-x-auto">
+        {/* Desktop Table View */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className={`border-b text-[10px] font-black uppercase tracking-widest print:bg-slate-50 print:text-slate-900 transition-colors duration-300 ${isDarkMode ? 'bg-slate-800/50 border-slate-800 text-slate-500' : 'bg-slate-50/50 border-slate-100 text-slate-400'}`}>
@@ -925,25 +935,100 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
                       </td>
                     </tr>
                   ))}
-                  {filteredRequests.length === 0 && (
-                    <tr>
-                      <td colSpan={11} className="px-4 py-24 text-center">
-                        <div className="flex flex-col items-center gap-3 opacity-30">
-                           <span className="material-symbols-outlined text-5xl">database_off</span>
-                           <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Tidak ada data ditemukan</p>
-                        </div>
-                      </td>
-                    </tr>
-                  )}
                 </>
               )}
             </tbody>
           </table>
         </div>
+
+        {/* Mobile Card View */}
+        <div className="md:hidden divide-y transition-colors duration-300 divide-slate-100 dark:divide-slate-800">
+          {isLoading ? (
+            Array.from({ length: 3 }).map((_, i) => (
+              <div key={`skeleton-card-${i}`} className="p-4 animate-pulse space-y-3">
+                <div className="flex justify-between items-start">
+                  <div className="space-y-2">
+                    <div className="h-4 w-40 bg-slate-200 dark:bg-slate-800 rounded"></div>
+                    <div className="h-3 w-24 bg-slate-100 dark:bg-slate-800 rounded"></div>
+                  </div>
+                  <div className="h-6 w-16 bg-slate-200 dark:bg-slate-800 rounded-full"></div>
+                </div>
+                <div className="h-10 w-full bg-slate-100 dark:bg-slate-800 rounded-xl"></div>
+              </div>
+            ))
+          ) : (
+            filteredRequests.map((req) => (
+              <div key={req.id} className={`p-4 space-y-4 transition-colors duration-300 ${isDarkMode ? 'bg-slate-900' : 'bg-white'}`}>
+                <div className="flex justify-between items-start">
+                  <div className="flex-1 min-w-0 pr-2">
+                    <h3 className={`text-sm font-black uppercase tracking-tight truncate ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+                      {req.nama}
+                    </h3>
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1">
+                      <span className="text-[10px] font-black font-mono text-slate-500">{req.nrp}</span>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1">
+                        <span className="material-symbols-outlined text-[12px]">account_balance</span>
+                        {req.kesatuan}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-end gap-1.5">
+                    <span className={`px-2.5 py-1 rounded-full text-[8px] font-black uppercase tracking-widest ${
+                      req.status === RequestStatus.MENUNGGU ? (isDarkMode ? 'bg-amber-500/10 text-amber-400' : 'bg-amber-50 text-amber-600') :
+                      req.status === RequestStatus.DIPROSES ? (isDarkMode ? 'bg-blue-500/10 text-blue-400' : 'bg-blue-50 text-blue-600') : 
+                      req.status === RequestStatus.DITOLAK ? (isDarkMode ? 'bg-rose-500/10 text-rose-400' : 'bg-rose-50 text-rose-600') :
+                      (isDarkMode ? 'bg-emerald-500/10 text-emerald-400' : 'bg-emerald-50 text-emerald-600')
+                    }`}>
+                      {getStatusLabel(req.status)}
+                    </span>
+                    <div className={`px-2 py-0.5 rounded-lg text-[7px] font-black uppercase tracking-widest border ${getPriorityColor(req.prioritas)}`}>
+                      {req.prioritas || 'NORMAL'}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
+                  <button 
+                    onClick={() => { setViewingReq(req); setShowDetailPassword(false); }}
+                    className={`flex-1 flex items-center justify-center gap-2 h-[44px] rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${isDarkMode ? 'bg-slate-800 text-white hover:bg-slate-700' : 'bg-slate-100 text-slate-900 hover:bg-slate-200'}`}
+                  >
+                    <span className="material-symbols-outlined text-lg">visibility</span>
+                    DETAIL
+                  </button>
+                  
+                  {(isSuperAdmin || isAdminPolres) && req.status === RequestStatus.MENUNGGU && (
+                    <button 
+                      onClick={() => handleStartProcess(req.id)}
+                      className="flex items-center justify-center w-[44px] h-[44px] bg-blue-600 text-white rounded-xl transition-all"
+                    >
+                      <span className="material-symbols-outlined">play_arrow</span>
+                    </button>
+                  )}
+                  
+                  {(isSuperAdmin || isAdminPolres) && req.status === RequestStatus.DIPROSES && (
+                    <button 
+                      onClick={() => { setSelectedReq(req); setNewPassword(''); setShowWeakWarning(false); }}
+                      className="flex items-center justify-center w-[44px] h-[44px] bg-emerald-600 text-white rounded-xl transition-all"
+                    >
+                      <span className="material-symbols-outlined">key</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))
+          )}
+          
+          {filteredRequests.length === 0 && !isLoading && (
+            <div className="p-12 text-center">
+              <span className="material-symbols-outlined text-4xl opacity-20">database_off</span>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2">Tidak ada data</p>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Pagination Controls */}
-      <div className="flex flex-col md:flex-row items-center justify-between gap-4 pt-6 pb-12 print:hidden">
+      <div className="flex flex-col md:flex-row items-center justify-between gap-4 pt-6 pb-24 md:pb-12 print:hidden">
         <div className={`text-[10px] font-black uppercase tracking-widest ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>
           Menampilkan <span className={isDarkMode ? 'text-white' : 'text-slate-900'}>{totalItems === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1}</span> - <span className={isDarkMode ? 'text-white' : 'text-slate-900'}>{Math.min(currentPage * itemsPerPage, totalItems)}</span> dari <span className={isDarkMode ? 'text-white' : 'text-slate-900'}>{totalItems}</span> data
         </div>
@@ -987,10 +1072,99 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
         </div>
       </div>
 
+      {/* Floating Action Button for Mobile */}
+      {isAnyAdmin && (
+        <button 
+          onClick={() => setIsManualModalOpen(true)}
+          className="md:hidden fixed right-6 bottom-6 w-14 h-14 bg-blue-600 text-white rounded-full shadow-2xl flex items-center justify-center z-[100] active:scale-90 transition-transform"
+        >
+          <span className="material-symbols-outlined text-3xl">add</span>
+        </button>
+      )}
+
+      {/* MOBILE FILTER MODAL */}
+      {isFilterModalOpen && (
+        <div className="fixed inset-0 z-[300] md:hidden flex items-end animate-in fade-in duration-300">
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setIsFilterModalOpen(false)} />
+          <div className={`relative w-full rounded-t-[2.5rem] p-8 shadow-2xl animate-in slide-in-from-bottom duration-300 ${isDarkMode ? 'bg-slate-900' : 'bg-white'}`}>
+            <div className="w-12 h-1.5 bg-slate-300 dark:bg-slate-700 rounded-full mx-auto mb-8" />
+            
+            <h3 className={`text-lg font-black uppercase tracking-tight mb-6 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Filter Data</h3>
+            
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</label>
+                <select 
+                  className={`w-full h-[52px] px-4 border rounded-2xl text-xs font-bold outline-none transition-all ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-100 text-slate-700'}`}
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value)}
+                >
+                  <option value="Semua">Semua Status</option>
+                  <option value={RequestStatus.MENUNGGU}>{isSuperAdmin ? 'Diterima' : 'Terkirim'}</option>
+                  <option value={RequestStatus.DIPROSES}>Di Proses</option>
+                  <option value={RequestStatus.SELESAI}>Selesai</option>
+                  <option value={RequestStatus.DITOLAK}>Ditolak</option>
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Prioritas</label>
+                <select 
+                  className={`w-full h-[52px] px-4 border rounded-2xl text-xs font-bold outline-none transition-all ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-100 text-slate-700'}`}
+                  value={filterPriority}
+                  onChange={(e) => setFilterPriority(e.target.value)}
+                >
+                  <option value="Semua">Semua Prioritas</option>
+                  <option value="NORMAL">Normal</option>
+                  <option value="PENTING">Penting</option>
+                  <option value="MENDESAK">Mendesak</option>
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Mulai</label>
+                  <input 
+                    type="date" 
+                    className={`w-full h-[52px] px-4 border rounded-2xl text-xs font-bold outline-none ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-100 text-slate-700'}`}
+                    value={startDate} 
+                    onChange={(e) => setStartDate(e.target.value)} 
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Selesai</label>
+                  <input 
+                    type="date" 
+                    className={`w-full h-[52px] px-4 border rounded-2xl text-xs font-bold outline-none ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-100 text-slate-700'}`}
+                    value={endDate} 
+                    onChange={(e) => setEndDate(e.target.value)} 
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button 
+                  onClick={() => { handleApplyFilter(); setIsFilterModalOpen(false); }}
+                  className="flex-1 h-[56px] bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-blue-900/20"
+                >
+                  TERAPKAN
+                </button>
+                <button 
+                  onClick={() => { handleResetFilter(); setIsFilterModalOpen(false); }}
+                  className={`px-6 h-[56px] border rounded-2xl font-black text-xs uppercase tracking-widest ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-400' : 'bg-white border-slate-200 text-slate-400'}`}
+                >
+                  RESET
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* MODAL IMPORT EXCEL */}
       {isImportModalOpen && (
-        <div className="fixed inset-0 z-[220] flex items-center justify-center p-6 bg-slate-900/70 backdrop-blur-xl animate-in fade-in duration-300">
-          <div className={`rounded-[2.5rem] w-full max-w-md shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 transition-colors duration-300 ${isDarkMode ? 'bg-slate-900 border border-slate-800' : 'bg-white'}`}>
+        <div className="fixed inset-0 z-[220] flex items-end md:items-center justify-center md:p-6 bg-slate-900/70 backdrop-blur-xl animate-in fade-in duration-300">
+          <div className={`rounded-t-[2.5rem] md:rounded-[2.5rem] w-full max-w-md shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom md:zoom-in-95 transition-colors duration-300 ${isDarkMode ? 'bg-slate-900 border border-slate-800' : 'bg-white'}`}>
             <div className={`p-8 border-b flex items-center justify-between transition-colors duration-300 ${isDarkMode ? 'bg-slate-800/50 border-slate-800' : 'bg-emerald-50/30 border-emerald-100'}`}>
               <div className="flex items-center gap-4">
                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${isDarkMode ? 'bg-emerald-500/10 text-emerald-400' : 'bg-emerald-50 text-emerald-600'}`}>

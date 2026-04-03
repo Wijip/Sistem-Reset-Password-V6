@@ -77,6 +77,7 @@ const PersonnelData: React.FC<PersonnelDataProps> = ({ personnel, setPersonnel, 
     return allUnits.filter(u => u.nama.toLowerCase().includes(modalUnitSearch.toLowerCase()));
   }, [allUnits, modalUnitSearch]);
 
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [totalItems, setTotalItems] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
@@ -524,40 +525,40 @@ const PersonnelData: React.FC<PersonnelDataProps> = ({ personnel, setPersonnel, 
       </div>
 
       {/* Stats Overview */}
-      <div className={`grid gap-4 ${isAdminPolres ? 'grid-cols-2' : 'grid-cols-2 md:grid-cols-4'}`}>
-        <div className={`p-5 rounded-3xl border transition-all ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100 shadow-sm'}`}>
-          <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total {isAdminPolres ? 'User' : 'Personel'}</div>
-          <div className={`text-2xl font-black ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{stats.total}</div>
+      <div className={`grid gap-3 md:gap-4 ${isAdminPolres ? 'grid-cols-2' : 'grid-cols-2 md:grid-cols-4'}`}>
+        <div className={`p-4 md:p-5 rounded-2xl md:rounded-3xl border transition-all ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100 shadow-sm'}`}>
+          <div className="text-[8px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total {isAdminPolres ? 'User' : 'Personel'}</div>
+          <div className={`text-xl md:text-2xl font-black ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{stats.total}</div>
         </div>
         {!isAdminPolres && (
           <>
-            <div className={`p-5 rounded-3xl border transition-all ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100 shadow-sm'}`}>
-              <div className="text-[10px] font-black text-rose-400 uppercase tracking-widest mb-1">Super Admin</div>
-              <div className={`text-2xl font-black ${isDarkMode ? 'text-rose-500' : 'text-rose-600'}`}>{stats.superAdmin}</div>
+            <div className={`p-4 md:p-5 rounded-2xl md:rounded-3xl border transition-all ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100 shadow-sm'}`}>
+              <div className="text-[8px] md:text-[10px] font-black text-rose-400 uppercase tracking-widest mb-1">Super Admin</div>
+              <div className={`text-xl md:text-2xl font-black ${isDarkMode ? 'text-rose-500' : 'text-rose-600'}`}>{stats.superAdmin}</div>
             </div>
-            <div className={`p-5 rounded-3xl border transition-all ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100 shadow-sm'}`}>
-              <div className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1">Admin Polres</div>
-              <div className={`text-2xl font-black ${isDarkMode ? 'text-indigo-500' : 'text-indigo-600'}`}>{stats.admin}</div>
+            <div className={`p-4 md:p-5 rounded-2xl md:rounded-3xl border transition-all ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100 shadow-sm'}`}>
+              <div className="text-[8px] md:text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1">Admin Polres</div>
+              <div className={`text-xl md:text-2xl font-black ${isDarkMode ? 'text-indigo-500' : 'text-indigo-600'}`}>{stats.admin}</div>
             </div>
           </>
         )}
-        <div className={`p-5 rounded-3xl border transition-all ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100 shadow-sm'}`}>
-          <div className="text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-1">User Aktif</div>
-          <div className={`text-2xl font-black ${isDarkMode ? 'text-emerald-500' : 'text-emerald-600'}`}>{stats.active}</div>
+        <div className={`p-4 md:p-5 rounded-2xl md:rounded-3xl border transition-all ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100 shadow-sm'}`}>
+          <div className="text-[8px] md:text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-1">User Aktif</div>
+          <div className={`text-xl md:text-2xl font-black ${isDarkMode ? 'text-emerald-500' : 'text-emerald-600'}`}>{stats.active}</div>
         </div>
       </div>
 
       <div className="flex flex-col lg:flex-row gap-6 items-start">
         <div className={`transition-all duration-300 ${selectedPersonnel ? 'lg:w-2/3 w-full' : 'w-full'}`}>
           <div className={`rounded-2xl shadow-sm border overflow-hidden flex flex-col transition-colors duration-300 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
-            <div className={`p-6 border-b flex flex-col md:flex-row md:items-center justify-between gap-6 transition-colors duration-300 ${isDarkMode ? 'border-slate-800' : 'border-slate-100'}`}>
-              <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 w-full max-w-2xl">
+            <div className={`p-6 border-b flex flex-col md:flex-row md:items-center justify-between gap-4 transition-colors duration-300 ${isDarkMode ? 'border-slate-800' : 'border-slate-100'}`}>
+              <div className="flex items-center gap-2 w-full max-w-2xl">
                 <div className="relative flex-1">
                   <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">search</span>
                   <input 
                     type="text" 
                     placeholder="Cari nama, NRP, atau kesatuan..." 
-                    className={`w-full pl-12 pr-6 py-3.5 rounded-2xl border focus:outline-none focus:ring-4 focus:ring-sky-500/10 font-bold text-sm transition-all ${
+                    className={`w-full h-[48px] md:h-[42px] pl-12 pr-6 rounded-2xl border focus:outline-none focus:ring-4 focus:ring-sky-500/10 font-bold text-sm transition-all ${
                       isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-100 text-slate-800'
                     }`}
                     value={searchTerm}
@@ -565,26 +566,21 @@ const PersonnelData: React.FC<PersonnelDataProps> = ({ personnel, setPersonnel, 
                     onKeyDown={(e) => e.key === 'Enter' && handleManualSearch()}
                   />
                 </div>
-                <div className="flex items-center gap-2">
-                  <button 
-                    onClick={handleManualSearch}
-                    className="bg-sky-600 text-white px-6 py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-sky-700 transition-all active:scale-95 shadow-lg shadow-sky-200/20"
-                  >
-                    Cari
-                  </button>
-                  <button 
-                    onClick={handleResetFilters}
-                    className={`px-4 py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest transition-all active:scale-95 border-2 ${
-                      isDarkMode ? 'border-slate-800 text-slate-400 hover:bg-slate-800' : 'border-slate-100 text-slate-400 hover:bg-slate-50'
-                    }`}
-                    title="Reset Filter"
-                  >
-                    <span className="material-symbols-outlined text-lg">restart_alt</span>
-                  </button>
-                </div>
+                <button 
+                  onClick={() => setIsFilterModalOpen(true)}
+                  className={`md:hidden flex items-center justify-center w-[48px] h-[48px] border rounded-xl transition-all ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-600'}`}
+                >
+                  <span className="material-symbols-outlined">filter_list</span>
+                </button>
+                <button 
+                  onClick={handleManualSearch}
+                  className="hidden md:block bg-sky-600 text-white px-6 py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-sky-700 transition-all active:scale-95 shadow-lg shadow-sky-200/20"
+                >
+                  Cari
+                </button>
               </div>
 
-              <div className="flex flex-wrap items-center gap-4">
+              <div className="hidden md:flex flex-wrap items-center gap-4">
                 {!isAdminPolres && (
                   <div className="flex items-center gap-3">
                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Role:</span>
@@ -692,7 +688,7 @@ const PersonnelData: React.FC<PersonnelDataProps> = ({ personnel, setPersonnel, 
               </div>
             </div>
 
-            <div className="overflow-x-auto">
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-left border-collapse text-nowrap">
                 <thead>
                   <tr className={`font-bold text-[11px] uppercase tracking-widest border-b transition-colors duration-300 ${isDarkMode ? 'bg-slate-800/50 text-slate-500 border-slate-800' : 'bg-slate-50/50 text-slate-400 border-slate-100'}`}>
@@ -836,6 +832,81 @@ const PersonnelData: React.FC<PersonnelDataProps> = ({ personnel, setPersonnel, 
               </table>
             </div>
 
+            {/* Mobile Card View */}
+            <div className="md:hidden divide-y transition-colors duration-300 divide-slate-100 dark:divide-slate-800">
+              {isLoading ? (
+                Array.from({ length: 3 }).map((_, i) => (
+                  <div key={`skeleton-card-${i}`} className="p-4 animate-pulse space-y-3">
+                    <div className="flex justify-between items-start">
+                      <div className="space-y-2">
+                        <div className="h-4 w-40 bg-slate-200 dark:bg-slate-800 rounded"></div>
+                        <div className="h-3 w-24 bg-slate-100 dark:bg-slate-800 rounded"></div>
+                      </div>
+                      <div className="h-6 w-16 bg-slate-200 dark:bg-slate-800 rounded-full"></div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                personnel.map((p) => (
+                  <div 
+                    key={p.id} 
+                    onClick={() => setSelectedPersonnel(p)}
+                    className={`p-4 space-y-4 transition-colors duration-300 ${selectedPersonnel?.id === p.id ? (isDarkMode ? 'bg-sky-500/10' : 'bg-sky-50') : (isDarkMode ? 'bg-slate-900' : 'bg-white')}`}
+                  >
+                    <div className="flex justify-between items-start">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm ${isDarkMode ? 'bg-slate-800 text-sky-400' : 'bg-slate-100 text-sky-600'}`}>
+                          {p.nama.charAt(0)}
+                        </div>
+                        <div>
+                          <h3 className={`text-sm font-black uppercase tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+                            {p.nama}
+                          </h3>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-[10px] font-black font-mono text-slate-500">{p.nrp}</span>
+                            <span className={`w-1 h-1 rounded-full ${isDarkMode ? 'bg-slate-700' : 'bg-slate-200'}`}></span>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{p.pangkat}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest ${
+                        p.status === 'Aktif' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-slate-500/10 text-slate-500'
+                      }`}>
+                        {p.status}
+                      </span>
+                    </div>
+                    
+                    <div className="flex items-center justify-between">
+                      <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1">
+                        <span className="material-symbols-outlined text-[12px]">account_balance</span>
+                        {p.kesatuan}
+                      </div>
+                      <div className="flex gap-2">
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); handleEdit(p); }}
+                          className={`p-2 rounded-xl border ${isDarkMode ? 'border-slate-800 text-slate-400' : 'border-slate-100 text-slate-500'}`}
+                        >
+                          <span className="material-symbols-outlined text-lg">edit</span>
+                        </button>
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); handleDelete(p.id); }}
+                          className={`p-2 rounded-xl border ${isDarkMode ? 'border-slate-800 text-rose-500' : 'border-slate-100 text-rose-600'}`}
+                        >
+                          <span className="material-symbols-outlined text-lg">block</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+              {personnel.length === 0 && !isLoading && (
+                <div className="p-12 text-center">
+                  <span className="material-symbols-outlined text-4xl opacity-20">database_off</span>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2">Tidak ada data</p>
+                </div>
+              )}
+            </div>
+
             {/* Pagination Controls */}
             {totalPages > 1 && (
               <div className={`p-4 border-t flex flex-col sm:flex-row items-center justify-between gap-4 transition-colors duration-300 ${isDarkMode ? 'border-slate-800 bg-slate-900/50' : 'border-slate-100 bg-slate-50/30'}`}>
@@ -919,16 +990,17 @@ const PersonnelData: React.FC<PersonnelDataProps> = ({ personnel, setPersonnel, 
           </div>
         </div>
 
-        {/* Detail Panel */}
+        {/* Detail Panel / Modal */}
         <AnimatePresence>
           {selectedPersonnel && (
-            <motion.div 
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-              className="lg:w-1/3 w-full sticky top-8"
-            >
-              <div className={`rounded-[2.5rem] shadow-xl border overflow-hidden flex flex-col transition-colors duration-300 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
+            <div className="fixed inset-0 z-[300] lg:relative lg:z-0 lg:block lg:w-1/3 w-full flex items-end lg:items-start lg:sticky lg:top-8 animate-in fade-in duration-300">
+              <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm lg:hidden" onClick={() => setSelectedPersonnel(null)} />
+              <motion.div 
+                initial={{ opacity: 0, x: 20, y: 100 }}
+                animate={{ opacity: 1, x: 0, y: 0 }}
+                exit={{ opacity: 0, x: 20, y: 100 }}
+                className={`relative w-full rounded-t-[2.5rem] lg:rounded-[2.5rem] shadow-2xl border overflow-hidden flex flex-col transition-colors duration-300 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}
+              >
                 <div className="p-8 space-y-8">
                   <div className="flex items-center justify-between">
                     <div className={`text-[10px] font-black uppercase tracking-[0.2em] ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>Detail Personel</div>
@@ -941,12 +1013,12 @@ const PersonnelData: React.FC<PersonnelDataProps> = ({ personnel, setPersonnel, 
                   </div>
 
                   <div className="flex flex-col items-center text-center space-y-4">
-                    <div className={`w-24 h-24 rounded-full flex items-center justify-center text-3xl font-black shadow-2xl ${isDarkMode ? 'bg-sky-500/20 text-sky-400' : 'bg-sky-50 text-sky-600'}`}>
+                    <div className={`w-20 h-20 md:w-24 md:h-24 rounded-full flex items-center justify-center text-2xl md:text-3xl font-black shadow-2xl ${isDarkMode ? 'bg-sky-500/20 text-sky-400' : 'bg-sky-50 text-sky-600'}`}>
                       {selectedPersonnel.nama.charAt(0)}
                     </div>
                     <div>
-                      <h2 className={`text-xl font-black uppercase tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{selectedPersonnel.nama}</h2>
-                      <p className="text-sm text-slate-500 font-bold uppercase tracking-widest">{selectedPersonnel.pangkat} — {selectedPersonnel.nrp}</p>
+                      <h2 className={`text-lg md:text-xl font-black uppercase tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{selectedPersonnel.nama}</h2>
+                      <p className="text-xs md:text-sm text-slate-500 font-bold uppercase tracking-widest">{selectedPersonnel.pangkat} — {selectedPersonnel.nrp}</p>
                     </div>
                     <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${
                       selectedPersonnel.status === 'Aktif' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-slate-500/10 text-slate-500'
@@ -956,20 +1028,20 @@ const PersonnelData: React.FC<PersonnelDataProps> = ({ personnel, setPersonnel, 
                   </div>
 
                   <div className="grid grid-cols-1 gap-4">
-                    <div className={`p-5 rounded-3xl border transition-colors ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-100'}`}>
-                      <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Jabatan & Kesatuan</div>
-                      <div className={`text-sm font-bold ${isDarkMode ? 'text-slate-200' : 'text-slate-800'}`}>{selectedPersonnel.jabatan}</div>
-                      <div className="text-xs text-sky-600 font-black uppercase tracking-tight mt-1">{selectedPersonnel.kesatuan}</div>
+                    <div className={`p-4 md:p-5 rounded-3xl border transition-colors ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-100'}`}>
+                      <div className="text-[8px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Jabatan & Kesatuan</div>
+                      <div className={`text-xs md:text-sm font-bold ${isDarkMode ? 'text-slate-200' : 'text-slate-800'}`}>{selectedPersonnel.jabatan}</div>
+                      <div className="text-[10px] text-sky-600 font-black uppercase tracking-tight mt-1">{selectedPersonnel.kesatuan}</div>
                     </div>
 
-                    <div className={`p-5 rounded-3xl border transition-colors ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-100'}`}>
-                      <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Email / Kontak</div>
-                      <div className={`text-sm font-bold ${isDarkMode ? 'text-slate-200' : 'text-slate-800'}`}>{selectedPersonnel.email || '-'}</div>
+                    <div className={`p-4 md:p-5 rounded-3xl border transition-colors ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-100'}`}>
+                      <div className="text-[8px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Email / Kontak</div>
+                      <div className={`text-xs md:text-sm font-bold ${isDarkMode ? 'text-slate-200' : 'text-slate-800'}`}>{selectedPersonnel.email || '-'}</div>
                     </div>
 
                     {!isAdminPolres && (
-                      <div className={`p-5 rounded-3xl border transition-colors ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-100'}`}>
-                        <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Hak Akses (Role)</div>
+                      <div className={`p-4 md:p-5 rounded-3xl border transition-colors ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-100'}`}>
+                        <div className="text-[8px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Hak Akses (Role)</div>
                         <div className="flex items-center gap-2 mt-1">
                           <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase ${
                             selectedPersonnel.role === UserRole.SUPERADMIN ? 'bg-rose-500 text-white' : 
@@ -985,14 +1057,14 @@ const PersonnelData: React.FC<PersonnelDataProps> = ({ personnel, setPersonnel, 
                   <div className="pt-4 flex gap-3">
                     <button 
                       onClick={() => handleEdit(selectedPersonnel)}
-                      className="flex-1 py-4 bg-sky-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-sky-700 shadow-lg shadow-sky-200/20 transition-all active:scale-95 flex items-center justify-center gap-2"
+                      className="flex-1 h-[56px] bg-sky-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-sky-700 shadow-lg shadow-sky-200/20 transition-all active:scale-95 flex items-center justify-center gap-2"
                     >
                       <span className="material-symbols-outlined text-sm">edit</span>
                       Edit Data
                     </button>
                     <button 
                       onClick={() => handleDelete(selectedPersonnel.id)}
-                      className={`p-4 rounded-2xl font-black transition-all active:scale-95 border-2 ${
+                      className={`w-[56px] h-[56px] rounded-2xl font-black transition-all active:scale-95 border-2 flex items-center justify-center ${
                         isDarkMode ? 'border-slate-800 text-rose-500 hover:bg-rose-500/10' : 'border-slate-100 text-rose-600 hover:bg-rose-50'
                       }`}
                     >
@@ -1000,20 +1072,89 @@ const PersonnelData: React.FC<PersonnelDataProps> = ({ personnel, setPersonnel, 
                     </button>
                   </div>
                 </div>
-              </div>
-            </motion.div>
+              </motion.div>
+            </div>
           )}
         </AnimatePresence>
       </div>
 
+      {/* Floating Action Button for Mobile */}
+      <button 
+        onClick={openAddModal}
+        className="md:hidden fixed right-6 bottom-6 w-14 h-14 bg-sky-600 text-white rounded-full shadow-2xl flex items-center justify-center z-[100] active:scale-90 transition-transform"
+      >
+        <span className="material-symbols-outlined text-3xl">add</span>
+      </button>
+
+      {/* MOBILE FILTER MODAL */}
+      {isFilterModalOpen && (
+        <div className="fixed inset-0 z-[400] md:hidden flex items-end animate-in fade-in duration-300">
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setIsFilterModalOpen(false)} />
+          <div className={`relative w-full rounded-t-[2.5rem] p-8 shadow-2xl animate-in slide-in-from-bottom duration-300 ${isDarkMode ? 'bg-slate-900' : 'bg-white'}`}>
+            <div className="w-12 h-1.5 bg-slate-300 dark:bg-slate-700 rounded-full mx-auto mb-8" />
+            
+            <h3 className={`text-lg font-black uppercase tracking-tight mb-6 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Filter Personel</h3>
+            
+            <div className="space-y-6">
+              {!isAdminPolres && (
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Role</label>
+                  <select 
+                    className={`w-full h-[52px] px-4 border rounded-2xl text-xs font-bold outline-none transition-all ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-100 text-slate-700'}`}
+                    value={filterRole}
+                    onChange={(e) => setFilterRole(e.target.value)}
+                  >
+                    <option value="ALL">Semua Role</option>
+                    <option value={UserRole.SUPERADMIN}>Super Admin</option>
+                    <option value={UserRole.ADMIN}>Admin</option>
+                    <option value={UserRole.USER}>User</option>
+                  </select>
+                </div>
+              )}
+
+              {isSuperAdmin && (
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Unit / Kesatuan</label>
+                  <select 
+                    className={`w-full h-[52px] px-4 border rounded-2xl text-xs font-bold outline-none transition-all ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-100 text-slate-700'}`}
+                    value={filterKesatuan}
+                    onChange={(e) => setFilterKesatuan(e.target.value)}
+                  >
+                    <option value="ALL">Semua Unit</option>
+                    {kesatuanList.map(k => (
+                      <option key={k} value={k}>{k}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <div className="flex gap-3 pt-4">
+                <button 
+                  onClick={() => setIsFilterModalOpen(false)}
+                  className="flex-1 h-[56px] bg-sky-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-sky-900/20"
+                >
+                  TERAPKAN
+                </button>
+                <button 
+                  onClick={() => { handleResetFilters(); setIsFilterModalOpen(false); }}
+                  className={`px-6 h-[56px] border rounded-2xl font-black text-xs uppercase tracking-widest ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-400' : 'bg-white border-slate-200 text-slate-400'}`}
+                >
+                  RESET
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <AnimatePresence>
         {isModalOpen && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md">
+          <div className="fixed inset-0 z-[500] flex items-end md:items-center justify-center md:p-4 bg-black/70 backdrop-blur-md">
             <motion.div 
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              initial={{ opacity: 0, scale: 0.9, y: 100 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className={`rounded-[2.5rem] w-full max-w-2xl overflow-hidden shadow-2xl transition-colors duration-300 ${isDarkMode ? 'bg-slate-900 border border-slate-800' : 'bg-white'}`}
+              exit={{ opacity: 0, scale: 0.9, y: 100 }}
+              className={`rounded-t-[2.5rem] md:rounded-[2.5rem] w-full max-w-2xl overflow-hidden shadow-2xl transition-colors duration-300 ${isDarkMode ? 'bg-slate-900 border border-slate-800' : 'bg-white'}`}
             >
               <div className={`p-8 border-b flex items-center justify-between transition-colors duration-300 ${isDarkMode ? 'bg-slate-800/50 border-slate-800' : 'bg-slate-50/50 border-slate-100'}`}>
                 <div className="flex items-center gap-4">
