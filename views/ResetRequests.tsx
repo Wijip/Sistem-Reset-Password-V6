@@ -293,18 +293,57 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
         const ws = wb.Sheets[wsname];
         const data = XLSX.utils.sheet_to_json(ws, { raw: false, defval: '' }) as any[];
 
+        // Validate structure for User role
+        if (isUser) {
+          const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
+          const headers: string[] = [];
+          for (let C = range.s.c; C <= range.e.c; ++C) {
+            const cell = ws[XLSX.utils.encode_cell({ r: 0, c: C })];
+            if (cell) headers.push(String(cell.v).trim());
+          }
+          
+          const requiredHeaders = ['Nama Personel', 'NRP / NIP', 'Pangkat', 'Unit Kerja / Kesatuan', 'Keterangan'];
+          const isValidStructure = requiredHeaders.every(h => headers.includes(h));
+          
+          if (!isValidStructure) {
+            showToast('Format Excel tidak valid. Harap gunakan template terbaru yang disediakan oleh sistem.', 'error');
+            return;
+          }
+        }
+
         const errors: { row: number, nrp: string, nama: string, existingNama: string }[] = [];
         const validRequests: ResetRequest[] = [];
 
         for (let i = 0; i < data.length; i++) {
           const item = data[i];
           
-          let nrp = String(item.NRP || item.nrp || item.Nrp || item['NRP/NIP'] || '').trim();
-          let nama = String(item.Nama || item.nama || item.NAMA || '').trim();
+          let nrp = '';
+          let nama = '';
+          let pangkat = '';
+          let kesatuan = '';
+          let catatan = '';
+          let alasan_val = 'Import Data Massal';
+          let prioritas_val = 'Normal';
+
+          if (isUser) {
+            nama = String(item['Nama Personel'] || '').trim();
+            nrp = String(item['NRP / NIP'] || '').trim();
+            pangkat = String(item['Pangkat'] || '').trim();
+            kesatuan = String(item['Unit Kerja / Kesatuan'] || '').trim();
+            catatan = String(item['Keterangan'] || '').trim();
+          } else {
+            nrp = String(item.NRP || item.nrp || item.Nrp || item['NRP/NIP'] || '').trim();
+            nama = String(item.Nama || item.nama || item.NAMA || '').trim();
+            pangkat = String(item.Pangkat || item.pangkat || item.PANGKAT || '-').trim();
+            kesatuan = String(item.Kesatuan || item.kesatuan || item.KESATUAN || (isAdminPolres ? currentUser.kesatuan : 'Polda Jatim')).trim();
+            catatan = String(item.Keterangan || item.keterangan || item.KETERANGAN || '-').trim();
+            alasan_val = String(item.Alasan || item.alasan || item.ALASAN || 'Import Data Massal').trim();
+            prioritas_val = (item.Prioritas || item.prioritas || item.PRIORITAS || 'Normal') as RequestPriority;
+          }
           
-          // Handle template column "Personel (Nama/NRP)"
+          // Handle template column "Personel (Nama/NRP)" for Admin template
           const personelRaw = String(item['Personel (Nama/NRP)'] || item.Personel || '').trim();
-          if (personelRaw && (!nrp || !nama)) {
+          if (!isUser && personelRaw && (!nrp || !nama)) {
             if (personelRaw.includes('/')) {
               const parts = personelRaw.split('/');
               nama = parts[0].trim();
@@ -314,26 +353,26 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
             }
           }
 
-          if (!nrp) continue;
+          if (!nrp || (isUser && i === 0 && nama === 'Budi Santoso')) continue; // Skip example row for user
 
           const existingNama = await validateNRP(nrp, nama);
           if (existingNama) {
             errors.push({ row: i + 2, nrp, nama, existingNama });
           } else {
-            const rawKesatuan = item.Kesatuan || item.kesatuan || item.KESATUAN || (isAdminPolres || isUser ? currentUser.kesatuan : 'Polda Jatim');
             validRequests.push({
               id: `IMP-${Date.now()}-${i}`,
               nama: nama || 'Tanpa Nama',
-              pangkat: String(item.Pangkat || item.pangkat || item.PANGKAT || '-').trim(),
+              pangkat: pangkat,
               nrp: nrp,
               jabatan: String(item.Jabatan || item.jabatan || item.JABATAN || '-').trim(),
-              kesatuan: String(rawKesatuan).trim(),
+              kesatuan: kesatuan,
               waktu_iso: new Date().toISOString(),
               status: RequestStatus.MENUNGGU,
-              alasan: String(item.Alasan || item.alasan || item.ALASAN || 'Import Data Massal').trim(),
+              alasan: alasan_val,
+              catatan: catatan,
               createdAt: Date.now(),
               kontak_person: String(item.Kontak || item.kontak || item.kontak_person || item.KONTAK || '-').trim(),
-              prioritas: (item.Prioritas || item.prioritas || item.PRIORITAS || 'Normal') as RequestPriority
+              prioritas: prioritas_val as RequestPriority
             });
           }
         }

@@ -654,34 +654,60 @@ async function startServer() {
   });
 
   app.get('/api/download-template', isAdmin, (req: any, res: any) => {
-    const headers = [
-      ['No', 'Waktu Request', 'Personel (Nama/NRP)', 'Kesatuan', 'Status', 'Prioritas']
-    ];
+    let headers: string[][];
+    let wscols: any[];
+    let filename: string;
+
+    if (req.user.role === 'user') {
+      headers = [
+        ['Nama Personel', 'NRP / NIP', 'Pangkat', 'Unit Kerja / Kesatuan', 'Keterangan'],
+        ['Budi Santoso', '12345678', 'Brigadir', 'Polres Malang', 'Lupa password email polri']
+      ];
+      wscols = [
+        { wch: 30 },
+        { wch: 20 },
+        { wch: 20 },
+        { wch: 30 },
+        { wch: 40 }
+      ];
+      filename = 'template_reset_user.xlsx';
+    } else {
+      headers = [
+        ['No', 'Waktu Request', 'Personel (Nama/NRP)', 'Kesatuan', 'Status', 'Prioritas']
+      ];
+      wscols = [
+        { wch: 5 },
+        { wch: 25 },
+        { wch: 35 },
+        { wch: 25 },
+        { wch: 15 },
+        { wch: 15 }
+      ];
+      filename = 'template_reset_password.xlsx';
+    }
     
     const ws = XLSX.utils.aoa_to_sheet(headers);
-    
-    // Set column widths
-    const wscols = [
-      {wch: 5},
-      {wch: 25},
-      {wch: 35},
-      {wch: 25},
-      {wch: 15},
-      {wch: 15}
-    ];
     ws['!cols'] = wscols;
 
-    // Force NRP column (3rd column, index 2) to be text
-    // Actually "Personel (Nama/NRP)" is the 3rd column.
-    // We can use cell types or formatting.
-    
+    // Force NRP column to be text format for User role
+    if (req.user.role === 'user') {
+      const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
+      // Set format for the NRP column (index 1) for many rows to ensure text formatting
+      for (let R = 0; R <= 1000; R++) {
+        const cell_ref = XLSX.utils.encode_cell({ c: 1, r: R });
+        if (!ws[cell_ref]) ws[cell_ref] = { t: 's', v: '' };
+        ws[cell_ref].t = 's'; // Type string
+        ws[cell_ref].z = '@'; // Format text
+      }
+    }
+
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Template Import");
     
     const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
     
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', 'attachment; filename=template_reset_password.xlsx');
+    res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
     res.send(buffer);
   });
 
@@ -813,6 +839,12 @@ async function startServer() {
     const finalKesatuan = req.user.role !== 'superadmin' ? req.user.kesatuan : (r.kesatuan || 'Polda Jatim');
 
     try {
+      const requestId = r.id || `REQ-${Math.floor(1000 + Math.random() * 9000)}`;
+      const waktuIso = r.waktu_iso || new Date().toISOString();
+      const status = r.status || 'MENUNGGU';
+      const prioritas = r.prioritas || 'Normal';
+      const createdAt = r.createdAt ? parseInt(r.createdAt) : Date.now();
+
       await pool.query(`
         INSERT INTO reset_requests (
           id, nama, pangkat, nrp, jabatan, kesatuan, kontak_person, 
@@ -820,9 +852,20 @@ async function startServer() {
         )
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [
-        r.id, r.nama, r.pangkat, r.nrp, r.jabatan, finalKesatuan, r.kontak_person || null, 
-        r.waktu_iso, r.status, r.alasan, r.catatan || null, filename, 
-        r.prioritas || 'Normal', r.createdAt
+        requestId, 
+        r.nama, 
+        r.pangkat, 
+        r.nrp, 
+        r.jabatan || '-', 
+        finalKesatuan, 
+        r.kontak_person || null, 
+        waktuIso, 
+        status, 
+        r.alasan || 'Import Data', 
+        r.catatan || null, 
+        filename, 
+        prioritas, 
+        createdAt
       ]);
 
       // Emit socket event for urgent requests
