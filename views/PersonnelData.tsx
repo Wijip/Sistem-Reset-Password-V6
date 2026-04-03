@@ -44,25 +44,37 @@ const PersonnelData: React.FC<PersonnelDataProps> = ({ personnel, setPersonnel, 
   const [activeSearch, setActiveSearch] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [allUnits, setAllUnits] = useState<{id: number, nama: string, tipe: string}[]>([]);
-  const [isUnitDropdownOpen, setIsUnitDropdownOpen] = useState(false);
-  const [unitSearch, setUnitSearch] = useState('');
-  const unitDropdownRef = useRef<HTMLDivElement>(null);
+  const [isFilterUnitOpen, setIsFilterUnitOpen] = useState(false);
+  const [filterUnitSearch, setFilterUnitSearch] = useState('');
+  const filterUnitRef = useRef<HTMLDivElement>(null);
 
-  // Close unit dropdown when clicking outside
+  const [isModalUnitOpen, setIsModalUnitOpen] = useState(false);
+  const [modalUnitSearch, setModalUnitSearch] = useState('');
+  const modalUnitRef = useRef<HTMLDivElement>(null);
+
+  // Close unit dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (unitDropdownRef.current && !unitDropdownRef.current.contains(event.target as Node)) {
-        setIsUnitDropdownOpen(false);
+      if (filterUnitRef.current && !filterUnitRef.current.contains(event.target as Node)) {
+        setIsFilterUnitOpen(false);
+      }
+      if (modalUnitRef.current && !modalUnitRef.current.contains(event.target as Node)) {
+        setIsModalUnitOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const filteredUnits = useMemo(() => {
-    if (!unitSearch) return allUnits;
-    return allUnits.filter(u => u.nama.toLowerCase().includes(unitSearch.toLowerCase()));
-  }, [allUnits, unitSearch]);
+  const filteredFilterUnits = useMemo(() => {
+    if (!filterUnitSearch) return allUnits;
+    return allUnits.filter(u => u.nama.toLowerCase().includes(filterUnitSearch.toLowerCase()));
+  }, [allUnits, filterUnitSearch]);
+
+  const filteredModalUnits = useMemo(() => {
+    if (!modalUnitSearch) return allUnits;
+    return allUnits.filter(u => u.nama.toLowerCase().includes(modalUnitSearch.toLowerCase()));
+  }, [allUnits, modalUnitSearch]);
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [totalItems, setTotalItems] = useState(0);
@@ -578,9 +590,9 @@ const PersonnelData: React.FC<PersonnelDataProps> = ({ personnel, setPersonnel, 
                 {isSuperAdmin && (
                   <div className="flex items-center gap-3">
                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Unit:</span>
-                    <div className="relative" ref={unitDropdownRef}>
+                    <div className="relative" ref={filterUnitRef}>
                       <div 
-                        onClick={() => setIsUnitDropdownOpen(!isUnitDropdownOpen)}
+                        onClick={() => setIsFilterUnitOpen(!isFilterUnitOpen)}
                         className={`px-4 py-2.5 rounded-xl border flex items-center justify-between cursor-pointer transition-all min-w-[180px] ${
                           isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-700'
                         }`}
@@ -591,7 +603,7 @@ const PersonnelData: React.FC<PersonnelDataProps> = ({ personnel, setPersonnel, 
                         <span className="material-symbols-outlined text-slate-400 text-sm">expand_more</span>
                       </div>
                       
-                      {isUnitDropdownOpen && (
+                      {isFilterUnitOpen && (
                         <div className={`absolute left-0 right-0 mt-2 rounded-2xl shadow-2xl border z-[120] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200 min-w-[220px] ${
                           isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'
                         }`}>
@@ -604,8 +616,8 @@ const PersonnelData: React.FC<PersonnelDataProps> = ({ personnel, setPersonnel, 
                                 className={`w-full pl-9 pr-4 py-2 rounded-xl border text-xs font-bold focus:outline-none ${
                                   isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-100 text-slate-800'
                                 }`}
-                                value={unitSearch}
-                                onChange={(e) => setUnitSearch(e.target.value)}
+                                value={filterUnitSearch}
+                                onChange={(e) => setFilterUnitSearch(e.target.value)}
                                 onClick={(e) => e.stopPropagation()}
                                 autoFocus
                               />
@@ -616,8 +628,8 @@ const PersonnelData: React.FC<PersonnelDataProps> = ({ personnel, setPersonnel, 
                               type="button"
                               onClick={() => {
                                 setFilterKesatuan('ALL');
-                                setIsUnitDropdownOpen(false);
-                                setUnitSearch('');
+                                setIsFilterUnitOpen(false);
+                                setFilterUnitSearch('');
                               }}
                               className={`w-full text-left px-5 py-3 text-xs font-bold transition-colors ${
                                 filterKesatuan === 'ALL' 
@@ -627,15 +639,15 @@ const PersonnelData: React.FC<PersonnelDataProps> = ({ personnel, setPersonnel, 
                             >
                               Semua Unit
                             </button>
-                            {filteredUnits.length > 0 ? (
-                              filteredUnits.map((u) => (
+                            {filteredFilterUnits.length > 0 ? (
+                              filteredFilterUnits.map((u) => (
                                 <button
                                   key={u.id}
                                   type="button"
                                   onClick={() => {
                                     setFilterKesatuan(u.nama);
-                                    setIsUnitDropdownOpen(false);
-                                    setUnitSearch('');
+                                    setIsFilterUnitOpen(false);
+                                    setFilterUnitSearch('');
                                   }}
                                   className={`w-full text-left px-5 py-3 text-xs font-bold flex items-center justify-between transition-colors ${
                                     filterKesatuan === u.nama 
@@ -1059,9 +1071,9 @@ const PersonnelData: React.FC<PersonnelDataProps> = ({ personnel, setPersonnel, 
                   <div className="space-y-1.5">
                     <label className="text-xs font-black text-slate-500 uppercase tracking-wider pl-1">Kesatuan</label>
                     {isSuperAdmin ? (
-                      <div className="relative" ref={unitDropdownRef}>
+                      <div className="relative" ref={modalUnitRef}>
                         <div 
-                          onClick={() => setIsUnitDropdownOpen(!isUnitDropdownOpen)}
+                          onClick={() => setIsModalUnitOpen(!isModalUnitOpen)}
                           className={`w-full px-4 py-3 rounded-xl border flex items-center justify-between cursor-pointer transition-colors duration-300 ${
                             isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-800'
                           }`}
@@ -1072,7 +1084,7 @@ const PersonnelData: React.FC<PersonnelDataProps> = ({ personnel, setPersonnel, 
                           <span className="material-symbols-outlined text-slate-400">expand_more</span>
                         </div>
                         
-                        {isUnitDropdownOpen && (
+                        {isModalUnitOpen && (
                           <div className={`absolute left-0 right-0 mt-2 rounded-2xl shadow-2xl border z-[120] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200 ${
                             isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'
                           }`}>
@@ -1085,23 +1097,23 @@ const PersonnelData: React.FC<PersonnelDataProps> = ({ personnel, setPersonnel, 
                                   className={`w-full pl-9 pr-4 py-2 rounded-xl border text-xs font-bold focus:outline-none ${
                                     isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-100 text-slate-800'
                                   }`}
-                                  value={unitSearch}
-                                  onChange={(e) => setUnitSearch(e.target.value)}
+                                  value={modalUnitSearch}
+                                  onChange={(e) => setModalUnitSearch(e.target.value)}
                                   onClick={(e) => e.stopPropagation()}
                                   autoFocus
                                 />
                               </div>
                             </div>
                             <div className="max-h-60 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700">
-                              {filteredUnits.length > 0 ? (
-                                filteredUnits.map((u) => (
+                              {filteredModalUnits.length > 0 ? (
+                                filteredModalUnits.map((u) => (
                                   <button
                                     key={u.id}
                                     type="button"
                                     onClick={() => {
                                       setFormData({...formData, kesatuan: u.nama});
-                                      setIsUnitDropdownOpen(false);
-                                      setUnitSearch('');
+                                      setIsModalUnitOpen(false);
+                                      setModalUnitSearch('');
                                     }}
                                     className={`w-full text-left px-5 py-3 text-xs font-bold flex items-center justify-between transition-colors ${
                                       formData.kesatuan === u.nama 
