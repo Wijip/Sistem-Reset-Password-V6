@@ -52,6 +52,24 @@ const Login: React.FC<LoginProps> = ({ onLogin, addLog, siteSettings, currentUse
 
   return (
     <div className="fixed inset-0 z-[200] bg-white flex flex-col md:flex-row font-sans overflow-hidden">
+      <style>{`
+        @media (max-width: 768px) {
+          .login-mobile-bg {
+            background-color: #0f172a;
+            background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url('/img/polda_building.webp');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+          }
+          .glass-mobile {
+            background: rgba(255, 255, 255, 0.1) !important;
+            backdrop-filter: blur(12px) !important;
+            -webkit-backdrop-filter: blur(12px) !important;
+            border: 1px solid rgba(255, 255, 255, 0.2) !important;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
+          }
+        }
+      `}</style>
       
       {/* Bagian Kiri dengan Gambar Latar Belakang */}
       <div className="hidden md:flex md:w-[50%] lg:w-[55%] relative flex-col justify-between p-12 text-white overflow-hidden">
@@ -96,40 +114,50 @@ const Login: React.FC<LoginProps> = ({ onLogin, addLog, siteSettings, currentUse
       </div>
 
       {/* Bagian Kanan - Formulir Login */}
-      <div className="flex-1 flex flex-col items-center justify-center p-8 md:p-16 lg:p-24 bg-white shadow-[-20px_0_50px_rgba(0,0,0,0.05)]">
-        <div className="w-full max-w-md space-y-12">
+      <div className="flex-1 flex flex-col items-center justify-center p-6 md:p-16 lg:p-24 bg-white md:bg-white shadow-[-20px_0_50px_rgba(0,0,0,0.05)] login-mobile-bg relative overflow-y-auto">
+        <div className="w-full max-w-md space-y-8 md:space-y-12 glass-mobile p-8 md:p-0 rounded-[2.5rem] md:rounded-none transition-all duration-500">
+          
+          {/* Mobile Logo Implementation */}
+          <div className="md:hidden flex flex-col items-center justify-center mb-2">
+            <img 
+              src="/img/BIDTIK.webp" 
+              alt="Logo BIDTIK" 
+              className="w-[120px] h-auto object-contain drop-shadow-[0_10px_20px_rgba(0,0,0,0.4)] mb-2" 
+            />
+          </div>
+
           <div className="text-center md:text-left">
-            <h2 className="text-4xl font-black text-slate-900 mb-4 tracking-tight">Login Panel</h2>
-            <p className="text-slate-500 text-sm font-semibold leading-relaxed">
+            <h2 className="text-3xl md:text-4xl font-black text-white md:text-slate-900 mb-3 md:mb-4 tracking-tight">Login Panel</h2>
+            <p className="text-slate-200 md:text-slate-500 text-sm font-semibold leading-relaxed">
               Selamat datang kembali. Silakan masukkan kredensial akun Anda untuk mengakses sistem administrasi.
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-8">
-            <div className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-6 md:space-y-8">
+            <div className="space-y-5 md:space-y-6">
               <div className="space-y-2">
-                <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Email Personel</label>
+                <label className="text-xs font-black text-slate-300 md:text-slate-400 uppercase tracking-widest ml-1">Email Personel</label>
                 <div className="relative group">
                   <input 
                     type="email" 
-                    className="w-full px-6 py-4 rounded-2xl border border-slate-100 bg-slate-50/50 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 font-bold text-slate-700 placeholder:text-slate-300 transition-all pr-14"
+                    className="w-full px-6 py-4 rounded-2xl border border-white/20 md:border-slate-100 bg-white/10 md:bg-slate-50/50 focus:bg-white/20 md:focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 font-bold text-white md:text-slate-700 placeholder:text-slate-400 md:placeholder:text-slate-300 transition-all pr-14"
                     placeholder="Masukkan Email Dinas"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
                   />
-                  <span className="material-symbols-outlined absolute right-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-500 transition-colors">mail</span>
+                  <span className="material-symbols-outlined absolute right-5 top-1/2 -translate-y-1/2 text-slate-200 md:text-slate-300 group-focus-within:text-blue-500 transition-colors">mail</span>
                 </div>
               </div>
 
               <div className="space-y-2">
                 <div className="flex justify-between items-center px-1">
-                  <label className="text-xs font-black text-slate-400 uppercase tracking-widest">Kata Sandi</label>
+                  <label className="text-xs font-black text-slate-300 md:text-slate-400 uppercase tracking-widest">Kata Sandi</label>
                 </div>
                 <div className="relative group">
                   <input 
                     type={showPassword ? "text" : "password"} 
-                    className="w-full px-6 py-4 rounded-2xl border border-slate-100 bg-slate-50/50 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 font-bold text-slate-700 placeholder:text-slate-300 transition-all pr-14"
+                    className="w-full px-6 py-4 rounded-2xl border border-white/20 md:border-slate-100 bg-white/10 md:bg-slate-50/50 focus:bg-white/20 md:focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 font-bold text-white md:text-slate-700 placeholder:text-slate-400 md:placeholder:text-slate-300 transition-all pr-14"
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
@@ -138,7 +166,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, addLog, siteSettings, currentUse
                   <button 
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="material-symbols-outlined absolute right-5 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-600 transition-colors"
+                    className="material-symbols-outlined absolute right-5 top-1/2 -translate-y-1/2 text-slate-200 md:text-slate-300 hover:text-slate-600 transition-colors"
                   >
                     {showPassword ? 'visibility_off' : 'visibility'}
                   </button>
@@ -147,7 +175,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, addLog, siteSettings, currentUse
             </div>
 
             {error && (
-              <div className="text-[11px] font-bold text-rose-600 bg-rose-50 p-4 rounded-2xl border border-rose-100 flex items-center gap-3 animate-pulse">
+              <div className="text-[11px] font-bold text-rose-400 md:text-rose-600 bg-rose-500/10 md:bg-rose-50 p-4 rounded-2xl border border-rose-500/20 md:border-rose-100 flex items-center gap-3 animate-pulse">
                 <span className="material-symbols-outlined text-lg">warning</span>
                 {error}
               </div>
@@ -156,8 +184,8 @@ const Login: React.FC<LoginProps> = ({ onLogin, addLog, siteSettings, currentUse
             <button 
               type="submit"
               disabled={isLoading}
-              className={`w-full py-5 rounded-2xl font-black text-sm uppercase tracking-widest text-white shadow-2xl shadow-blue-200 flex items-center justify-center gap-4 transition-all active:scale-[0.97] ${
-                isLoading ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 hover:shadow-blue-300 hover:-translate-y-0.5'
+              className={`w-full py-5 rounded-2xl font-black text-sm uppercase tracking-widest text-white shadow-2xl flex items-center justify-center gap-4 transition-all active:scale-[0.97] ${
+                isLoading ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 shadow-blue-900/20 hover:shadow-blue-900/40 hover:-translate-y-0.5'
               }`}
             >
               {isLoading ? (
@@ -171,13 +199,13 @@ const Login: React.FC<LoginProps> = ({ onLogin, addLog, siteSettings, currentUse
             </button>
           </form>
 
-          <div className="pt-4">
-             <div className="p-5 bg-slate-50 rounded-[2rem] border border-slate-100">
+          <div className="pt-2 md:pt-4">
+             <div className="p-5 bg-white/5 md:bg-slate-50 rounded-[2rem] border border-white/10 md:border-slate-100">
                <div className="flex items-center gap-2 mb-3">
                  <span className="w-1.5 h-1.5 rounded-full bg-sky-500"></span>
-                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Informasi Penting</p>
+                 <p className="text-[10px] font-black text-slate-300 md:text-slate-400 uppercase tracking-widest">Informasi Penting</p>
                </div>
-               <p className="text-[11px] font-bold text-slate-600 leading-relaxed">
+               <p className="text-[11px] font-bold text-slate-300 md:text-slate-600 leading-relaxed">
                  Gunakan email dinas yang sudah diverifikasi oleh Bid Tik. Jika belum memiliki akses, silakan hubungi pusat bantuan kami.
                </p>
              </div>
