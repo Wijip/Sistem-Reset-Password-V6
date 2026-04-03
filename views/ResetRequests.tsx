@@ -1,6 +1,7 @@
 
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import * as XLSX from 'xlsx';
+import { motion, AnimatePresence } from 'motion/react';
 import { useDebounce } from '../src/hooks/useDebounce';
 import { ResetRequest, RequestStatus, LogEntry, SiteSettings, UserRole, Personnel, RequestPriority } from '../types';
 
@@ -1083,83 +1084,97 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
       )}
 
       {/* MOBILE FILTER MODAL */}
-      {isFilterModalOpen && (
-        <div className="fixed inset-0 z-[300] md:hidden flex items-end animate-in fade-in duration-300">
-          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setIsFilterModalOpen(false)} />
-          <div className={`relative w-full rounded-t-[2.5rem] p-8 shadow-2xl animate-in slide-in-from-bottom duration-300 ${isDarkMode ? 'bg-slate-900' : 'bg-white'}`}>
-            <div className="w-12 h-1.5 bg-slate-300 dark:bg-slate-700 rounded-full mx-auto mb-8" />
-            
-            <h3 className={`text-lg font-black uppercase tracking-tight mb-6 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Filter Data</h3>
-            
-            <div className="space-y-6">
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</label>
-                <select 
-                  className={`w-full h-[52px] px-4 border rounded-2xl text-xs font-bold outline-none transition-all ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-100 text-slate-700'}`}
-                  value={filterStatus}
-                  onChange={(e) => setFilterStatus(e.target.value)}
-                >
-                  <option value="Semua">Semua Status</option>
-                  <option value={RequestStatus.MENUNGGU}>{isSuperAdmin ? 'Diterima' : 'Terkirim'}</option>
-                  <option value={RequestStatus.DIPROSES}>Di Proses</option>
-                  <option value={RequestStatus.SELESAI}>Selesai</option>
-                  <option value={RequestStatus.DITOLAK}>Ditolak</option>
-                </select>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Prioritas</label>
-                <select 
-                  className={`w-full h-[52px] px-4 border rounded-2xl text-xs font-bold outline-none transition-all ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-100 text-slate-700'}`}
-                  value={filterPriority}
-                  onChange={(e) => setFilterPriority(e.target.value)}
-                >
-                  <option value="Semua">Semua Prioritas</option>
-                  <option value="NORMAL">Normal</option>
-                  <option value="PENTING">Penting</option>
-                  <option value="MENDESAK">Mendesak</option>
-                </select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
+      <AnimatePresence>
+        {isFilterModalOpen && (
+          <div className="fixed inset-0 z-[300] md:hidden flex items-end print:hidden">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" 
+              onClick={() => setIsFilterModalOpen(false)} 
+            />
+            <motion.div 
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className={`relative w-full rounded-t-[2.5rem] p-8 shadow-2xl pb-safe ${isDarkMode ? 'bg-slate-900' : 'bg-white'}`}
+            >
+              <div className="w-12 h-1.5 bg-slate-300 dark:bg-slate-700 rounded-full mx-auto mb-8" />
+              
+              <h3 className={`text-lg font-black uppercase tracking-tight mb-6 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Filter Data</h3>
+              
+              <div className="space-y-6">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Mulai</label>
-                  <input 
-                    type="date" 
-                    className={`w-full h-[52px] px-4 border rounded-2xl text-xs font-bold outline-none ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-100 text-slate-700'}`}
-                    value={startDate} 
-                    onChange={(e) => setStartDate(e.target.value)} 
-                  />
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</label>
+                  <select 
+                    className={`w-full h-[52px] px-4 border rounded-2xl text-xs font-bold outline-none transition-all ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-100 text-slate-700'}`}
+                    value={filterStatus}
+                    onChange={(e) => setFilterStatus(e.target.value)}
+                  >
+                    <option value="Semua">Semua Status</option>
+                    <option value={RequestStatus.MENUNGGU}>{isSuperAdmin ? 'Diterima' : 'Terkirim'}</option>
+                    <option value={RequestStatus.DIPROSES}>Di Proses</option>
+                    <option value={RequestStatus.SELESAI}>Selesai</option>
+                    <option value={RequestStatus.DITOLAK}>Ditolak</option>
+                  </select>
                 </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Selesai</label>
-                  <input 
-                    type="date" 
-                    className={`w-full h-[52px] px-4 border rounded-2xl text-xs font-bold outline-none ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-100 text-slate-700'}`}
-                    value={endDate} 
-                    onChange={(e) => setEndDate(e.target.value)} 
-                  />
-                </div>
-              </div>
 
-              <div className="flex gap-3 pt-4">
-                <button 
-                  onClick={() => { handleApplyFilter(); setIsFilterModalOpen(false); }}
-                  className="flex-1 h-[56px] bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-blue-900/20"
-                >
-                  TERAPKAN
-                </button>
-                <button 
-                  onClick={() => { handleResetFilter(); setIsFilterModalOpen(false); }}
-                  className={`px-6 h-[56px] border rounded-2xl font-black text-xs uppercase tracking-widest ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-400' : 'bg-white border-slate-200 text-slate-400'}`}
-                >
-                  RESET
-                </button>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Prioritas</label>
+                  <select 
+                    className={`w-full h-[52px] px-4 border rounded-2xl text-xs font-bold outline-none transition-all ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-100 text-slate-700'}`}
+                    value={filterPriority}
+                    onChange={(e) => setFilterPriority(e.target.value)}
+                  >
+                    <option value="Semua">Semua Prioritas</option>
+                    <option value="NORMAL">Normal</option>
+                    <option value="PENTING">Penting</option>
+                    <option value="MENDESAK">Mendesak</option>
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Mulai</label>
+                    <input 
+                      type="date" 
+                      className={`w-full h-[52px] px-4 border rounded-2xl text-xs font-bold outline-none ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-100 text-slate-700'}`}
+                      value={startDate} 
+                      onChange={(e) => setStartDate(e.target.value)} 
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Selesai</label>
+                    <input 
+                      type="date" 
+                      className={`w-full h-[52px] px-4 border rounded-2xl text-xs font-bold outline-none ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-100 text-slate-700'}`}
+                      value={endDate} 
+                      onChange={(e) => setEndDate(e.target.value)} 
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-3 pt-4">
+                  <button 
+                    onClick={() => { handleApplyFilter(); setIsFilterModalOpen(false); }}
+                    className="flex-1 h-[56px] bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-blue-900/20"
+                  >
+                    TERAPKAN
+                  </button>
+                  <button 
+                    onClick={() => { handleResetFilter(); setIsFilterModalOpen(false); }}
+                    className={`px-6 h-[56px] border rounded-2xl font-black text-xs uppercase tracking-widest ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-400' : 'bg-white border-slate-200 text-slate-400'}`}
+                  >
+                    RESET
+                  </button>
+                </div>
               </div>
-            </div>
+            </motion.div>
           </div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
 
       {/* MODAL IMPORT EXCEL */}
       {isImportModalOpen && (

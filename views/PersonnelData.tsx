@@ -859,7 +859,7 @@ const PersonnelData: React.FC<PersonnelDataProps> = ({ personnel, setPersonnel, 
                           {p.nama.charAt(0)}
                         </div>
                         <div>
-                          <h3 className={`text-sm font-black uppercase tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+                          <h3 className={`text-sm font-black uppercase tracking-tight truncate max-w-[180px] ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
                             {p.nama}
                           </h3>
                           <div className="flex items-center gap-2 mt-0.5">
@@ -1087,65 +1087,79 @@ const PersonnelData: React.FC<PersonnelDataProps> = ({ personnel, setPersonnel, 
       </button>
 
       {/* MOBILE FILTER MODAL */}
-      {isFilterModalOpen && (
-        <div className="fixed inset-0 z-[400] md:hidden flex items-end animate-in fade-in duration-300">
-          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setIsFilterModalOpen(false)} />
-          <div className={`relative w-full rounded-t-[2.5rem] p-8 shadow-2xl animate-in slide-in-from-bottom duration-300 ${isDarkMode ? 'bg-slate-900' : 'bg-white'}`}>
-            <div className="w-12 h-1.5 bg-slate-300 dark:bg-slate-700 rounded-full mx-auto mb-8" />
-            
-            <h3 className={`text-lg font-black uppercase tracking-tight mb-6 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Filter Personel</h3>
-            
-            <div className="space-y-6">
-              {!isAdminPolres && (
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Role</label>
-                  <select 
-                    className={`w-full h-[52px] px-4 border rounded-2xl text-xs font-bold outline-none transition-all ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-100 text-slate-700'}`}
-                    value={filterRole}
-                    onChange={(e) => setFilterRole(e.target.value)}
-                  >
-                    <option value="ALL">Semua Role</option>
-                    <option value={UserRole.SUPERADMIN}>Super Admin</option>
-                    <option value={UserRole.ADMIN}>Admin</option>
-                    <option value={UserRole.USER}>User</option>
-                  </select>
-                </div>
-              )}
+      <AnimatePresence>
+        {isFilterModalOpen && (
+          <div className="fixed inset-0 z-[400] md:hidden flex items-end print:hidden">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" 
+              onClick={() => setIsFilterModalOpen(false)} 
+            />
+            <motion.div 
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className={`relative w-full rounded-t-[2.5rem] p-8 shadow-2xl pb-safe ${isDarkMode ? 'bg-slate-900' : 'bg-white'}`}
+            >
+              <div className="w-12 h-1.5 bg-slate-300 dark:bg-slate-700 rounded-full mx-auto mb-8" />
+              
+              <h3 className={`text-lg font-black uppercase tracking-tight mb-6 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Filter Personel</h3>
+              
+              <div className="space-y-6">
+                {!isAdminPolres && (
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Role</label>
+                    <select 
+                      className={`w-full h-[52px] px-4 border rounded-2xl text-xs font-bold outline-none transition-all ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-100 text-slate-700'}`}
+                      value={filterRole}
+                      onChange={(e) => setFilterRole(e.target.value)}
+                    >
+                      <option value="ALL">Semua Role</option>
+                      <option value={UserRole.SUPERADMIN}>Super Admin</option>
+                      <option value={UserRole.ADMIN}>Admin</option>
+                      <option value={UserRole.USER}>User</option>
+                    </select>
+                  </div>
+                )}
 
-              {isSuperAdmin && (
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Unit / Kesatuan</label>
-                  <select 
-                    className={`w-full h-[52px] px-4 border rounded-2xl text-xs font-bold outline-none transition-all ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-100 text-slate-700'}`}
-                    value={filterKesatuan}
-                    onChange={(e) => setFilterKesatuan(e.target.value)}
-                  >
-                    <option value="ALL">Semua Unit</option>
-                    {kesatuanList.map(k => (
-                      <option key={k} value={k}>{k}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
+                {isSuperAdmin && (
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Unit / Kesatuan</label>
+                    <select 
+                      className={`w-full h-[52px] px-4 border rounded-2xl text-xs font-bold outline-none transition-all ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-100 text-slate-700'}`}
+                      value={filterKesatuan}
+                      onChange={(e) => setFilterKesatuan(e.target.value)}
+                    >
+                      <option value="ALL">Semua Unit</option>
+                      {kesatuanList.map(k => (
+                        <option key={k} value={k}>{k}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
 
-              <div className="flex gap-3 pt-4">
-                <button 
-                  onClick={() => setIsFilterModalOpen(false)}
-                  className="flex-1 h-[56px] bg-sky-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-sky-900/20"
-                >
-                  TERAPKAN
-                </button>
-                <button 
-                  onClick={() => { handleResetFilters(); setIsFilterModalOpen(false); }}
-                  className={`px-6 h-[56px] border rounded-2xl font-black text-xs uppercase tracking-widest ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-400' : 'bg-white border-slate-200 text-slate-400'}`}
-                >
-                  RESET
-                </button>
+                <div className="flex gap-3 pt-4">
+                  <button 
+                    onClick={() => setIsFilterModalOpen(false)}
+                    className="flex-1 h-[56px] bg-sky-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-sky-900/20"
+                  >
+                    TERAPKAN
+                  </button>
+                  <button 
+                    onClick={() => { handleResetFilters(); setIsFilterModalOpen(false); }}
+                    className={`px-6 h-[56px] border rounded-2xl font-black text-xs uppercase tracking-widest ${isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-400' : 'bg-white border-slate-200 text-slate-400'}`}
+                  >
+                    RESET
+                  </button>
+                </div>
               </div>
-            </div>
+            </motion.div>
           </div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {isModalOpen && (

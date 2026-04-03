@@ -278,6 +278,7 @@ const App: React.FC = () => {
               setSiteSettings={setSiteSettings}
               notifications={notifications} 
               currentUser={currentUser} 
+              onLogout={handleLogout}
             />
           </>
         )}
