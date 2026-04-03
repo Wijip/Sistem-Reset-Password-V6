@@ -468,11 +468,24 @@ async function startServer() {
     const p = req.body;
     const hashedPassword = await bcrypt.hash(p.password || 'user!1234', 10);
     const finalKesatuan = String(p.kesatuan || '').trim();
-    await pool.query(`
-      INSERT INTO personnel (id, nama, pangkat, nrp, jabatan, kesatuan, email, role, password, status)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `, [p.id, p.nama, p.pangkat, p.nrp, p.jabatan, finalKesatuan, p.email, p.role, hashedPassword, p.status || 'Aktif']);
-    res.json({ success: true });
+    
+    try {
+      await pool.query(`
+        INSERT INTO personnel (id, nama, pangkat, nrp, jabatan, kesatuan, email, role, password, status)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `, [p.id, p.nama, p.pangkat, p.nrp, p.jabatan, finalKesatuan, p.email, p.role, hashedPassword, p.status || 'Aktif']);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error('Failed to create personnel:', error);
+      if (error.code === 'ER_DUP_ENTRY') {
+        return res.status(409).json({ 
+          success: false, 
+          message: `Peringatan: NRP/NIP ${p.nrp} sudah terdaftar di dalam sistem! Silakan gunakan NRP lain atau periksa kembali data personel.`,
+          code: 'DUPLICATE_NRP'
+        });
+      }
+      res.status(500).json({ success: false, message: 'Gagal menyimpan data ke server' });
+    }
   });
 
   app.put('/api/personnel/:id', isAdmin, async (req: any, res: any) => {
@@ -496,8 +509,15 @@ async function startServer() {
         `, [p.nama, p.pangkat, p.nrp, p.jabatan, finalKesatuan, p.email, p.role, p.status, id]);
       }
       res.json({ success: true });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to update personnel:', error);
+      if (error.code === 'ER_DUP_ENTRY') {
+        return res.status(409).json({ 
+          success: false, 
+          message: `Peringatan: NRP/NIP ${p.nrp} sudah terdaftar di dalam sistem! Silakan gunakan NRP lain atau periksa kembali data personel.`,
+          code: 'DUPLICATE_NRP'
+        });
+      }
       res.status(500).json({ success: false, message: 'Gagal memperbarui data personel' });
     }
   });

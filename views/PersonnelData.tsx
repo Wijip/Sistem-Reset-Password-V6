@@ -51,6 +51,7 @@ const PersonnelData: React.FC<PersonnelDataProps> = ({ personnel, setPersonnel, 
   const [isModalUnitOpen, setIsModalUnitOpen] = useState(false);
   const [modalUnitSearch, setModalUnitSearch] = useState('');
   const modalUnitRef = useRef<HTMLDivElement>(null);
+  const [formError, setFormError] = useState<string | null>(null);
 
   // Close unit dropdowns when clicking outside
   useEffect(() => {
@@ -309,6 +310,7 @@ const PersonnelData: React.FC<PersonnelDataProps> = ({ personnel, setPersonnel, 
 
   const handleEdit = (p: Personnel) => {
     setEditingId(p.id);
+    setFormError(null);
     setFormData(p);
     setIsModalOpen(true);
   };
@@ -364,10 +366,11 @@ const PersonnelData: React.FC<PersonnelDataProps> = ({ personnel, setPersonnel, 
     const trimmedNrp = formData.nrp.trim();
     const isNrpExists = personnel.some(p => p.nrp === trimmedNrp && p.id !== editingId);
     if (isNrpExists) {
-      return showToast(`NRP ${trimmedNrp} sudah terdaftar dalam sistem`, 'error');
+      return showToast(`Peringatan: NRP/NIP ${trimmedNrp} sudah terdaftar di dalam sistem! Silakan gunakan NRP lain atau periksa kembali data personel.`, 'error');
     }
 
     try {
+      setFormError(null);
       if (editingId) {
         const sanitizedData = {
           ...formData,
@@ -385,7 +388,11 @@ const PersonnelData: React.FC<PersonnelDataProps> = ({ personnel, setPersonnel, 
           credentials: 'include',
           body: JSON.stringify(sanitizedData)
         });
-        if (!res.ok) throw new Error('Failed to update');
+        
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({}));
+          throw new Error(errorData.message || 'Failed to update');
+        }
 
         setPersonnel(prev => prev.map(p => p.id === editingId ? { ...p, ...sanitizedData as Personnel } : p));
         showToast('Data berhasil diperbarui');
@@ -411,7 +418,11 @@ const PersonnelData: React.FC<PersonnelDataProps> = ({ personnel, setPersonnel, 
           credentials: 'include',
           body: JSON.stringify(newPerson)
         });
-        if (!res.ok) throw new Error('Failed to create');
+        
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({}));
+          throw new Error(errorData.message || 'Failed to create');
+        }
 
         setPersonnel(prev => [newPerson, ...prev]);
         showToast(`Personel baru ditambahkan. Password default: ${defaultPassword}`);
@@ -420,14 +431,19 @@ const PersonnelData: React.FC<PersonnelDataProps> = ({ personnel, setPersonnel, 
       setIsModalOpen(false);
       setEditingId(null);
       setFormData(initialForm);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Save failed:', error);
-      showToast('Gagal menyimpan data ke server', 'error');
+      const isDuplicate = error.message.includes('sudah terdaftar');
+      if (isDuplicate) {
+        setFormError(error.message);
+      }
+      showToast(error.message || 'Gagal menyimpan data ke server', 'error');
     }
   };
 
   const openAddModal = () => {
     setEditingId(null);
+    setFormError(null);
     setFormData({
       ...initialForm,
       kesatuan: isSuperAdmin ? '' : currentUser.kesatuan
@@ -1017,6 +1033,17 @@ const PersonnelData: React.FC<PersonnelDataProps> = ({ personnel, setPersonnel, 
               </div>
               
               <form onSubmit={handleSave} className="p-8 space-y-6 overflow-y-auto max-h-[calc(100vh-200px)] scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700">
+                {formError && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="p-4 rounded-2xl bg-rose-50 border-2 border-rose-100 flex items-start gap-3"
+                  >
+                    <span className="material-symbols-outlined text-rose-500 mt-0.5">warning</span>
+                    <p className="text-sm font-bold text-rose-800 leading-relaxed">{formError}</p>
+                  </motion.div>
+                )}
+                
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <label className="text-xs font-black text-slate-500 uppercase tracking-wider pl-1">Nama Lengkap</label>
