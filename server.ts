@@ -1,5 +1,6 @@
 import express from 'express';
-import mysql from 'mysql2/promise';
+import sqlite3 from 'sqlite3';
+import { open } from 'sqlite';
 import cors from 'cors';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
@@ -99,106 +100,102 @@ const upload = multer({
 });
 
 // Database Configuration
-const dbConfig = {
-  host: process.env.DB_HOST || 'localhost',
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || '',
-  port: parseInt(process.env.DB_PORT || '3306'),
+const DB_NAME = process.env.DB_NAME || 'polda_jatim_reset.sqlite';
+
+let db: any;
+export const pool = {
+  query: async (sql: string, params: any[] = []) => {
+    if (!db) throw new Error("Database not initialized");
+    const isSelect = sql.trim().toUpperCase().startsWith('SELECT') || sql.trim().toUpperCase().startsWith('PRAGMA');
+    if (isSelect) {
+      const rows = await db.all(sql, params);
+      return [rows, []];
+    } else {
+      const result = await db.run(sql, params);
+      return [{ insertId: result.lastID, affectedRows: result.changes }, []];
+    }
+  }
 };
 
-const DB_NAME = process.env.DB_NAME || 'polda_jatim_reset';
-
 async function initializeDatabase() {
-  let connection;
   try {
-    // 1. Connect without database to check existence
-    connection = await mysql.createConnection(dbConfig);
-    
-    const [databases]: any = await connection.query(`SHOW DATABASES LIKE '${DB_NAME}'`);
-    
-    if (databases.length > 0) {
-      console.log(`[DATABASE] Database '${DB_NAME}' ditemukan. Menggunakan data yang ada.`);
-    } else {
-      console.log(`[DATABASE] Database '${DB_NAME}' tidak ditemukan. Membuat database baru...`);
-      await connection.query(`CREATE DATABASE \`${DB_NAME}\``);
-    }
-    await connection.end();
+    db = await open({
+      filename: DB_NAME,
+      driver: sqlite3.Database
+    });
 
-    // 2. Connect with database to ensure tables exist
-    const pool = mysql.createPool({ ...dbConfig, database: DB_NAME });
-
+    console.log(`[DATABASE] Connected to SQLite database: ${DB_NAME}`);
     console.log('[DATABASE] Memeriksa struktur tabel...');
 
     // Table: Personnel
     await pool.query(`
       CREATE TABLE IF NOT EXISTS personnel (
-        id VARCHAR(50) PRIMARY KEY,
-        nama VARCHAR(255) NOT NULL,
-        pangkat VARCHAR(100),
-        nrp VARCHAR(50) UNIQUE NOT NULL,
-        jabatan VARCHAR(255),
-        kesatuan VARCHAR(255),
-        email VARCHAR(255),
-        role ENUM('superadmin', 'admin', 'user') DEFAULT 'user',
-        password VARCHAR(255) NOT NULL,
-        status VARCHAR(50) DEFAULT 'Aktif',
-        lastLogin BIGINT
+        id TEXT PRIMARY KEY,
+        nama TEXT NOT NULL,
+        pangkat TEXT,
+        nrp TEXT UNIQUE NOT NULL,
+        jabatan TEXT,
+        kesatuan TEXT,
+        email TEXT,
+        role TEXT DEFAULT 'user',
+        password TEXT NOT NULL,
+        status TEXT DEFAULT 'Aktif',
+        lastLogin INTEGER
       )
     `);
 
     // Ensure status column exists for personnel
-    const [personnelColumns]: any = await pool.query(`SHOW COLUMNS FROM personnel`);
-    const personnelColumnNames = personnelColumns.map((c: any) => c.Field);
+    const [personnelColumns]: any = await pool.query(`PRAGMA table_info(personnel)`);
+    const personnelColumnNames = personnelColumns.map((c: any) => c.name);
     if (!personnelColumnNames.includes('status')) {
-      await pool.query("ALTER TABLE personnel ADD COLUMN status VARCHAR(50) DEFAULT 'Aktif'");
+      await pool.query("ALTER TABLE personnel ADD COLUMN status TEXT DEFAULT 'Aktif'");
     }
 
-    // Ensure role enum is lowercase and update existing data
-    await pool.query("ALTER TABLE personnel MODIFY COLUMN role ENUM('superadmin', 'admin', 'user') DEFAULT 'user'");
+    // Ensure role is lowercase and update existing data
     await pool.query("UPDATE personnel SET role = LOWER(role)");
 
     // Table: Reset Requests
     await pool.query(`
       CREATE TABLE IF NOT EXISTS reset_requests (
-        id VARCHAR(50) PRIMARY KEY,
-        nama VARCHAR(255),
-        pangkat VARCHAR(100),
-        nrp VARCHAR(50),
-        jabatan VARCHAR(255),
-        kesatuan VARCHAR(255),
-        kontak_person VARCHAR(255),
-        waktu_iso VARCHAR(100),
-        status ENUM('MENUNGGU', 'DIPROSES', 'SELESAI', 'DITOLAK') DEFAULT 'MENUNGGU',
+        id TEXT PRIMARY KEY,
+        nama TEXT,
+        pangkat TEXT,
+        nrp TEXT,
+        jabatan TEXT,
+        kesatuan TEXT,
+        kontak_person TEXT,
+        waktu_iso TEXT,
+        status TEXT DEFAULT 'MENUNGGU',
         alasan TEXT,
         alasan_penolakan TEXT,
         catatan TEXT,
         dokumen_kta TEXT,
-        prioritas VARCHAR(50),
-        createdAt BIGINT,
-        updatedAt BIGINT,
-        reset_password VARCHAR(255),
+        prioritas TEXT,
+        createdAt INTEGER,
+        updatedAt INTEGER,
+        reset_password TEXT,
         reset_info TEXT
       )
     `);
 
     // Ensure all columns exist for reset_requests
-    const [columns]: any = await pool.query(`SHOW COLUMNS FROM reset_requests`);
-    const columnNames = columns.map((c: any) => c.Field);
+    const [columns]: any = await pool.query(`PRAGMA table_info(reset_requests)`);
+    const columnNames = columns.map((c: any) => c.name);
     
-    if (!columnNames.includes('kontak_person')) await pool.query('ALTER TABLE reset_requests ADD COLUMN kontak_person VARCHAR(255)');
+    if (!columnNames.includes('kontak_person')) await pool.query('ALTER TABLE reset_requests ADD COLUMN kontak_person TEXT');
     if (!columnNames.includes('catatan')) await pool.query('ALTER TABLE reset_requests ADD COLUMN catatan TEXT');
-    if (!columnNames.includes('updatedAt')) await pool.query('ALTER TABLE reset_requests ADD COLUMN updatedAt BIGINT');
-    if (!columnNames.includes('reset_password')) await pool.query('ALTER TABLE reset_requests ADD COLUMN reset_password VARCHAR(255)');
+    if (!columnNames.includes('updatedAt')) await pool.query('ALTER TABLE reset_requests ADD COLUMN updatedAt INTEGER');
+    if (!columnNames.includes('reset_password')) await pool.query('ALTER TABLE reset_requests ADD COLUMN reset_password TEXT');
     if (!columnNames.includes('reset_info')) await pool.query('ALTER TABLE reset_requests ADD COLUMN reset_info TEXT');
     if (!columnNames.includes('alasan_penolakan')) await pool.query('ALTER TABLE reset_requests ADD COLUMN alasan_penolakan TEXT');
 
     // Table: Units (Kesatuan)
     await pool.query(`
       CREATE TABLE IF NOT EXISTS units (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        nama VARCHAR(255) NOT NULL UNIQUE,
-        tipe ENUM('POLDA', 'POLRES', 'POLSEK') NOT NULL,
-        induk VARCHAR(255)
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nama TEXT NOT NULL UNIQUE,
+        tipe TEXT NOT NULL,
+        induk TEXT
       )
     `);
 
@@ -265,25 +262,25 @@ async function initializeDatabase() {
     // Table: Logs
     await pool.query(`
       CREATE TABLE IF NOT EXISTS logs (
-        id VARCHAR(50) PRIMARY KEY,
-        waktu BIGINT,
-        user_nama VARCHAR(255),
-        user_role VARCHAR(100),
-        aktivitas VARCHAR(255),
+        id TEXT PRIMARY KEY,
+        waktu INTEGER,
+        user_nama TEXT,
+        user_role TEXT,
+        aktivitas TEXT,
         keterangan TEXT,
-        ipAddress VARCHAR(50)
+        ipAddress TEXT
       )
     `);
 
     // Table: OTP
     await pool.query(`
       CREATE TABLE IF NOT EXISTS otp_codes (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        nrp VARCHAR(50) NOT NULL,
-        code VARCHAR(6) NOT NULL,
-        expiresAt BIGINT NOT NULL,
-        token VARCHAR(255),
-        isUsed BOOLEAN DEFAULT FALSE
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nrp TEXT NOT NULL,
+        code TEXT NOT NULL,
+        expiresAt INTEGER NOT NULL,
+        token TEXT,
+        isUsed INTEGER DEFAULT 0
       )
     `);
 
@@ -663,43 +660,57 @@ async function startServer() {
       if (req.user.role === 'user') {
         const userKesatuan = req.user.kesatuan || '';
         
-        // Define columns
-        worksheet.columns = [
-          { header: 'Nama Personel', key: 'nama', width: 30 },
-          { header: 'NRP / NIP', key: 'nrp', width: 20 },
-          { header: 'Pangkat', key: 'pangkat', width: 20 },
-          { header: 'JABATAN', key: 'jabatan', width: 30 },
-          { header: 'KESATUAN', key: 'kesatuan', width: 30 },
-          { header: 'PRIORITAS', key: 'prioritas', width: 20 },
-          { header: 'KETERANGAN', key: 'keterangan', width: 40 }
-        ];
+        // Set column widths
+        worksheet.getColumn('A').width = 30;
+        worksheet.getColumn('B').width = 20;
+        worksheet.getColumn('C').width = 20;
+        worksheet.getColumn('D').width = 30;
+        worksheet.getColumn('E').width = 30;
+        worksheet.getColumn('F').width = 20;
+        worksheet.getColumn('G').width = 40;
 
-        // Add first example row
-        worksheet.addRow({
-          nama: 'Budi Santoso',
-          nrp: '12345678',
-          pangkat: 'Briptu',
-          jabatan: 'Banum Subbag Renmin',
-          kesatuan: userKesatuan,
-          prioritas: 'Bukan Prioritas',
-          keterangan: 'Lupa password login aplikasi'
+        // Add Format as Table (Excel Table)
+        worksheet.addTable({
+          name: 'TabelPersonel',
+          ref: 'A1',
+          headerRow: true,
+          totalsRow: false,
+          style: {
+            theme: 'TableStyleMedium2',
+            showRowStripes: true,
+          },
+          columns: [
+            { name: 'Nama Personel', filterButton: false },
+            { name: 'NRP / NIP', filterButton: false },
+            { name: 'Pangkat', filterButton: false },
+            { name: 'JABATAN', filterButton: false },
+            { name: 'KESATUAN', filterButton: false },
+            { name: 'PRIORITAS', filterButton: false },
+            { name: 'KETERANGAN', filterButton: false }
+          ],
+          rows: [
+            [
+              'Budi Santoso',
+              '12345678',
+              'Briptu',
+              'Banum Subbag Renmin',
+              userKesatuan, // Will be overwritten with formula
+              'Bukan Prioritas',
+              'Lupa password login aplikasi'
+            ]
+          ]
         });
 
-        // Add 50 empty rows with pre-filled KESATUAN and PRIORITAS
-        for (let i = 0; i < 50; i++) {
-          worksheet.addRow({
-            kesatuan: userKesatuan,
-            prioritas: 'Bukan Prioritas'
-          });
-        }
+        // Force NRP column to be text
+        worksheet.getColumn('B').numFmt = '@';
 
-        // Apply formatting and data validation
+        // 1. Smart Pre-fill KESATUAN using Formula so Table auto-expands it
+        const kesatuanCell = worksheet.getCell('E2');
+        kesatuanCell.value = { formula: `"${userKesatuan}"`, result: userKesatuan };
+
+        // 2. Data Validation for PRIORITAS (Column F)
+        // Apply to a large range to ensure it's always there, even if user pastes
         for (let i = 2; i <= 1000; i++) {
-          // Force NRP column to be text
-          const nrpCell = worksheet.getCell(`B${i}`);
-          nrpCell.numFmt = '@';
-
-          // Add Data Validation for PRIORITAS (Column F)
           const prioritasCell = worksheet.getCell(`F${i}`);
           prioritasCell.dataValidation = {
             type: 'list',
@@ -1134,13 +1145,13 @@ async function startServer() {
   app.post('/api/otp/verify', async (req: any, res: any) => {
     const { nrp, code } = req.body;
     const [rows]: any = await pool.query(
-      'SELECT * FROM otp_codes WHERE nrp = ? AND code = ? AND isUsed = FALSE AND expiresAt > ?',
+      'SELECT * FROM otp_codes WHERE nrp = ? AND code = ? AND isUsed = 0 AND expiresAt > ?',
       [nrp, code, Date.now()]
     );
 
     if (rows.length > 0) {
       const token = Math.random().toString(36).substring(2) + Date.now().toString(36);
-      await pool.query('UPDATE otp_codes SET isUsed = TRUE, token = ? WHERE id = ?', [token, rows[0].id]);
+      await pool.query('UPDATE otp_codes SET isUsed = 1, token = ? WHERE id = ?', [token, rows[0].id]);
       res.json({ success: true, token });
     } else {
       res.status(400).json({ success: false, message: 'Kode OTP salah atau sudah kadaluarsa' });
