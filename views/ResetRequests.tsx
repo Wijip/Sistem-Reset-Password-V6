@@ -133,6 +133,12 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
     return status;
   };
 
+  const handleCopyPassword = (password: string) => {
+    if (!password) return;
+    navigator.clipboard.writeText(password);
+    showToast('Password disalin!', 'success');
+  };
+
   const getPriorityColor = (priority?: RequestPriority) => {
     switch (priority) {
       case RequestPriority.MENDESAK:
@@ -1572,28 +1578,80 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
 
                  {/* PASSWORD SECTION FOR FINISHED REQUESTS */}
                  {viewingReq.status === RequestStatus.SELESAI && (isSuperAdmin || isAdminPolres || currentUser.nrp === viewingReq.nrp) && (
-                    <div className={`p-8 rounded-[2.5rem] text-white space-y-6 shadow-2xl transition-colors duration-300 ${isDarkMode ? 'bg-emerald-950 shadow-emerald-900/20' : 'bg-emerald-900 shadow-emerald-100'}`}>
-                       <div className="flex items-center gap-3">
-                          <span className="material-symbols-outlined text-emerald-400">verified_user</span>
-                          <h5 className="text-[11px] font-black uppercase tracking-[0.2em]">Password Baru Personel</h5>
+                    <div className={`p-8 rounded-[2.5rem] border-2 space-y-6 shadow-2xl transition-all duration-500 animate-in zoom-in-95 ${
+                      isDarkMode 
+                        ? 'bg-emerald-950/40 border-emerald-500/30 shadow-emerald-900/20' 
+                        : 'bg-emerald-50 border-emerald-200 shadow-emerald-100'
+                    }`}>
+                       <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                             <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isDarkMode ? 'bg-emerald-500/20 text-emerald-400' : 'bg-emerald-100 text-emerald-600'}`}>
+                                <span className="material-symbols-outlined">verified_user</span>
+                             </div>
+                             <div>
+                                <h5 className={`text-[11px] font-black uppercase tracking-[0.2em] ${isDarkMode ? 'text-emerald-400' : 'text-emerald-700'}`}>Password Baru Personel</h5>
+                                <p className={`text-[9px] font-bold uppercase tracking-widest mt-1 ${isDarkMode ? 'text-emerald-500/60' : 'text-emerald-600/60'}`}>Gunakan password ini untuk login</p>
+                             </div>
+                          </div>
+                          <div className={`px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest ${isDarkMode ? 'bg-emerald-500/20 text-emerald-400' : 'bg-emerald-100 text-emerald-600'}`}>
+                             Aktif
+                          </div>
                        </div>
+
                        <div className="relative group">
                           <input 
                              type={showDetailPassword ? "text" : "password"} 
                              readOnly 
-                             className={`w-full border px-6 py-5 rounded-2xl text-2xl font-mono font-black text-white tracking-[0.3em] outline-none transition-colors duration-300 ${isDarkMode ? 'bg-emerald-900/50 border-emerald-800/50' : 'bg-emerald-800/50 border-emerald-700/50'}`}
-                             value={viewingReq.reset_password || '******'}
+                             className={`w-full border px-6 py-6 rounded-2xl text-2xl font-mono font-black tracking-[0.3em] outline-none transition-all duration-300 ${
+                               isDarkMode 
+                                 ? 'bg-slate-900/50 border-emerald-500/20 text-white focus:border-emerald-500/50' 
+                                 : 'bg-white border-emerald-200 text-emerald-900 focus:border-emerald-400'
+                             }`}
+                             value={showDetailPassword ? (viewingReq.reset_password || '') : '••••••••'}
                           />
-                          <button 
-                             onClick={() => setShowDetailPassword(!showDetailPassword)}
-                             className="absolute right-5 top-1/2 -translate-y-1/2 text-emerald-300 hover:text-white transition-all"
-                          >
-                             <span className="material-symbols-outlined">{showDetailPassword ? 'visibility_off' : 'visibility'}</span>
-                          </button>
+                          <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                             <button 
+                                onClick={() => setShowDetailPassword(!showDetailPassword)}
+                                className={`p-2.5 rounded-xl transition-all ${
+                                  isDarkMode ? 'text-emerald-400 hover:bg-emerald-500/10' : 'text-emerald-600 hover:bg-emerald-100'
+                                }`}
+                                title={showDetailPassword ? "Sembunyikan" : "Tampilkan"}
+                             >
+                                <span className="material-symbols-outlined text-xl">{showDetailPassword ? 'visibility_off' : 'visibility'}</span>
+                             </button>
+                             <button 
+                                onClick={() => handleCopyPassword(viewingReq.reset_password || '')}
+                                className={`p-2.5 rounded-xl transition-all ${
+                                  isDarkMode ? 'text-emerald-400 hover:bg-emerald-500/10' : 'text-emerald-600 hover:bg-emerald-100'
+                                }`}
+                                title="Salin Password"
+                             >
+                                <span className="material-symbols-outlined text-xl">content_copy</span>
+                             </button>
+                          </div>
                        </div>
-                       <div className="flex items-center justify-between text-[9px] font-black text-emerald-300 uppercase tracking-widest">
-                          <span>Direset oleh: {viewingReq.reset_info?.by}</span>
-                          <span>Waktu: {viewingReq.updatedAt ? new Date(viewingReq.updatedAt).toLocaleDateString() : '-'}</span>
+
+                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2">
+                          <div className="flex items-center gap-3">
+                             <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isDarkMode ? 'bg-slate-800 text-slate-400' : 'bg-white border border-slate-100 text-slate-500'}`}>
+                                <span className="material-symbols-outlined text-sm">admin_panel_settings</span>
+                             </div>
+                             <div className="flex flex-col">
+                                <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Direset oleh</span>
+                                <span className={`text-[10px] font-black uppercase ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>{viewingReq.reset_info?.by || 'Sistem'}</span>
+                             </div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                             <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isDarkMode ? 'bg-slate-800 text-slate-400' : 'bg-white border border-slate-100 text-slate-500'}`}>
+                                <span className="material-symbols-outlined text-sm">schedule</span>
+                             </div>
+                             <div className="flex flex-col">
+                                <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Waktu Eksekusi</span>
+                                <span className={`text-[10px] font-black uppercase ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>
+                                   {viewingReq.updatedAt ? new Date(viewingReq.updatedAt).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' }) : '-'}
+                                </span>
+                             </div>
+                          </div>
                        </div>
                     </div>
                  )}
