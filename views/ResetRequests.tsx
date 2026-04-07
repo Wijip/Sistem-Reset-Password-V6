@@ -1212,8 +1212,14 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
 
       {/* MODAL IMPORT EXCEL */}
       {isImportModalOpen && (
-        <div className="fixed inset-0 z-[220] flex items-end md:items-center justify-center md:p-6 bg-slate-900/70 backdrop-blur-xl animate-in fade-in duration-300">
-          <div className={`rounded-t-[2.5rem] md:rounded-[2.5rem] w-full max-w-md shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom md:zoom-in-95 transition-colors duration-300 ${isDarkMode ? 'bg-slate-900 border border-slate-800' : 'bg-white'}`}>
+        <div 
+          onClick={() => setIsImportModalOpen(false)}
+          className="fixed inset-0 z-[220] flex items-end md:items-center justify-center md:p-6 bg-slate-900/70 backdrop-blur-xl animate-in fade-in duration-300"
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className={`rounded-t-[2.5rem] md:rounded-[2.5rem] w-full max-w-md shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom md:zoom-in-95 transition-colors duration-300 ${isDarkMode ? 'bg-slate-900 border border-slate-800' : 'bg-white'}`}
+          >
             <div className={`p-8 border-b flex items-center justify-between transition-colors duration-300 ${isDarkMode ? 'bg-slate-800/50 border-slate-800' : 'bg-emerald-50/30 border-emerald-100'}`}>
               <div className="flex items-center gap-4">
                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${isDarkMode ? 'bg-emerald-500/10 text-emerald-400' : 'bg-emerald-50 text-emerald-600'}`}>
@@ -1224,7 +1230,14 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
                     <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-2">Pilih file untuk diimport</p>
                  </div>
               </div>
-              <button onClick={() => setIsImportModalOpen(false)} className={`p-3 rounded-full transition-all ${isDarkMode ? 'text-slate-400 hover:bg-slate-800 hover:text-white' : 'text-slate-400 hover:bg-rose-50 hover:text-rose-500'}`}>
+              <button 
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsImportModalOpen(false);
+                }}
+                className={`p-3 rounded-full transition-all ${isDarkMode ? 'text-slate-400 hover:bg-slate-800 hover:text-white' : 'text-slate-400 hover:bg-rose-50 hover:text-rose-500'}`}
+              >
                 <span className="material-symbols-outlined">close</span>
               </button>
             </div>
@@ -1239,8 +1252,9 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
 
                <div className="flex flex-col gap-3">
                   <button 
-                    onClick={() => {
-                      setIsImportModalOpen(false);
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
                       fileInputRef.current?.click();
                     }}
                     className="w-full py-4 bg-emerald-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-900/20 active:scale-[0.97] flex items-center justify-center gap-2"
@@ -1249,7 +1263,11 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
                     PILIH FILE EXCEL
                   </button>
                   <button 
-                    onClick={downloadTemplate}
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      downloadTemplate();
+                    }}
                     className={`w-full py-4 border-2 rounded-2xl font-black text-xs uppercase tracking-widest transition-all active:scale-[0.97] flex items-center justify-center gap-2 ${
                       isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700' : 'bg-white border-slate-100 text-slate-600 hover:bg-slate-50'
                     }`}
