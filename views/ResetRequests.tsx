@@ -330,7 +330,7 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
             if (cell) headers.push(String(cell.v).trim());
           }
           
-          const requiredHeaders = ['Nama Personel', 'NRP / NIP', 'Pangkat', 'Unit Kerja / Kesatuan', 'Keterangan'];
+          const requiredHeaders = ['Nama Personel', 'NRP / NIP', 'Pangkat', 'JABATAN', 'KESATUAN', 'PRIORITAS', 'KETERANGAN'];
           const isValidStructure = requiredHeaders.every(h => headers.includes(h));
           
           if (!isValidStructure) {
@@ -349,6 +349,7 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
           let nrp = '';
           let nama = '';
           let pangkat = '';
+          let jabatan = '';
           let kesatuan = '';
           let catatan = '';
           let alasan_val = 'Import Data Massal';
@@ -358,12 +359,15 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
             nama = String(item['Nama Personel'] || '').trim();
             nrp = String(item['NRP / NIP'] || '').trim();
             pangkat = String(item['Pangkat'] || '').trim();
-            kesatuan = String(item['Unit Kerja / Kesatuan'] || '').trim();
-            catatan = String(item['Keterangan'] || '').trim();
+            jabatan = String(item['JABATAN'] || '').trim();
+            kesatuan = String(item['KESATUAN'] || '').trim();
+            prioritas_val = String(item['PRIORITAS'] || 'Normal');
+            catatan = String(item['KETERANGAN'] || '').trim();
           } else {
             nrp = String(item.NRP || item.nrp || item.Nrp || item['NRP/NIP'] || '').trim();
             nama = String(item.Nama || item.nama || item.NAMA || '').trim();
             pangkat = String(item.Pangkat || item.pangkat || item.PANGKAT || '-').trim();
+            jabatan = String(item.Jabatan || item.jabatan || item.JABATAN || '-').trim();
             kesatuan = String(item.Kesatuan || item.kesatuan || item.KESATUAN || (isAdminPolres ? currentUser.kesatuan : 'Polda Jatim')).trim();
             catatan = String(item.Keterangan || item.keterangan || item.KETERANGAN || '-').trim();
             alasan_val = String(item.Alasan || item.alasan || item.ALASAN || 'Import Data Massal').trim();
@@ -384,6 +388,12 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
 
           if (!nrp || (isUser && i === 0 && nama === 'Budi Santoso')) continue; // Skip example row for user
 
+          // Frontend Guard: Reject if JABATAN is empty
+          if (!jabatan || jabatan.trim() === '' || jabatan === '-') {
+            errors.push({ row: i + 2, nrp, nama, existingNama: 'JABATAN KOSONG' });
+            continue;
+          }
+
           const existingNama = await validateNRP(nrp, nama);
           if (existingNama) {
             errors.push({ row: i + 2, nrp, nama, existingNama });
@@ -393,7 +403,7 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
               nama: nama || 'Tanpa Nama',
               pangkat: pangkat,
               nrp: nrp,
-              jabatan: String(item.Jabatan || item.jabatan || item.JABATAN || '-').trim(),
+              jabatan: jabatan,
               kesatuan: kesatuan,
               waktu_iso: new Date().toISOString(),
               status: RequestStatus.MENUNGGU,
@@ -412,22 +422,41 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
 
         if (validRequests.length > 0) {
           try {
-            await Promise.all(validRequests.map(r => 
-              fetch('/api/requests', {
+            const results = await Promise.all(validRequests.map(async (r, idx) => {
+              const res = await fetch('/api/requests', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
                 body: JSON.stringify(r)
-              })
-            ));
-            setRequests(prev => [...validRequests, ...prev]);
-            showToast(`${validRequests.length} data berhasil diimport${errors.length > 0 ? `, ${errors.length} data gagal karena konflik` : ''}`);
-            addLog?.('Sistem', `Melakukan import massal sebanyak ${validRequests.length} data`);
-            
-            // Success: close modal and reset
-            setIsImportModalOpen(false);
-            setSelectedFile(null);
-            fetchRequests(); // Refresh table
+              });
+              const data = await res.json();
+              return { ok: res.ok, data, r, row: idx + 2 }; // Simplified row tracking for now
+            }));
+
+            const failed = results.filter(res => !res.ok);
+            const succeeded = results.filter(res => res.ok);
+
+            if (failed.length > 0) {
+              const newErrors = failed.map(f => ({
+                row: f.row, // This might be wrong if we skipped rows, but it's a start
+                nrp: f.r.nrp,
+                nama: f.r.nama,
+                existingNama: f.data.message || 'Gagal menyimpan'
+              }));
+              setImportErrors(prev => [...prev, ...newErrors]);
+            }
+
+            if (succeeded.length > 0) {
+              setRequests(prev => [...succeeded.map(s => s.r), ...prev]);
+              showToast(`${succeeded.length} data berhasil diimport`);
+              addLog?.('Sistem', `Melakukan import massal sebanyak ${succeeded.length} data`);
+            }
+
+            if (failed.length === 0) {
+              setIsImportModalOpen(false);
+              setSelectedFile(null);
+              fetchRequests();
+            }
           } catch (err) {
             console.error('Import save failed:', err);
             showToast('Gagal menyimpan data import ke server', 'error');

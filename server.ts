@@ -660,14 +660,16 @@ async function startServer() {
 
     if (req.user.role === 'user') {
       headers = [
-        ['Nama Personel', 'NRP / NIP', 'Pangkat', 'Unit Kerja / Kesatuan', 'Keterangan'],
-        ['Budi Santoso', '12345678', 'Brigadir', 'Polres Malang', 'Lupa password email polri']
+        ['Nama Personel', 'NRP / NIP', 'Pangkat', 'JABATAN', 'KESATUAN', 'PRIORITAS', 'KETERANGAN'],
+        ['Budi Santoso', '12345678', 'Briptu', 'Banum Subbag Renmin', req.user.kesatuan || '', 'Normal', 'Lupa password login aplikasi']
       ];
       wscols = [
         { wch: 30 },
         { wch: 20 },
         { wch: 20 },
         { wch: 30 },
+        { wch: 30 },
+        { wch: 20 },
         { wch: 40 }
       ];
       filename = 'template_reset_user.xlsx';
@@ -693,12 +695,23 @@ async function startServer() {
     if (req.user.role === 'user') {
       const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
       // Set format for the NRP column (index 1) for many rows to ensure text formatting
-      for (let R = 0; R <= 1000; R++) {
+      for (let R = 1; R <= 1000; R++) {
         const cell_ref = XLSX.utils.encode_cell({ c: 1, r: R });
         if (!ws[cell_ref]) ws[cell_ref] = { t: 's', v: '' };
         ws[cell_ref].t = 's'; // Type string
         ws[cell_ref].z = '@'; // Format text
       }
+
+      // Add Data Validation for PRIORITAS (Column F - index 5)
+      if (!ws['!dataValidation']) ws['!dataValidation'] = [];
+      ws['!dataValidation'].push({
+        sqref: 'F2:F1000',
+        type: 'list',
+        formula1: '"Normal,Penting,Mendesak"',
+        showErrorMessage: true,
+        errorTitle: 'Prioritas Tidak Valid',
+        error: 'Silakan pilih dari daftar: Normal, Penting, atau Mendesak'
+      });
     }
 
     const wb = XLSX.utils.book_new();
@@ -837,6 +850,14 @@ async function startServer() {
     
     // Enforce kesatuan for non-superadmins
     const finalKesatuan = req.user.role !== 'superadmin' ? req.user.kesatuan : (r.kesatuan || 'Polda Jatim');
+
+    // Backend Guard: Reject if JABATAN is empty
+    if (!r.jabatan || r.jabatan.trim() === '' || r.jabatan === '-') {
+      return res.status(400).json({ 
+        success: false, 
+        message: `Gagal: Kolom 'JABATAN' untuk personel ${r.nama} (${r.nrp}) tidak boleh kosong. Harap lengkapi data jabatan di file Excel Anda.` 
+      });
+    }
 
     try {
       const requestId = r.id || `REQ-${Math.floor(1000 + Math.random() * 9000)}`;
