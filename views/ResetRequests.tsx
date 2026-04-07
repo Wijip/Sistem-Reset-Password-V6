@@ -1250,10 +1250,19 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
                   </p>
                </div>
 
+               <input 
+                 type="file" 
+                 ref={fileInputRef} 
+                 className="hidden" 
+                 accept=".xlsx, .xls" 
+                 onChange={handleImportExcel} 
+               />
+
                <div className="flex flex-col gap-3">
                   <button 
                     type="button"
                     onClick={(e) => {
+                      e.preventDefault();
                       e.stopPropagation();
                       fileInputRef.current?.click();
                     }}
@@ -1265,6 +1274,7 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
                   <button 
                     type="button"
                     onClick={(e) => {
+                      e.preventDefault();
                       e.stopPropagation();
                       downloadTemplate();
                     }}
