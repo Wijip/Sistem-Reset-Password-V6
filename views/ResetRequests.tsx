@@ -158,13 +158,23 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
     subtitle: siteSettings.requestsSubtitle || 'PANTAU DAN EKSEKUSI PERMOHONAN AKSES PERSONEL'
   });
 
+  const [isExecutingReset, setIsExecutingReset] = useState(false);
+  const [isRejecting, setIsRejecting] = useState(false);
+  const [isSavingHeader, setIsSavingHeader] = useState(false);
+
   const handleSaveHeader = () => {
-    setSiteSettings(prev => ({
-      ...prev,
-      requestsTitle: headerForm.title,
-      requestsSubtitle: headerForm.subtitle
-    }));
-    setIsEditHeaderModalOpen(false);
+    setIsSavingHeader(true);
+    // Simulate a brief delay for UX
+    setTimeout(() => {
+      setSiteSettings(prev => ({
+        ...prev,
+        requestsTitle: headerForm.title,
+        requestsSubtitle: headerForm.subtitle
+      }));
+      setIsEditHeaderModalOpen(false);
+      setIsSavingHeader(false);
+      showToast('Judul halaman berhasil diperbarui', 'success');
+    }, 300);
   };
 
   const stats = useMemo(() => {
@@ -216,9 +226,13 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
     );
   };
 
+  const [isBulkProcessing, setIsBulkProcessing] = useState(false);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+
   const handleBulkDelete = async () => {
     if (selectedIds.length === 0) return;
     if (window.confirm(`Hapus ${selectedIds.length} permintaan terpilih?`)) {
+      setIsBulkDeleting(true);
       try {
         await Promise.all(selectedIds.map(id => fetch(`/api/requests/${id}`, { method: 'DELETE', credentials: 'include' })));
         setRequests(prev => prev.filter(r => !selectedIds.includes(r.id)));
@@ -228,12 +242,15 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
       } catch (error) {
         console.error('Bulk delete failed:', error);
         showToast('Gagal menghapus beberapa data dari server', 'error');
+      } finally {
+        setIsBulkDeleting(false);
       }
     }
   };
 
   const handleBulkProcess = async () => {
     if (selectedIds.length === 0) return;
+    setIsBulkProcessing(true);
     try {
       await Promise.all(selectedIds.map(id => {
         const req = requests.find(r => r.id === id);
@@ -259,6 +276,8 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
     } catch (error) {
       console.error('Bulk process failed:', error);
       showToast('Gagal memperbarui status ke server', 'error');
+    } finally {
+      setIsBulkProcessing(false);
     }
   };
 
@@ -483,6 +502,8 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
     reader.readAsBinaryString(selectedFile);
   };
 
+  const [isSubmittingManual, setIsSubmittingManual] = useState(false);
+
   const handleManualSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!manualForm.nama || !manualForm.nrp || !manualForm.kesatuan) {
@@ -497,6 +518,7 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
       return;
     }
 
+    setIsSubmittingManual(true);
     const prioritas_val = manualForm.prioritas === 'Prioritas Mendesak' ? RequestPriority.MENDESAK : RequestPriority.NORMAL;
 
     const newReq: ResetRequest = {
@@ -539,13 +561,18 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
     } catch (error) {
       console.error('Manual submit failed:', error);
       showToast('Gagal menyimpan data ke server', 'error');
+    } finally {
+      setIsSubmittingManual(false);
     }
   };
+
+  const [processingReqId, setProcessingReqId] = useState<string | null>(null);
 
   const handleStartProcess = async (reqId: string) => {
     const req = requests.find(r => r.id === reqId);
     if (!req) return;
 
+    setProcessingReqId(reqId);
     try {
       const res = await fetch(`/api/requests/${reqId}`, {
         method: 'PUT',
@@ -563,6 +590,8 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
     } catch (error) {
       console.error('Start process failed:', error);
       showToast('Gagal memperbarui status ke server', 'error');
+    } finally {
+      setProcessingReqId(null);
     }
   };
 
@@ -579,6 +608,7 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
       return;
     }
 
+    setIsRejecting(true);
     try {
       const updatedReq = {
         ...rejectingReq,
@@ -605,6 +635,8 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
     } catch (error) {
       console.error('Reject failed:', error);
       showToast('Gagal menolak permintaan', 'error');
+    } finally {
+      setIsRejecting(false);
     }
   };
 
@@ -621,6 +653,7 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
       return;
     }
     
+    setIsExecutingReset(true);
     try {
       const updatedReq = { 
         ...selectedReq, 
@@ -649,6 +682,8 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
     } catch (error) {
       console.error('Execute reset failed:', error);
       showToast('Gagal menyimpan hasil reset ke server', 'error');
+    } finally {
+      setIsExecutingReset(false);
     }
   };
 
@@ -878,19 +913,36 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
           <div className="flex items-center gap-3 w-full md:w-auto">
             <button 
               onClick={handleBulkProcess}
-              className="flex-1 md:flex-none px-8 py-4 bg-blue-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-700 transition-all active:scale-95 shadow-lg shadow-blue-900/20"
+              disabled={isBulkProcessing || isBulkDeleting}
+              className={`flex-1 md:flex-none px-8 py-4 bg-blue-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-700 transition-all active:scale-95 shadow-lg shadow-blue-900/20 flex items-center justify-center gap-2 ${isBulkProcessing ? 'opacity-70 cursor-not-allowed' : ''}`}
             >
-              Proses Massal
+              {isBulkProcessing ? (
+                <>
+                  <span className="material-symbols-outlined animate-spin text-sm">autorenew</span>
+                  Memproses...
+                </>
+              ) : (
+                'Proses Massal'
+              )}
             </button>
             <button 
               onClick={handleBulkDelete}
-              className="flex-1 md:flex-none px-8 py-4 bg-rose-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-rose-700 transition-all active:scale-95 shadow-lg shadow-rose-900/20"
+              disabled={isBulkDeleting || isBulkProcessing}
+              className={`flex-1 md:flex-none px-8 py-4 bg-rose-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-rose-700 transition-all active:scale-95 shadow-lg shadow-rose-900/20 flex items-center justify-center gap-2 ${isBulkDeleting ? 'opacity-70 cursor-not-allowed' : ''}`}
             >
-              Hapus Massal
+              {isBulkDeleting ? (
+                <>
+                  <span className="material-symbols-outlined animate-spin text-sm">autorenew</span>
+                  Menghapus...
+                </>
+              ) : (
+                'Hapus Massal'
+              )}
             </button>
             <button 
               onClick={() => setSelectedIds([])}
-              className={`flex-1 md:flex-none px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 ${isDarkMode ? 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white' : 'bg-white text-slate-500 hover:bg-slate-100 hover:text-slate-900 border border-slate-200'}`}
+              disabled={isBulkProcessing || isBulkDeleting}
+              className={`flex-1 md:flex-none px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 ${isDarkMode ? 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white' : 'bg-white text-slate-500 hover:bg-slate-100 hover:text-slate-900 border border-slate-200'} disabled:opacity-50 disabled:cursor-not-allowed`}
             >
               Batal
             </button>
@@ -1012,10 +1064,15 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
                                   <>
                                     <button 
                                       onClick={() => handleStartProcess(req.id)}
-                                      className={`w-9 h-9 rounded-xl flex items-center justify-center text-blue-500 transition-all ${isDarkMode ? 'hover:bg-blue-500/20' : 'hover:bg-white hover:shadow-sm'}`}
+                                      disabled={processingReqId === req.id}
+                                      className={`w-9 h-9 rounded-xl flex items-center justify-center text-blue-500 transition-all ${isDarkMode ? 'hover:bg-blue-500/20' : 'hover:bg-white hover:shadow-sm'} ${processingReqId === req.id ? 'opacity-50 cursor-not-allowed' : ''}`}
                                       title="Mulai Proses"
                                     >
-                                      <span className="material-symbols-outlined text-xl">play_arrow</span>
+                                      {processingReqId === req.id ? (
+                                        <span className="material-symbols-outlined animate-spin text-xl">autorenew</span>
+                                      ) : (
+                                        <span className="material-symbols-outlined text-xl">play_arrow</span>
+                                      )}
                                     </button>
                                     <button 
                                       onClick={() => { setRejectingReq(req); setRejectionReason(''); }}
@@ -1106,9 +1163,14 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
                   {(isSuperAdmin || isAdminPolres) && req.status === RequestStatus.MENUNGGU && (
                     <button 
                       onClick={() => handleStartProcess(req.id)}
-                      className="flex items-center justify-center w-[44px] h-[44px] bg-blue-600 text-white rounded-xl transition-all"
+                      disabled={processingReqId === req.id}
+                      className={`flex items-center justify-center w-[44px] h-[44px] bg-blue-600 text-white rounded-xl transition-all ${processingReqId === req.id ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
-                      <span className="material-symbols-outlined">play_arrow</span>
+                      {processingReqId === req.id ? (
+                        <span className="material-symbols-outlined animate-spin">autorenew</span>
+                      ) : (
+                        <span className="material-symbols-outlined">play_arrow</span>
+                      )}
                     </button>
                   )}
                   
@@ -1510,9 +1572,17 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
                  <div className="flex gap-4">
                     <button 
                       onClick={handleReject}
-                      className="flex-1 py-5 bg-rose-600 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-rose-700 transition-all shadow-xl shadow-rose-900/20"
+                      disabled={isRejecting}
+                      className={`flex-1 py-5 bg-rose-600 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-rose-700 transition-all shadow-xl shadow-rose-900/20 flex items-center justify-center gap-2 ${isRejecting ? 'opacity-70 cursor-not-allowed' : ''}`}
                     >
-                      Konfirmasi Tolak
+                      {isRejecting ? (
+                        <>
+                          <span className="material-symbols-outlined animate-spin text-sm">autorenew</span>
+                          Memproses...
+                        </>
+                      ) : (
+                        'Konfirmasi Tolak'
+                      )}
                     </button>
                     <button 
                       onClick={() => setRejectingReq(null)}
@@ -1845,9 +1915,17 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
                   </button>
                   <button 
                     type="submit"
-                    className="px-10 py-4 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-blue-700 shadow-2xl shadow-blue-200/20 transition-all active:scale-95"
+                    disabled={isSubmittingManual}
+                    className={`px-10 py-4 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-blue-700 shadow-2xl shadow-blue-200/20 transition-all active:scale-95 flex items-center gap-2 ${isSubmittingManual ? 'opacity-70 cursor-not-allowed' : ''}`}
                   >
-                    Kirim Pengajuan
+                    {isSubmittingManual ? (
+                      <>
+                        <span className="material-symbols-outlined animate-spin text-sm">autorenew</span>
+                        Memproses...
+                      </>
+                    ) : (
+                      'Kirim Pengajuan'
+                    )}
                   </button>
                </div>
             </form>
@@ -1967,10 +2045,20 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
                 {!showWeakWarning && (
                   <button 
                     onClick={() => executeReset(false)}
-                    className="px-10 py-4 bg-emerald-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-emerald-700 shadow-2xl shadow-emerald-200/20 transition-all active:scale-95 flex items-center gap-2"
+                    disabled={isExecutingReset}
+                    className={`px-10 py-4 bg-emerald-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-emerald-700 shadow-2xl shadow-emerald-200/20 transition-all active:scale-95 flex items-center gap-2 ${isExecutingReset ? 'opacity-70 cursor-not-allowed' : ''}`}
                   >
-                    <span className="material-symbols-outlined text-xl">send</span>
-                    Selesaikan Reset
+                    {isExecutingReset ? (
+                      <>
+                        <span className="material-symbols-outlined animate-spin text-xl">autorenew</span>
+                        Memproses...
+                      </>
+                    ) : (
+                      <>
+                        <span className="material-symbols-outlined text-xl">send</span>
+                        Selesaikan Reset
+                      </>
+                    )}
                   </button>
                 )}
               </div>
@@ -2010,9 +2098,17 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
               </div>
               <button 
                 onClick={handleSaveHeader}
-                className="w-full py-5 bg-sky-600 text-white rounded-2xl font-black uppercase tracking-widest hover:bg-sky-700 transition-all shadow-xl shadow-sky-900/20"
+                disabled={isSavingHeader}
+                className={`w-full py-5 bg-sky-600 text-white rounded-2xl font-black uppercase tracking-widest hover:bg-sky-700 transition-all shadow-xl shadow-sky-900/20 flex items-center justify-center gap-2 ${isSavingHeader ? 'opacity-70 cursor-not-allowed' : ''}`}
               >
-                Simpan Perubahan
+                {isSavingHeader ? (
+                  <>
+                    <span className="material-symbols-outlined animate-spin text-sm">autorenew</span>
+                    Memproses...
+                  </>
+                ) : (
+                  'Simpan Perubahan'
+                )}
               </button>
             </div>
           </div>
