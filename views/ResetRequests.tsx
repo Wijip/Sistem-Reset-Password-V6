@@ -119,6 +119,7 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
     nrp: '',
     jabatan: '',
     kesatuan: !isSuperAdmin ? currentUser.kesatuan : '',
+    prioritas: 'Bukan Prioritas',
     catatan: ''
   });
 
@@ -496,6 +497,8 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
       return;
     }
 
+    const prioritas_val = manualForm.prioritas === 'Prioritas Mendesak' ? RequestPriority.MENDESAK : RequestPriority.NORMAL;
+
     const newReq: ResetRequest = {
       id: `REQ-MAN-${Math.floor(1000 + Math.random() * 8999)}`,
       nama: manualForm.nama.trim(),
@@ -503,6 +506,7 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
       nrp: manualForm.nrp.trim(),
       jabatan: manualForm.jabatan.trim(),
       kesatuan: manualForm.kesatuan.trim(),
+      prioritas: prioritas_val,
       catatan: manualForm.catatan.trim(),
       waktu_iso: new Date().toISOString(),
       status: RequestStatus.MENUNGGU,
@@ -529,6 +533,7 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
         nrp: '',
         jabatan: '',
         kesatuan: !isSuperAdmin ? currentUser.kesatuan : '',
+        prioritas: 'Bukan Prioritas',
         catatan: ''
       });
     } catch (error) {
@@ -1808,6 +1813,18 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
                     required
                   />
                   {!isSuperAdmin && <p className="text-[9px] font-bold text-blue-500 uppercase mt-2 italic px-1">* Terkunci: Hanya untuk unit {currentUser.kesatuan}</p>}
+               </div>
+               <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Prioritas</label>
+                  <select
+                    className={`w-full px-6 py-4 border rounded-2xl text-sm font-bold transition-all outline-none appearance-none ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white focus:border-blue-500' : 'bg-white border-slate-200 focus:border-blue-500'}`}
+                    value={manualForm.prioritas}
+                    onChange={(e) => setManualForm({...manualForm, prioritas: e.target.value})}
+                    required
+                  >
+                    <option value="Bukan Prioritas">Bukan Prioritas</option>
+                    <option value="Prioritas Mendesak">Prioritas Mendesak</option>
+                  </select>
                </div>
                <div className="space-y-2">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Keterangan / Catatan</label>
