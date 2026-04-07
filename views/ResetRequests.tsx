@@ -109,6 +109,8 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
   // State untuk Input Manual
   const [isManualModalOpen, setIsManualModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
   const [nrpConflict, setNrpConflict] = useState<{ nrp: string, existingNama: string } | null>(null);
   const [importErrors, setImportErrors] = useState<{ row: number, nrp: string, nama: string, existingNama: string }[]>([]);
   const [manualForm, setManualForm] = useState({
@@ -282,17 +284,35 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
     window.location.href = '/api/download-template';
   };
 
-  const handleImportExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    // Validate extension
+    const ext = file.name.split('.').pop()?.toLowerCase();
+    if (ext !== 'xlsx' && ext !== 'xls') {
+      showToast('Format file tidak valid. Gunakan .xlsx atau .xls', 'error');
+      e.target.value = '';
+      return;
+    }
+
+    setSelectedFile(file);
+    e.target.value = '';
+  };
+
+  const handleUploadExcel = async () => {
+    if (!selectedFile) return;
+    setIsImporting(true);
 
     const reader = new FileReader();
     reader.onload = async (event) => {
       try {
         const bstr = event.target?.result;
+        // cellText: true ensures we get the formatted text
         const wb = XLSX.read(bstr, { type: 'binary', cellText: true, cellDates: true });
         const wsname = wb.SheetNames[0];
         const ws = wb.Sheets[wsname];
+        // raw: false ensures we get the string representation of the cell
         const data = XLSX.utils.sheet_to_json(ws, { raw: false, defval: '' }) as any[];
 
         // Validate structure for User role
@@ -308,7 +328,8 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
           const isValidStructure = requiredHeaders.every(h => headers.includes(h));
           
           if (!isValidStructure) {
-            showToast('Format Excel tidak valid. Harap gunakan template terbaru yang disediakan oleh sistem.', 'error');
+            showToast('Format Excel tidak valid. Harap gunakan template terbaru.', 'error');
+            setIsImporting(false);
             return;
           }
         }
@@ -396,6 +417,11 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
             setRequests(prev => [...validRequests, ...prev]);
             showToast(`${validRequests.length} data berhasil diimport${errors.length > 0 ? `, ${errors.length} data gagal karena konflik` : ''}`);
             addLog?.('Sistem', `Melakukan import massal sebanyak ${validRequests.length} data`);
+            
+            // Success: close modal and reset
+            setIsImportModalOpen(false);
+            setSelectedFile(null);
+            fetchRequests(); // Refresh table
           } catch (err) {
             console.error('Import save failed:', err);
             showToast('Gagal menyimpan data import ke server', 'error');
@@ -406,10 +432,11 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
       } catch (err) {
         console.error('Excel processing error:', err);
         showToast('Gagal memproses file Excel', 'error');
+      } finally {
+        setIsImporting(false);
       }
     };
-    reader.readAsBinaryString(file);
-    e.target.value = ''; // Reset input
+    reader.readAsBinaryString(selectedFile);
   };
 
   const handleManualSubmit = async (e: React.FormEvent) => {
@@ -1255,22 +1282,88 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
                  ref={fileInputRef} 
                  className="hidden" 
                  accept=".xlsx, .xls" 
-                 onChange={handleImportExcel} 
+                 onChange={onFileChange} 
                />
 
+               <div className="space-y-4">
+                  {selectedFile ? (
+                    <div className={`p-4 rounded-2xl border flex items-center justify-between animate-in zoom-in-95 duration-300 ${isDarkMode ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-emerald-50 border-emerald-100'}`}>
+                       <div className="flex items-center gap-3 overflow-hidden">
+                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${isDarkMode ? 'bg-emerald-500/20 text-emerald-400' : 'bg-emerald-100 text-emerald-600'}`}>
+                             <span className="material-symbols-outlined">description</span>
+                          </div>
+                          <div className="overflow-hidden">
+                             <p className={`text-xs font-black truncate ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>{selectedFile.name}</p>
+                             <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">File Terpilih</p>
+                          </div>
+                       </div>
+                       <div className="flex items-center gap-2">
+                          <span className="material-symbols-outlined text-emerald-500 animate-in fade-in duration-500">check_circle</span>
+                          <button 
+                            onClick={() => setSelectedFile(null)}
+                            className="p-1.5 rounded-lg hover:bg-rose-500/10 text-slate-400 hover:text-rose-500 transition-colors"
+                          >
+                             <span className="material-symbols-outlined text-lg">close</span>
+                          </button>
+                       </div>
+                    </div>
+                  ) : (
+                    <div className={`p-8 border-2 border-dashed rounded-[2rem] flex flex-col items-center justify-center gap-3 transition-colors ${isDarkMode ? 'border-slate-800 bg-slate-800/20' : 'border-slate-100 bg-slate-50/50'}`}>
+                       <span className="material-symbols-outlined text-4xl text-slate-300">cloud_upload</span>
+                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Belum ada file terpilih</p>
+                    </div>
+                  )}
+
+                  <div className="flex flex-col gap-3">
+                     <button 
+                       type="button"
+                       onClick={(e) => {
+                         e.preventDefault();
+                         e.stopPropagation();
+                         fileInputRef.current?.click();
+                       }}
+                       className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all active:scale-[0.97] flex items-center justify-center gap-2 ${
+                         selectedFile 
+                           ? (isDarkMode ? 'bg-slate-800 text-white hover:bg-slate-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200')
+                           : 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-lg shadow-emerald-900/20'
+                       }`}
+                     >
+                       <span className="material-symbols-outlined text-lg">{selectedFile ? 'sync' : 'file_open'}</span>
+                       {selectedFile ? 'GANTI FILE' : 'PILIH FILE EXCEL'}
+                     </button>
+
+                     {selectedFile && (
+                       <button 
+                         type="button"
+                         disabled={isImporting}
+                         onClick={(e) => {
+                           e.preventDefault();
+                           e.stopPropagation();
+                           handleUploadExcel();
+                         }}
+                         className="w-full py-4 bg-emerald-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-900/20 active:scale-[0.97] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                       >
+                         {isImporting ? (
+                           <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                         ) : (
+                           <span className="material-symbols-outlined text-lg">publish</span>
+                         )}
+                         {isImporting ? 'MEMPROSES...' : 'UNGGAH DATA SEKARANG'}
+                       </button>
+                     )}
+                  </div>
+               </div>
+
+               <div className="relative py-2">
+                  <div className={`absolute inset-0 flex items-center ${isDarkMode ? 'opacity-20' : 'opacity-10'}`}>
+                     <div className="w-full border-t border-slate-400"></div>
+                  </div>
+                  <div className="relative flex justify-center">
+                     <span className={`px-4 text-[9px] font-black uppercase tracking-[0.3em] ${isDarkMode ? 'bg-slate-900 text-slate-500' : 'bg-white text-slate-400'}`}>Atau</span>
+                  </div>
+               </div>
+
                <div className="flex flex-col gap-3">
-                  <button 
-                    type="button"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      fileInputRef.current?.click();
-                    }}
-                    className="w-full py-4 bg-emerald-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-900/20 active:scale-[0.97] flex items-center justify-center gap-2"
-                  >
-                    <span className="material-symbols-outlined text-lg">file_open</span>
-                    PILIH FILE EXCEL
-                  </button>
                   <button 
                     type="button"
                     onClick={(e) => {
