@@ -360,8 +360,16 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
             nrp = String(item['NRP / NIP'] || '').trim();
             pangkat = String(item['Pangkat'] || '').trim();
             jabatan = String(item['JABATAN'] || '').trim();
-            kesatuan = String(item['KESATUAN'] || '').trim();
-            prioritas_val = String(item['PRIORITAS'] || 'Normal');
+            // Assume user's kesatuan if empty as backup logic
+            kesatuan = String(item['KESATUAN'] || currentUser.kesatuan || '').trim();
+            
+            const rawPrioritas = String(item['PRIORITAS'] || 'Bukan Prioritas').trim();
+            if (rawPrioritas === 'Prioritas Mendesak') {
+              prioritas_val = 'Mendesak';
+            } else {
+              prioritas_val = 'Normal';
+            }
+            
             catatan = String(item['KETERANGAN'] || '').trim();
           } else {
             nrp = String(item.NRP || item.nrp || item.Nrp || item['NRP/NIP'] || '').trim();

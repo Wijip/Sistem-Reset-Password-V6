@@ -659,10 +659,17 @@ async function startServer() {
     let filename: string;
 
     if (req.user.role === 'user') {
+      const userKesatuan = req.user.kesatuan || '';
       headers = [
         ['Nama Personel', 'NRP / NIP', 'Pangkat', 'JABATAN', 'KESATUAN', 'PRIORITAS', 'KETERANGAN'],
-        ['Budi Santoso', '12345678', 'Briptu', 'Banum Subbag Renmin', req.user.kesatuan || '', 'Normal', 'Lupa password login aplikasi']
+        ['Budi Santoso', '12345678', 'Briptu', 'Banum Subbag Renmin', userKesatuan, 'Bukan Prioritas', 'Lupa password login aplikasi']
       ];
+
+      // Add more rows with pre-filled Kesatuan to guide the user
+      for (let i = 0; i < 50; i++) {
+        headers.push(['', '', '', '', userKesatuan, 'Bukan Prioritas', '']);
+      }
+
       wscols = [
         { wch: 30 },
         { wch: 20 },
@@ -672,7 +679,7 @@ async function startServer() {
         { wch: 20 },
         { wch: 40 }
       ];
-      filename = 'template_reset_user.xlsx';
+      filename = `template_reset_${userKesatuan.replace(/\s+/g, '_').toLowerCase()}.xlsx`;
     } else {
       headers = [
         ['No', 'Waktu Request', 'Personel (Nama/NRP)', 'Kesatuan', 'Status', 'Prioritas']
@@ -707,10 +714,10 @@ async function startServer() {
       ws['!dataValidation'].push({
         sqref: 'F2:F1000',
         type: 'list',
-        formula1: '"Normal,Penting,Mendesak"',
+        formula1: '"Bukan Prioritas,Prioritas Mendesak"',
         showErrorMessage: true,
         errorTitle: 'Prioritas Tidak Valid',
-        error: 'Silakan pilih dari daftar: Normal, Penting, atau Mendesak'
+        error: 'Silakan pilih dari daftar: Bukan Prioritas atau Prioritas Mendesak'
       });
     }
 
@@ -851,6 +858,19 @@ async function startServer() {
     // Enforce kesatuan for non-superadmins
     const finalKesatuan = req.user.role !== 'superadmin' ? req.user.kesatuan : (r.kesatuan || 'Polda Jatim');
 
+    // Backend Guard: Reject if KESATUAN doesn't match user's kesatuan (for non-superadmins)
+    if (req.user.role !== 'superadmin') {
+      const inputKesatuan = String(r.kesatuan || '').trim().toLowerCase();
+      const userKesatuan = String(req.user.kesatuan || '').trim().toLowerCase();
+      
+      if (inputKesatuan !== userKesatuan) {
+        return res.status(403).json({ 
+          success: false, 
+          message: `Gagal: Anda hanya diizinkan mengunggah data untuk wilayah [${req.user.kesatuan}]. Data wilayah [${r.kesatuan}] ditolak.` 
+        });
+      }
+    }
+
     // Backend Guard: Reject if JABATAN is empty
     if (!r.jabatan || r.jabatan.trim() === '' || r.jabatan === '-') {
       return res.status(400).json({ 
@@ -863,7 +883,12 @@ async function startServer() {
       const requestId = r.id || `REQ-${Math.floor(1000 + Math.random() * 9000)}`;
       const waktuIso = r.waktu_iso || new Date().toISOString();
       const status = r.status || 'MENUNGGU';
-      const prioritas = r.prioritas || 'Normal';
+      
+      let prioritas = r.prioritas || 'Normal';
+      // Map Excel values if sent raw
+      if (prioritas === 'Bukan Prioritas') prioritas = 'Normal';
+      if (prioritas === 'Prioritas Mendesak') prioritas = 'Mendesak';
+      
       const createdAt = r.createdAt ? parseInt(r.createdAt) : Date.now();
 
       await pool.query(`
