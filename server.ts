@@ -12,6 +12,7 @@ import bcrypt from 'bcryptjs';
 import session from 'express-session';
 import cookieParser from 'cookie-parser';
 import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 
 import jwt from 'jsonwebtoken';
 import nodemailer from 'nodemailer';
@@ -653,82 +654,85 @@ async function startServer() {
     });
   });
 
-  app.get('/api/download-template', isAdmin, (req: any, res: any) => {
-    let headers: string[][];
-    let wscols: any[];
-    let filename: string;
+  app.get('/api/download-template', isAdmin, async (req: any, res: any) => {
+    try {
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('Template Import');
+      let filename: string;
 
-    if (req.user.role === 'user') {
-      const userKesatuan = req.user.kesatuan || '';
-      headers = [
-        ['Nama Personel', 'NRP / NIP', 'Pangkat', 'JABATAN', 'KESATUAN', 'PRIORITAS', 'KETERANGAN'],
-        ['Budi Santoso', '12345678', 'Briptu', 'Banum Subbag Renmin', userKesatuan, 'Bukan Prioritas', 'Lupa password login aplikasi']
-      ];
+      if (req.user.role === 'user') {
+        const userKesatuan = req.user.kesatuan || '';
+        
+        // Define columns
+        worksheet.columns = [
+          { header: 'Nama Personel', key: 'nama', width: 30 },
+          { header: 'NRP / NIP', key: 'nrp', width: 20 },
+          { header: 'Pangkat', key: 'pangkat', width: 20 },
+          { header: 'JABATAN', key: 'jabatan', width: 30 },
+          { header: 'KESATUAN', key: 'kesatuan', width: 30 },
+          { header: 'PRIORITAS', key: 'prioritas', width: 20 },
+          { header: 'KETERANGAN', key: 'keterangan', width: 40 }
+        ];
 
-      // Add more rows with pre-filled Kesatuan to guide the user
-      for (let i = 0; i < 50; i++) {
-        headers.push(['', '', '', '', userKesatuan, 'Bukan Prioritas', '']);
+        // Add first example row
+        worksheet.addRow({
+          nama: 'Budi Santoso',
+          nrp: '12345678',
+          pangkat: 'Briptu',
+          jabatan: 'Banum Subbag Renmin',
+          kesatuan: userKesatuan,
+          prioritas: 'Bukan Prioritas',
+          keterangan: 'Lupa password login aplikasi'
+        });
+
+        // Add 50 empty rows with pre-filled KESATUAN and PRIORITAS
+        for (let i = 0; i < 50; i++) {
+          worksheet.addRow({
+            kesatuan: userKesatuan,
+            prioritas: 'Bukan Prioritas'
+          });
+        }
+
+        // Apply formatting and data validation
+        for (let i = 2; i <= 1000; i++) {
+          // Force NRP column to be text
+          const nrpCell = worksheet.getCell(`B${i}`);
+          nrpCell.numFmt = '@';
+
+          // Add Data Validation for PRIORITAS (Column F)
+          const prioritasCell = worksheet.getCell(`F${i}`);
+          prioritasCell.dataValidation = {
+            type: 'list',
+            allowBlank: true,
+            formulae: ['"Bukan Prioritas,Prioritas Mendesak"'],
+            showErrorMessage: true,
+            errorTitle: 'Prioritas Tidak Valid',
+            error: 'Silakan pilih dari daftar: Bukan Prioritas atau Prioritas Mendesak'
+          };
+        }
+
+        filename = `template_reset_${userKesatuan.replace(/\s+/g, '_').toLowerCase()}.xlsx`;
+      } else {
+        worksheet.columns = [
+          { header: 'No', key: 'no', width: 5 },
+          { header: 'Waktu Request', key: 'waktu', width: 25 },
+          { header: 'Personel (Nama/NRP)', key: 'personel', width: 35 },
+          { header: 'Kesatuan', key: 'kesatuan', width: 25 },
+          { header: 'Status', key: 'status', width: 15 },
+          { header: 'Prioritas', key: 'prioritas', width: 15 }
+        ];
+        filename = 'template_reset_password.xlsx';
       }
 
-      wscols = [
-        { wch: 30 },
-        { wch: 20 },
-        { wch: 20 },
-        { wch: 30 },
-        { wch: 30 },
-        { wch: 20 },
-        { wch: 40 }
-      ];
-      filename = `template_reset_${userKesatuan.replace(/\s+/g, '_').toLowerCase()}.xlsx`;
-    } else {
-      headers = [
-        ['No', 'Waktu Request', 'Personel (Nama/NRP)', 'Kesatuan', 'Status', 'Prioritas']
-      ];
-      wscols = [
-        { wch: 5 },
-        { wch: 25 },
-        { wch: 35 },
-        { wch: 25 },
-        { wch: 15 },
-        { wch: 15 }
-      ];
-      filename = 'template_reset_password.xlsx';
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
+      
+      await workbook.xlsx.write(res);
+      res.end();
+    } catch (error) {
+      console.error('Error generating template:', error);
+      res.status(500).send('Gagal membuat template Excel');
     }
-    
-    const ws = XLSX.utils.aoa_to_sheet(headers);
-    ws['!cols'] = wscols;
-
-    // Force NRP column to be text format for User role
-    if (req.user.role === 'user') {
-      const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
-      // Set format for the NRP column (index 1) for many rows to ensure text formatting
-      for (let R = 1; R <= 1000; R++) {
-        const cell_ref = XLSX.utils.encode_cell({ c: 1, r: R });
-        if (!ws[cell_ref]) ws[cell_ref] = { t: 's', v: '' };
-        ws[cell_ref].t = 's'; // Type string
-        ws[cell_ref].z = '@'; // Format text
-      }
-
-      // Add Data Validation for PRIORITAS (Column F - index 5)
-      if (!ws['!dataValidation']) ws['!dataValidation'] = [];
-      ws['!dataValidation'].push({
-        sqref: 'F2:F1000',
-        type: 'list',
-        formula1: '"Bukan Prioritas,Prioritas Mendesak"',
-        showErrorMessage: true,
-        errorTitle: 'Prioritas Tidak Valid',
-        error: 'Silakan pilih dari daftar: Bukan Prioritas atau Prioritas Mendesak'
-      });
-    }
-
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Template Import");
-    
-    const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
-    
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
-    res.send(buffer);
   });
 
   app.get('/api/export-data', isAdmin, async (req: any, res: any) => {
