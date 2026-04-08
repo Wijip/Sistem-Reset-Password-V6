@@ -1055,7 +1055,10 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
                         <div className="flex items-center justify-center gap-2">
                           <div className={`flex items-center gap-1 p-1 rounded-2xl border ${isDarkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
                             <button 
-                              onClick={() => { setViewingReq(req); setShowDetailPassword(false); }}
+                              onClick={() => { 
+                                setViewingReq(req); 
+                                setShowDetailPassword((isSuperAdmin || isAdminPolres) && req.status === RequestStatus.SELESAI); 
+                              }}
                               className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all ${isDarkMode ? 'text-slate-400 hover:bg-slate-800 hover:text-white' : 'text-slate-400 hover:bg-white hover:text-slate-900 hover:shadow-sm'}`}
                               title="Detail"
                             >
@@ -1157,7 +1160,10 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
 
                 <div className="flex gap-2">
                   <button 
-                    onClick={() => { setViewingReq(req); setShowDetailPassword(false); }}
+                    onClick={() => { 
+                      setViewingReq(req); 
+                      setShowDetailPassword((isSuperAdmin || isAdminPolres) && req.status === RequestStatus.SELESAI); 
+                    }}
                     className={`flex-1 flex items-center justify-center gap-2 h-[44px] rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${isDarkMode ? 'bg-slate-800 text-white hover:bg-slate-700' : 'bg-slate-100 text-slate-900 hover:bg-slate-200'}`}
                   >
                     <span className="material-symbols-outlined text-lg">visibility</span>
@@ -1669,7 +1675,11 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
                                 type="text" 
                                 readOnly 
                                 className={`bg-transparent border-none p-0 text-sm font-bold outline-none flex-1 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}
-                                value={showDetailPassword ? (viewingReq.reset_password || '') : '••••••••'}
+                                value={showDetailPassword 
+                                   ? ((viewingReq.reset_password && !viewingReq.reset_password.startsWith('$2b$')) 
+                                       ? viewingReq.reset_password 
+                                       : 'PASSWORD TIDAK TERSEDIA (HASHED)') 
+                                   : '••••••••'}
                              />
                              <div className="flex items-center gap-2 ml-4">
                                 <button 
@@ -1678,7 +1688,7 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
                                    className={`p-2 rounded-xl transition-all ${isDarkMode ? 'text-slate-400 hover:bg-slate-700' : 'text-slate-500 hover:bg-slate-200'}`}
                                    title={showDetailPassword ? "Sembunyikan" : "Tampilkan"}
                                 >
-                                   <span className="material-symbols-outlined text-lg">{showDetailPassword ? 'visibility_off' : 'visibility'}</span>
+                                   <span className="material-symbols-outlined text-lg">{showDetailPassword ? 'visibility' : 'visibility_off'}</span>
                                 </button>
                                 <button 
                                    type="button"
