@@ -1061,7 +1061,7 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
                             <button 
                               onClick={() => { 
                                 setViewingReq(req); 
-                                setShowDetailPassword((isSuperAdmin || isAdminPolres || (isUser && String(currentUser.nrp).trim() === String(req.nrp).trim())) && req.status === RequestStatus.SELESAI); 
+                                setShowDetailPassword((isSuperAdmin || isAdminPolres) && req.status === RequestStatus.SELESAI); 
                               }}
                               className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all ${isDarkMode ? 'text-slate-400 hover:bg-slate-800 hover:text-white' : 'text-slate-400 hover:bg-white hover:text-slate-900 hover:shadow-sm'}`}
                               title="Detail"
@@ -1671,7 +1671,7 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
                        <p className={`text-sm font-bold italic leading-relaxed ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>"{viewingReq.catatan || 'Tidak ada catatan tambahan yang dilampirkan.'}"</p>
                     </div>
 
-                    {viewingReq.status === RequestStatus.SELESAI && (isSuperAdmin || isAdminPolres || (isUser && String(currentUser.nrp).trim() === String(viewingReq.nrp).trim())) && (
+                    {(viewingReq.status === RequestStatus.SELESAI || String(viewingReq.status).toUpperCase() === 'SELESAI') && (
                        <div className={`p-6 rounded-2xl space-y-3 transition-colors duration-300 ${isDarkMode ? 'bg-slate-800' : 'bg-slate-50'}`}>
                           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">PASSWORD BARU</p>
                           <div className="relative flex items-center justify-between">

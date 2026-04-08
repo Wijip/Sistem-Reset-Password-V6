@@ -363,22 +363,47 @@ const UserDashboard: React.FC<UserDashboardProps> = ({
                   </div>
                 </div>
 
-                {selectedDetail.status === RequestStatus.SELESAI && (
-                  <div className={`p-5 md:p-6 border rounded-2xl space-y-3 ${isDarkMode ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-emerald-50 border-emerald-100'}`}>
-                    <div className={`flex items-center gap-2 ${isDarkMode ? 'text-emerald-400' : 'text-emerald-700'}`}>
-                       <span className="material-symbols-outlined text-xl">key</span>
-                       <p className="text-[10px] font-black uppercase tracking-widest">Password Baru Anda</p>
-                    </div>
-                    <div className="relative">
+                {(selectedDetail.status === RequestStatus.SELESAI || String(selectedDetail.status).toUpperCase() === 'SELESAI') && (
+                  <div className={`p-6 rounded-2xl space-y-3 transition-colors duration-300 ${isDarkMode ? 'bg-slate-800' : 'bg-slate-50'}`}>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">PASSWORD BARU</p>
+                    <div className="relative flex items-center justify-between">
                       <input 
-                        type={showPasswordInDetail ? "text" : "password"} 
-                        readOnly
-                        className={`w-full h-[52px] border px-5 rounded-xl text-lg font-mono font-black tracking-widest transition-colors ${isDarkMode ? 'bg-slate-800 border-slate-700 text-emerald-400' : 'bg-white border-emerald-200 text-emerald-800'}`}
-                        value={selectedDetail.reset_password || ''}
+                        type="text" 
+                        readOnly 
+                        className={`bg-transparent border-none p-0 text-sm font-bold outline-none flex-1 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}
+                        value={showPasswordInDetail 
+                          ? (selectedDetail.reset_password && !selectedDetail.reset_password.startsWith('$2b$') 
+                              ? selectedDetail.reset_password 
+                              : (selectedDetail.reset_password?.startsWith('$2b$') ? 'DATA TERENKRIPSI' : '')) 
+                          : '••••••••'}
                       />
-                      <button onClick={() => setShowPasswordInDetail(!showPasswordInDetail)} className="absolute right-4 top-1/2 -translate-y-1/2 text-emerald-400">
-                        <span className="material-symbols-outlined">{showPasswordInDetail ? 'visibility_off' : 'visibility'}</span>
-                      </button>
+                      <div className="flex items-center gap-2 ml-4">
+                        <button 
+                          type="button"
+                          onClick={() => setShowPasswordInDetail(!showPasswordInDetail)}
+                          className={`p-2 rounded-xl transition-all ${isDarkMode ? 'text-slate-400 hover:bg-slate-700' : 'text-slate-500 hover:bg-slate-200'}`}
+                          title={showPasswordInDetail ? "Sembunyikan" : "Tampilkan"}
+                        >
+                          <span className="material-symbols-outlined text-lg">{showPasswordInDetail ? 'visibility' : 'visibility_off'}</span>
+                        </button>
+                        <button 
+                          type="button"
+                          onClick={() => {
+                            if (selectedDetail.reset_password) {
+                              if (selectedDetail.reset_password.startsWith('$2b$')) {
+                                showToast?.('Data terenkripsi tidak dapat disalin!', 'error');
+                                return;
+                              }
+                              navigator.clipboard.writeText(selectedDetail.reset_password);
+                              showToast?.('Password berhasil disalin!', 'success');
+                            }
+                          }}
+                          className={`p-2 rounded-xl transition-all ${isDarkMode ? 'text-slate-400 hover:bg-slate-700' : 'text-slate-500 hover:bg-slate-200'}`}
+                          title="Salin Password"
+                        >
+                          <span className="material-symbols-outlined text-lg">content_copy</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 )}
