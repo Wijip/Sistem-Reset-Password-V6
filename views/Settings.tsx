@@ -396,11 +396,13 @@ const Settings: React.FC<SettingsProps> = ({
               </div>
             </div>
           </div>
-          <div className="flex justify-end pt-4 border-t border-slate-100 dark:border-slate-800">
-            <button type="submit" className="px-8 py-4 bg-indigo-600 text-white rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all active:scale-95">
-              Perbarui Profil
-            </button>
-          </div>
+          {!isAdminPolres && (
+            <div className="flex justify-end pt-4 border-t border-slate-100 dark:border-slate-800">
+              <button type="submit" className="px-8 py-4 bg-indigo-600 text-white rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all active:scale-95">
+                Perbarui Profil
+              </button>
+            </div>
+          )}
         </form>
       </div>
 
@@ -497,12 +499,14 @@ const Settings: React.FC<SettingsProps> = ({
                 />
               </div>
             </div>
-            <button 
-              type="submit"
-              className="px-8 py-4 bg-slate-900 text-white rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-slate-800 transition-all shadow-xl shadow-slate-200"
-            >
-              Perbarui Password
-            </button>
+            {!isAdminPolres && (
+              <button 
+                type="submit"
+                className="px-8 py-4 bg-slate-900 text-white rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-slate-800 transition-all shadow-xl shadow-slate-200"
+              >
+                Perbarui Password
+              </button>
+            )}
           </div>
         </form>
       </div>

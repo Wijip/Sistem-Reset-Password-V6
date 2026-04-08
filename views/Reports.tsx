@@ -37,8 +37,9 @@ const Reports: React.FC<ReportsProps> = ({ requests, showToast, siteSettings, cu
 
   const filteredRequests = useMemo(() => {
     return requests.filter(req => {
-      // Filter by role & kesatuan
-      if (currentUser.role === UserRole.ADMIN && req.kesatuan !== currentUser.kesatuan) {
+      // Filter by role & kesatuan: Only 'user' role is restricted to their own kesatuan
+      // 'admin' and 'superadmin' can see all requests
+      if (currentUser.role === UserRole.USER && req.kesatuan !== currentUser.kesatuan) {
         return false;
       }
 

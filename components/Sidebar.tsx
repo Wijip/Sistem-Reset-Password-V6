@@ -32,30 +32,27 @@ const Sidebar: React.FC<SidebarProps> = ({
     setSiteSettings(prev => ({ ...prev, darkMode: !prev.darkMode }));
   };
   
-  const mainNav = isSuperAdmin ? [
+  const mainNav = (isSuperAdmin || isAdmin) ? [
     { path: '/', icon: 'dashboard', label: 'Dashboard' },
     { path: '/settings', icon: 'tune', label: 'Pengaturan' },
   ] : isUser ? [
     { path: '/requests', icon: 'lock_reset', label: 'Permintaan Reset' },
-  ] : []; // Admin polres tidak punya mainNav (langsung ke administrasi)
+  ] : [];
 
   const adminNav = [
     { path: '/requests', icon: 'lock_reset', label: 'Permintaan Reset' },
   ];
 
-  // Super Admin mendapatkan menu tambahan
-  if (isSuperAdmin) {
+  // Admin & Super Admin mendapatkan menu administrasi lengkap
+  if (isSuperAdmin || isAdmin) {
     adminNav.push(
       { path: '/personnel', icon: 'badge', label: 'Data Personel' },
-      { path: '/reports', icon: 'analytics', label: 'Rekap Laporan' },
-      { path: '/logs', icon: 'security_update_good', label: 'Log Sistem' }
-    );
-  } else if (isAdmin && currentUser.nama === 'URYANDUKNIS') {
-    // Khusus URYANDUKNIS dengan role ADMIN
-    adminNav.push(
-      { path: '/personnel', icon: 'badge', label: 'Data User' },
       { path: '/reports', icon: 'analytics', label: 'Rekap Laporan' }
     );
+    
+    if (isSuperAdmin) {
+      adminNav.push({ path: '/logs', icon: 'security_update_good', label: 'Log Sistem' });
+    }
   }
 
   return (

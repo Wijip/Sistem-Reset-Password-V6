@@ -36,11 +36,11 @@ const MobileTopbar: React.FC<MobileTopbarProps> = ({ siteSettings, setSiteSettin
     navItems.push({ path: '/reports', icon: 'analytics', label: 'Rekap Laporan' });
     navItems.push({ path: '/logs', icon: 'security_update_good', label: 'Log Sistem' });
   } else if (isAdmin) {
+    navItems.push({ path: '/', icon: 'dashboard', label: 'Dashboard' });
+    navItems.push({ path: '/settings', icon: 'settings', label: 'Pengaturan' });
     navItems.push({ path: '/requests', icon: 'lock_reset', label: 'Permintaan Reset' });
-    if (currentUser.nama === 'URYANDUKNIS') {
-      navItems.push({ path: '/personnel', icon: 'group', label: 'Data User' });
-      navItems.push({ path: '/reports', icon: 'analytics', label: 'Rekap Laporan' });
-    }
+    navItems.push({ path: '/personnel', icon: 'group', label: 'Data Personel' });
+    navItems.push({ path: '/reports', icon: 'analytics', label: 'Rekap Laporan' });
   } else if (isUser) {
     navItems.push({ path: '/requests', icon: 'lock_reset', label: 'Permintaan Reset' });
   }

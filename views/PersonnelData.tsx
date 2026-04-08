@@ -469,43 +469,45 @@ const PersonnelData: React.FC<PersonnelDataProps> = ({ personnel, setPersonnel, 
         </div>
         <div className="flex items-center gap-3">
           {/* Import Dropdown */}
-          <div className="relative" ref={dropdownRef}>
-            <button 
-              onClick={() => setShowImportDropdown(!showImportDropdown)}
-              className={`px-4 py-2.5 rounded-xl font-bold text-xs transition-all flex items-center gap-2 border-2 ${
-                isDarkMode ? 'border-slate-800 text-slate-400 hover:bg-slate-800' : 'border-slate-100 text-slate-500 hover:bg-slate-50'
-              }`}
-            >
-              <span className="material-symbols-outlined text-lg">upload_file</span>
-              Import
-              <span className="material-symbols-outlined text-sm">expand_more</span>
-            </button>
-            
-            {showImportDropdown && (
-              <div className={`absolute right-0 mt-2 w-48 rounded-2xl shadow-2xl border z-[110] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200 ${
-                isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'
-              }`}>
-                <button 
-                  onClick={() => handleImport('excel')}
-                  className={`w-full text-left px-5 py-3.5 text-xs font-bold flex items-center gap-3 transition-colors ${
-                    isDarkMode ? 'text-slate-300 hover:bg-slate-800' : 'text-slate-700 hover:bg-slate-50'
-                  }`}
-                >
-                  <span className="material-symbols-outlined text-emerald-500">table_view</span>
-                  Excel (.xlsx, .xls)
-                </button>
-                <button 
-                  onClick={() => handleImport('csv')}
-                  className={`w-full text-left px-5 py-3.5 text-xs font-bold flex items-center gap-3 transition-colors ${
-                    isDarkMode ? 'text-slate-300 hover:bg-slate-800' : 'text-slate-700 hover:bg-slate-50'
-                  }`}
-                >
-                  <span className="material-symbols-outlined text-blue-500">description</span>
-                  CSV (.csv)
-                </button>
-              </div>
-            )}
-          </div>
+          {!isAdminPolres && (
+            <div className="relative" ref={dropdownRef}>
+              <button 
+                onClick={() => setShowImportDropdown(!showImportDropdown)}
+                className={`px-4 py-2.5 rounded-xl font-bold text-xs transition-all flex items-center gap-2 border-2 ${
+                  isDarkMode ? 'border-slate-800 text-slate-400 hover:bg-slate-800' : 'border-slate-100 text-slate-500 hover:bg-slate-50'
+                }`}
+              >
+                <span className="material-symbols-outlined text-lg">upload_file</span>
+                Import
+                <span className="material-symbols-outlined text-sm">expand_more</span>
+              </button>
+              
+              {showImportDropdown && (
+                <div className={`absolute right-0 mt-2 w-48 rounded-2xl shadow-2xl border z-[110] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200 ${
+                  isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'
+                }`}>
+                  <button 
+                    onClick={() => handleImport('excel')}
+                    className={`w-full text-left px-5 py-3.5 text-xs font-bold flex items-center gap-3 transition-colors ${
+                      isDarkMode ? 'text-slate-300 hover:bg-slate-800' : 'text-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    <span className="material-symbols-outlined text-emerald-500">table_view</span>
+                    Excel (.xlsx, .xls)
+                  </button>
+                  <button 
+                    onClick={() => handleImport('csv')}
+                    className={`w-full text-left px-5 py-3.5 text-xs font-bold flex items-center gap-3 transition-colors ${
+                      isDarkMode ? 'text-slate-300 hover:bg-slate-800' : 'text-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    <span className="material-symbols-outlined text-blue-500">description</span>
+                    CSV (.csv)
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
 
           <input 
             type="file" 
@@ -514,13 +516,15 @@ const PersonnelData: React.FC<PersonnelDataProps> = ({ personnel, setPersonnel, 
             onChange={handleFileChange}
           />
 
-          <button 
-            onClick={openAddModal}
-            className="bg-sky-600 text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-lg shadow-sky-200 hover:bg-sky-700 transition-all flex items-center gap-2 active:scale-95"
-          >
-            <span className="material-symbols-outlined text-lg">person_add</span>
-            Tambah Personel
-          </button>
+          {!isAdminPolres && (
+            <button 
+              onClick={openAddModal}
+              className="bg-sky-600 text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-lg shadow-sky-200 hover:bg-sky-700 transition-all flex items-center gap-2 active:scale-95"
+            >
+              <span className="material-symbols-outlined text-lg">person_add</span>
+              Tambah Personel
+            </button>
+          )}
         </div>
       </div>
 
@@ -742,7 +746,7 @@ const PersonnelData: React.FC<PersonnelDataProps> = ({ personnel, setPersonnel, 
                         Status {getSortIcon('status')}
                       </div>
                     </th>
-                    <th className="px-6 py-4 text-right">Aksi</th>
+                    {!isAdminPolres && <th className="px-6 py-4 text-right">Aksi</th>}
                   </tr>
                 </thead>
                 <tbody className={`divide-y transition-colors duration-300 ${isDarkMode ? 'divide-slate-800' : 'divide-slate-50'}`}>
@@ -805,22 +809,24 @@ const PersonnelData: React.FC<PersonnelDataProps> = ({ personnel, setPersonnel, 
                           {p.status}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <button 
-                            onClick={(e) => { e.stopPropagation(); handleEdit(p); }}
-                            className={`p-2 rounded-lg transition-all ${isDarkMode ? 'text-slate-500 hover:text-sky-400 hover:bg-sky-500/10' : 'text-slate-400 hover:text-sky-600 hover:bg-sky-50'}`}
-                          >
-                            <span className="material-symbols-outlined text-lg">edit</span>
-                          </button>
-                          <button 
-                            onClick={(e) => { e.stopPropagation(); handleDelete(p.id); }}
-                            className={`p-2 rounded-lg transition-all ${isDarkMode ? 'text-slate-500 hover:text-rose-400 hover:bg-rose-500/10' : 'text-slate-400 hover:text-rose-600 hover:bg-rose-50'}`}
-                          >
-                            <span className="material-symbols-outlined text-lg">block</span>
-                          </button>
-                        </div>
-                      </td>
+                      {!isAdminPolres && (
+                        <td className="px-6 py-4 text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            <button 
+                              onClick={(e) => { e.stopPropagation(); handleEdit(p); }}
+                              className={`p-2 rounded-lg transition-all ${isDarkMode ? 'text-slate-500 hover:text-sky-400 hover:bg-sky-500/10' : 'text-slate-400 hover:text-sky-600 hover:bg-sky-50'}`}
+                            >
+                              <span className="material-symbols-outlined text-lg">edit</span>
+                            </button>
+                            <button 
+                              onClick={(e) => { e.stopPropagation(); handleDelete(p.id); }}
+                              className={`p-2 rounded-lg transition-all ${isDarkMode ? 'text-slate-500 hover:text-rose-400 hover:bg-rose-500/10' : 'text-slate-400 hover:text-rose-600 hover:bg-rose-50'}`}
+                            >
+                              <span className="material-symbols-outlined text-lg">block</span>
+                            </button>
+                          </div>
+                        </td>
+                      )}
                     </tr>
                   ))}
                   {personnel.length === 0 && (
@@ -881,20 +887,22 @@ const PersonnelData: React.FC<PersonnelDataProps> = ({ personnel, setPersonnel, 
                         <span className="material-symbols-outlined text-[12px]">account_balance</span>
                         {p.kesatuan}
                       </div>
-                      <div className="flex gap-2">
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); handleEdit(p); }}
-                          className={`p-2 rounded-xl border ${isDarkMode ? 'border-slate-800 text-slate-400' : 'border-slate-100 text-slate-500'}`}
-                        >
-                          <span className="material-symbols-outlined text-lg">edit</span>
-                        </button>
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); handleDelete(p.id); }}
-                          className={`p-2 rounded-xl border ${isDarkMode ? 'border-slate-800 text-rose-500' : 'border-slate-100 text-rose-600'}`}
-                        >
-                          <span className="material-symbols-outlined text-lg">block</span>
-                        </button>
-                      </div>
+                      {!isAdminPolres && (
+                        <div className="flex gap-2">
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); handleEdit(p); }}
+                            className={`p-2 rounded-xl border ${isDarkMode ? 'border-slate-800 text-slate-400' : 'border-slate-100 text-slate-500'}`}
+                          >
+                            <span className="material-symbols-outlined text-lg">edit</span>
+                          </button>
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); handleDelete(p.id); }}
+                            className={`p-2 rounded-xl border ${isDarkMode ? 'border-slate-800 text-rose-500' : 'border-slate-100 text-rose-600'}`}
+                          >
+                            <span className="material-symbols-outlined text-lg">block</span>
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))

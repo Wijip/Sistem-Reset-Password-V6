@@ -729,7 +729,7 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
         </div>
         
         <div className="flex flex-wrap items-center gap-3">
-          {isAnyAdmin && (
+          {(isSuperAdmin || isUser) && (
             <div className="flex items-center gap-3 mr-2">
               <button 
                 onClick={() => setIsManualModalOpen(true)}
@@ -899,7 +899,7 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
       </div>
 
       {/* Bulk Actions Bar */}
-      {selectedIds.length > 0 && (
+      {!isAdminPolres && selectedIds.length > 0 && (
         <div className={`mb-6 p-5 rounded-[2rem] border flex flex-col md:flex-row items-center justify-between gap-4 animate-in slide-in-from-top-4 duration-500 shadow-xl ${isDarkMode ? 'bg-blue-600/10 border-blue-500/30 shadow-blue-900/20' : 'bg-blue-50 border-blue-100 shadow-blue-100/50'}`}>
           <div className="flex items-center gap-5">
             <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg transition-transform hover:scale-105 ${isDarkMode ? 'bg-blue-500 text-white shadow-blue-500/20' : 'bg-blue-600 text-white shadow-blue-600/20'}`}>
@@ -956,14 +956,16 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className={`border-b text-[11px] font-black uppercase tracking-widest print:bg-slate-50 print:text-slate-900 transition-colors duration-300 ${isDarkMode ? 'bg-slate-800/50 border-slate-800 text-slate-500' : 'bg-slate-50/50 border-slate-100 text-slate-400'}`}>
-                <th className="px-8 py-6 text-center w-12 print:hidden">
-                  <input 
-                    type="checkbox" 
-                    className="w-5 h-5 rounded-lg border-slate-300 text-blue-600 focus:ring-blue-500"
-                    checked={selectedIds.length === filteredRequests.length && filteredRequests.length > 0}
-                    onChange={handleSelectAll}
-                  />
-                </th>
+                {!isAdminPolres && (
+                  <th className="px-8 py-6 text-center w-12 print:hidden">
+                    <input 
+                      type="checkbox" 
+                      className="w-5 h-5 rounded-lg border-slate-300 text-blue-600 focus:ring-blue-500"
+                      checked={selectedIds.length === filteredRequests.length && filteredRequests.length > 0}
+                      onChange={handleSelectAll}
+                    />
+                  </th>
+                )}
                 <th className="px-6 py-6 text-center w-12">NO.</th>
                 <th className="px-6 py-6">WAKTU REQUEST</th>
                 <th className="px-6 py-6">PERSONEL</th>
@@ -978,7 +980,7 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
               {isLoading ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <tr key={`skeleton-${i}`} className="animate-pulse">
-                    <td className="px-8 py-6 text-center print:hidden"><div className={`h-5 w-5 rounded-lg mx-auto ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`}></div></td>
+                    {!isAdminPolres && <td className="px-8 py-6 text-center print:hidden"><div className={`h-5 w-5 rounded-lg mx-auto ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`}></div></td>}
                     <td className="px-6 py-6 text-center"><div className={`h-4 w-8 rounded mx-auto ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`}></div></td>
                     <td className="px-6 py-6"><div className={`h-4 w-24 rounded mb-2 ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`}></div><div className={`h-3 w-16 rounded ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`}></div></td>
                     <td className="px-6 py-6"><div className={`h-5 w-40 rounded mb-2 ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`}></div><div className={`h-3 w-20 rounded ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`}></div></td>
@@ -993,14 +995,16 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
                 <>
                   {filteredRequests.map((req, index) => (
                     <tr key={req.id} className={`transition-all duration-300 group ${isDarkMode ? 'hover:bg-slate-800/30' : 'hover:bg-slate-50/50'} ${selectedIds.includes(req.id) ? (isDarkMode ? 'bg-blue-900/10' : 'bg-blue-50/30') : ''}`}>
-                      <td className="px-8 py-5 text-center print:hidden">
-                        <input 
-                          type="checkbox" 
-                          className="w-5 h-5 rounded-lg border-slate-300 text-blue-600 focus:ring-blue-500"
-                          checked={selectedIds.includes(req.id)}
-                          onChange={() => handleSelectOne(req.id)}
-                        />
-                      </td>
+                      {!isAdminPolres && (
+                        <td className="px-8 py-5 text-center print:hidden">
+                          <input 
+                            type="checkbox" 
+                            className="w-5 h-5 rounded-lg border-slate-300 text-blue-600 focus:ring-blue-500"
+                            checked={selectedIds.includes(req.id)}
+                            onChange={() => handleSelectOne(req.id)}
+                          />
+                        </td>
+                      )}
                       <td className={`px-6 py-5 text-center text-[11px] font-black print:text-slate-900 ${isDarkMode ? 'text-slate-600' : 'text-slate-400'}`}>{(currentPage - 1) * itemsPerPage + index + 1}</td>
                       <td className="px-6 py-5">
                         <div className={`text-[11px] font-black print:text-slate-900 ${isDarkMode ? 'text-slate-300' : 'text-slate-700'}`}>{new Date(req.createdAt).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
@@ -1058,7 +1062,7 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
                               <span className="material-symbols-outlined text-lg">visibility</span>
                             </button>
                             
-                            {(isSuperAdmin || isAdminPolres) && (
+                            {isSuperAdmin && (
                               <>
                                 {req.status === RequestStatus.MENUNGGU && (
                                   <>
@@ -1160,7 +1164,7 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
                     DETAIL
                   </button>
                   
-                  {(isSuperAdmin || isAdminPolres) && req.status === RequestStatus.MENUNGGU && (
+                  {isSuperAdmin && req.status === RequestStatus.MENUNGGU && (
                     <button 
                       onClick={() => handleStartProcess(req.id)}
                       disabled={processingReqId === req.id}
@@ -1174,7 +1178,7 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
                     </button>
                   )}
                   
-                  {(isSuperAdmin || isAdminPolres) && req.status === RequestStatus.DIPROSES && (
+                  {isSuperAdmin && req.status === RequestStatus.DIPROSES && (
                     <button 
                       onClick={() => { setSelectedReq(req); setNewPassword(''); setShowWeakWarning(false); }}
                       className="flex items-center justify-center w-[44px] h-[44px] bg-emerald-600 text-white rounded-xl transition-all"

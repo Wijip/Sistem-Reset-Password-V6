@@ -421,8 +421,9 @@ async function startServer() {
     let params: any[] = [];
     let whereClauses: string[] = [];
 
-    // Role-based filtering: Non-superadmins are strictly restricted to their own kesatuan
-    if (req.user.role !== 'superadmin') {
+    // Role-based filtering: 'user' role is strictly restricted to their own kesatuan
+    // 'admin' and 'superadmin' can see all personnel
+    if (req.user.role === 'user') {
       whereClauses.push('LOWER(TRIM(kesatuan)) = LOWER(TRIM(?))');
       params.push(req.user.kesatuan || '');
     }
@@ -463,6 +464,9 @@ async function startServer() {
   });
 
   app.post('/api/personnel', isAdmin, async (req: any, res: any) => {
+    if (req.user.role === 'admin') {
+      return res.status(403).json({ success: false, message: 'Akses ditolak. Role ADMIN hanya memiliki akses baca (Read-Only).' });
+    }
     const p = req.body;
     const hashedPassword = await bcrypt.hash(p.password || 'user!1234', 10);
     const finalKesatuan = String(p.kesatuan || '').trim();
@@ -487,6 +491,9 @@ async function startServer() {
   });
 
   app.put('/api/personnel/:id', isAdmin, async (req: any, res: any) => {
+    if (req.user.role === 'admin') {
+      return res.status(403).json({ success: false, message: 'Akses ditolak. Role ADMIN hanya memiliki akses baca (Read-Only).' });
+    }
     const { id } = req.params;
     const p = req.body;
     const finalKesatuan = String(p.kesatuan || '').trim();
@@ -521,6 +528,9 @@ async function startServer() {
   });
 
   app.delete('/api/personnel/:id', isAdmin, async (req: any, res: any) => {
+    if (req.user.role === 'admin') {
+      return res.status(403).json({ success: false, message: 'Akses ditolak. Role ADMIN hanya memiliki akses baca (Read-Only).' });
+    }
     const { id } = req.params;
     await pool.query('DELETE FROM personnel WHERE id = ?', [id]);
     res.json({ success: true });
@@ -605,8 +615,8 @@ async function startServer() {
     let params: any[] = [];
     let whereClauses: string[] = [];
 
-    // Role-based filtering: Non-superadmins are strictly restricted to their own kesatuan
-    if (req.user.role !== 'superadmin') {
+    // Role-based filtering: 'user' role is strictly restricted to their own kesatuan
+    if (req.user.role === 'user') {
       console.log(`[GET /api/requests] Filtering for ${req.user.role}: ${req.user.kesatuan}`);
       whereClauses.push('LOWER(TRIM(kesatuan)) = LOWER(TRIM(?))');
       params.push(req.user.kesatuan || '');
@@ -867,6 +877,10 @@ async function startServer() {
   });
 
   app.post('/api/requests', isAdmin, upload.single('dokumen_kta_file'), async (req: any, res: any) => {
+    if (req.user.role === 'admin') {
+      return res.status(403).json({ success: false, message: 'Akses ditolak. Role ADMIN hanya memiliki akses baca (Read-Only).' });
+    }
+
     const r = req.body;
     const filename = req.file ? req.file.filename : (r.dokumen_kta || null);
     
@@ -962,20 +976,13 @@ async function startServer() {
     const { id } = req.params;
     const r = req.body;
     
-    // Only Admin or Super Admin can update requests
-    if (req.user.role !== 'admin' && req.user.role !== 'superadmin') {
-      return res.status(403).json({ success: false, message: 'Akses ditolak. Hak akses tidak cukup.' });
-    }
-    
-    // Cross-unit protection for Admin
     if (req.user.role === 'admin') {
-      const [checkRows]: any = await pool.query('SELECT kesatuan FROM reset_requests WHERE id = ?', [id]);
-      if (checkRows.length === 0) {
-        return res.status(404).json({ success: false, message: 'Data tidak ditemukan.' });
-      }
-      if (checkRows[0].kesatuan?.toLowerCase().trim() !== req.user.kesatuan?.toLowerCase().trim()) {
-        return res.status(403).json({ success: false, message: 'Akses ditolak. Anda tidak memiliki izin untuk mengubah data dari wilayah lain.' });
-      }
+      return res.status(403).json({ success: false, message: 'Akses ditolak. Role ADMIN hanya memiliki akses baca (Read-Only).' });
+    }
+
+    // Only Super Admin can update requests
+    if (req.user.role !== 'superadmin') {
+      return res.status(403).json({ success: false, message: 'Akses ditolak. Hak akses tidak cukup.' });
     }
     
     try {
@@ -1046,20 +1053,13 @@ async function startServer() {
   app.delete('/api/requests/:id', isAdmin, async (req: any, res: any) => {
     const { id } = req.params;
     
-    // Only Admin or Super Admin can delete requests
-    if (req.user.role !== 'admin' && req.user.role !== 'superadmin') {
-      return res.status(403).json({ success: false, message: 'Akses ditolak. Hak akses tidak cukup.' });
+    if (req.user.role === 'admin') {
+      return res.status(403).json({ success: false, message: 'Akses ditolak. Role ADMIN hanya memiliki akses baca (Read-Only).' });
     }
 
-    // Cross-unit protection for Admin
-    if (req.user.role === 'admin') {
-      const [checkRows]: any = await pool.query('SELECT kesatuan FROM reset_requests WHERE id = ?', [id]);
-      if (checkRows.length === 0) {
-        return res.status(404).json({ success: false, message: 'Data tidak ditemukan.' });
-      }
-      if (checkRows[0].kesatuan?.toLowerCase().trim() !== req.user.kesatuan?.toLowerCase().trim()) {
-        return res.status(403).json({ success: false, message: 'Akses ditolak. Anda tidak memiliki izin untuk menghapus data dari wilayah lain.' });
-      }
+    // Only Super Admin can delete requests
+    if (req.user.role !== 'superadmin') {
+      return res.status(403).json({ success: false, message: 'Akses ditolak. Hak akses tidak cukup.' });
     }
     
     await pool.query('DELETE FROM reset_requests WHERE id = ?', [id]);

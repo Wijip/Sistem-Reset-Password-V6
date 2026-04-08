@@ -29,8 +29,8 @@ const Dashboard: React.FC<DashboardProps> = ({ requests, personnel, currentUser,
 
   const stats = useMemo(() => {
     // Filter data berdasarkan role
-    const relevantPersonnel = isSuperAdmin ? personnel : personnel.filter(p => p.kesatuan === currentUser.kesatuan);
-    const relevantRequests = isSuperAdmin ? requests : requests.filter(r => r.kesatuan === currentUser.kesatuan);
+    const relevantPersonnel = (isSuperAdmin || isAdminPolres) ? personnel : personnel.filter(p => p.kesatuan === currentUser.kesatuan);
+    const relevantRequests = (isSuperAdmin || isAdminPolres) ? requests : requests.filter(r => r.kesatuan === currentUser.kesatuan);
 
     const active = relevantRequests.filter(r => r.status !== RequestStatus.SELESAI && r.status !== RequestStatus.DITOLAK).length;
     const completed = relevantRequests.filter(r => r.status === RequestStatus.SELESAI).length;
@@ -45,12 +45,12 @@ const Dashboard: React.FC<DashboardProps> = ({ requests, personnel, currentUser,
       rejectedRequests: rejected,
       pendingRequests: pending,
       processingRequests: processing,
-      labelContext: isSuperAdmin ? 'Seluruh Jatim' : `Unit ${currentUser.kesatuan}`
+      labelContext: (isSuperAdmin || isAdminPolres) ? 'Seluruh Jatim' : `Unit ${currentUser.kesatuan}`
     };
-  }, [requests, personnel, currentUser, isSuperAdmin]);
+  }, [requests, personnel, currentUser, isSuperAdmin, isAdminPolres]);
 
   const chartData = useMemo(() => {
-    const relevantRequests = isSuperAdmin ? requests : requests.filter(r => r.kesatuan === currentUser.kesatuan);
+    const relevantRequests = (isSuperAdmin || isAdminPolres) ? requests : requests.filter(r => r.kesatuan === currentUser.kesatuan);
     const rangeDays = parseInt(chartRange);
     
     const daysArray = Array.from({ length: rangeDays }, (_, i) => {
@@ -76,12 +76,12 @@ const Dashboard: React.FC<DashboardProps> = ({ requests, personnel, currentUser,
         fullDate: date.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
       };
     });
-  }, [requests, isSuperAdmin, currentUser.kesatuan, chartRange]);
+  }, [requests, isSuperAdmin, isAdminPolres, currentUser.kesatuan, chartRange]);
 
   const recentRequests = useMemo(() => {
-    const relevant = isSuperAdmin ? requests : requests.filter(r => r.kesatuan === currentUser.kesatuan);
+    const relevant = (isSuperAdmin || isAdminPolres) ? requests : requests.filter(r => r.kesatuan === currentUser.kesatuan);
     return relevant.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)).slice(0, 5);
-  }, [requests, isSuperAdmin, currentUser.kesatuan]);
+  }, [requests, isSuperAdmin, isAdminPolres, currentUser.kesatuan]);
 
   return (
     <motion.main 

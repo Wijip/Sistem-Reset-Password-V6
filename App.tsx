@@ -290,7 +290,7 @@ const App: React.FC = () => {
             
             <Route path="/" element={
               <ProtectedRoute currentUser={currentUser}>
-                {currentUser?.role === UserRole.SUPERADMIN ? (
+                {(currentUser?.role === UserRole.SUPERADMIN || currentUser?.role === UserRole.ADMIN) ? (
                   <Dashboard requests={requests} personnel={personnel} showToast={showToast} currentUser={currentUser!} siteSettings={siteSettings} />
                 ) : (
                   <Navigate to="/requests" replace />
