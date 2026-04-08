@@ -988,12 +988,14 @@ async function startServer() {
     try {
       // Convert reset_info to string if it's an object
       const resetInfoStr = r.reset_info ? JSON.stringify(r.reset_info) : null;
-      let hashedPassword = r.reset_password || null;
+      let storedPassword = r.reset_password || null;
 
       if (r.status === 'SELESAI' && r.reset_password) {
-        hashedPassword = await bcrypt.hash(r.reset_password, 10);
-        // Update the personnel password as well
+        // Hash for personnel table ONLY to maintain security there
+        const hashedPassword = await bcrypt.hash(r.reset_password, 10);
         await pool.query('UPDATE personnel SET password = ? WHERE nrp = ?', [hashedPassword, r.nrp]);
+        
+        // storedPassword remains plaintext for reset_requests table as requested
       }
 
       await pool.query(`
@@ -1008,7 +1010,7 @@ async function startServer() {
         WHERE id = ?
       `, [
         r.status, 
-        hashedPassword, 
+        storedPassword, 
         r.catatan || null, 
         r.updatedAt || null, 
         resetInfoStr, 
