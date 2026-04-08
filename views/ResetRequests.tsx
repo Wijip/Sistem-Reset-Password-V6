@@ -135,13 +135,10 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
   };
 
   const handleCopyPassword = (password: string) => {
-    if (!password) return;
-    if (password.startsWith('$2b$')) {
-      showToast('Data terenkripsi tidak dapat disalin!', 'error');
-      return;
+    if (password) {
+      navigator.clipboard.writeText(password);
+      showToast('Password disalin!', 'success');
     }
-    navigator.clipboard.writeText(password);
-    showToast('Password disalin!', 'success');
   };
 
   const getPriorityColor = (priority?: RequestPriority) => {
@@ -1053,7 +1050,7 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
                         </div>
                       </td>
                       <td className={`px-6 py-5 text-center print:table-cell hidden font-mono text-[11px] font-black uppercase ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
-                        {req.reset_password && req.reset_password.startsWith('$2b$') ? 'DATA TERENKRIPSI' : (req.reset_password || '-')}
+                        {req.reset_password || '-'}
                       </td>
                       <td className="px-8 py-5 text-center print:hidden">
                         <div className="flex items-center justify-center gap-2">
@@ -1680,9 +1677,7 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
                                 readOnly 
                                 className={`bg-transparent border-none p-0 text-sm font-bold outline-none flex-1 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}
                                  value={showDetailPassword 
-                                    ? (viewingReq.reset_password && !viewingReq.reset_password.startsWith('$2b$') 
-                                        ? viewingReq.reset_password 
-                                        : (viewingReq.reset_password?.startsWith('$2b$') ? 'DATA TERENKRIPSI' : '')) 
+                                    ? (viewingReq.reset_password || '') 
                                     : '••••••••'}
                              />
                              <div className="flex items-center gap-2 ml-4">

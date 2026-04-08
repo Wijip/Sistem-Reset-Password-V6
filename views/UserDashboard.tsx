@@ -372,9 +372,7 @@ const UserDashboard: React.FC<UserDashboardProps> = ({
                         readOnly 
                         className={`bg-transparent border-none p-0 text-sm font-bold outline-none flex-1 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}
                         value={showPasswordInDetail 
-                          ? (selectedDetail.reset_password && !selectedDetail.reset_password.startsWith('$2b$') 
-                              ? selectedDetail.reset_password 
-                              : (selectedDetail.reset_password?.startsWith('$2b$') ? 'DATA TERENKRIPSI' : '')) 
+                          ? (selectedDetail.reset_password || '') 
                           : '••••••••'}
                       />
                       <div className="flex items-center gap-2 ml-4">
@@ -390,10 +388,6 @@ const UserDashboard: React.FC<UserDashboardProps> = ({
                           type="button"
                           onClick={() => {
                             if (selectedDetail.reset_password) {
-                              if (selectedDetail.reset_password.startsWith('$2b$')) {
-                                showToast?.('Data terenkripsi tidak dapat disalin!', 'error');
-                                return;
-                              }
                               navigator.clipboard.writeText(selectedDetail.reset_password);
                               showToast?.('Password berhasil disalin!', 'success');
                             }
