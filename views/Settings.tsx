@@ -32,6 +32,8 @@ const Settings: React.FC<SettingsProps> = ({
     logo: siteSettings.logo,
     loginTitle: siteSettings.loginTitle || '',
     loginSubtitle: siteSettings.loginSubtitle || '',
+    loginTagline1: siteSettings.loginTagline1 || '',
+    loginTagline2: siteSettings.loginTagline2 || '',
     requestsTitle: siteSettings.requestsTitle || '',
     requestsSubtitle: siteSettings.requestsSubtitle || '',
     darkMode: siteSettings.darkMode || false
@@ -74,21 +76,40 @@ const Settings: React.FC<SettingsProps> = ({
     return pass.length >= 8 && hasNumber && hasSymbol && hasUpper;
   };
 
-  const handleUpdateSite = (e: React.FormEvent) => {
+  const handleUpdateSite = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isSuperAdmin) return; // Proteksi tambahan
     
-    setSiteSettings({
+    const newSettings = {
       name: siteForm.name,
       logo: siteForm.logo,
       loginTitle: siteForm.loginTitle,
       loginSubtitle: siteForm.loginSubtitle,
+      loginTagline1: siteForm.loginTagline1,
+      loginTagline2: siteForm.loginTagline2,
       requestsTitle: siteForm.requestsTitle,
       requestsSubtitle: siteForm.requestsSubtitle,
       darkMode: siteForm.darkMode
-    });
-    showToast('Identitas website berhasil diperbarui');
-    addLog?.('Pengaturan', `Memperbarui identitas website: ${siteForm.name}`);
+    };
+
+    try {
+      const res = await fetch('/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newSettings)
+      });
+
+      if (res.ok) {
+        setSiteSettings(newSettings);
+        showToast('Identitas website berhasil diperbarui');
+        addLog?.('Pengaturan', `Memperbarui identitas website: ${siteForm.name}`);
+      } else {
+        showToast('Gagal memperbarui identitas website', 'error');
+      }
+    } catch (error) {
+      console.error('Error updating settings:', error);
+      showToast('Terjadi kesalahan koneksi', 'error');
+    }
   };
 
   const handleUpdateAdminProfile = (e: React.FormEvent) => {
@@ -226,6 +247,33 @@ const Settings: React.FC<SettingsProps> = ({
                         value={siteForm.loginSubtitle}
                         onChange={(e) => setSiteForm(prev => ({ ...prev, loginSubtitle: e.target.value }))}
                         placeholder="Contoh: Bid Tik Polda Jatim"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-xs font-black text-slate-400 uppercase tracking-widest pl-1">Tagline Login Baris 1</label>
+                      <input 
+                        type="text" 
+                        className={`w-full px-6 py-4 rounded-2xl border focus:outline-none font-bold transition-all text-sm ${
+                          siteSettings.darkMode ? 'bg-slate-800 border-slate-700 text-white focus:bg-slate-700' : 'bg-slate-50 border-slate-100 text-slate-700 focus:bg-white focus:border-sky-500'
+                        }`}
+                        value={siteForm.loginTagline1}
+                        onChange={(e) => setSiteForm(prev => ({ ...prev, loginTagline1: e.target.value }))}
+                        placeholder="Contoh: MENGABDI DENGAN INTEGRITAS"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-black text-slate-400 uppercase tracking-widest pl-1">Tagline Login Baris 2</label>
+                      <input 
+                        type="text" 
+                        className={`w-full px-6 py-4 rounded-2xl border focus:outline-none font-bold transition-all text-sm ${
+                          siteSettings.darkMode ? 'bg-slate-800 border-slate-700 text-white focus:bg-slate-700' : 'bg-slate-50 border-slate-100 text-slate-700 focus:bg-white focus:border-sky-500'
+                        }`}
+                        value={siteForm.loginTagline2}
+                        onChange={(e) => setSiteForm(prev => ({ ...prev, loginTagline2: e.target.value }))}
+                        placeholder="Contoh: MELAYANI DENGAN TEKNOLOGI"
                       />
                     </div>
                   </div>

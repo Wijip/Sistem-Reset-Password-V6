@@ -70,6 +70,8 @@ export interface SiteSettings {
   logo: string | null;
   loginTitle?: string;
   loginSubtitle?: string;
+  loginTagline1?: string;
+  loginTagline2?: string;
   requestsTitle?: string;
   requestsSubtitle?: string;
   darkMode?: boolean;

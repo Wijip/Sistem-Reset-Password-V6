@@ -102,8 +102,8 @@ const Login: React.FC<LoginProps> = ({ onLogin, addLog, siteSettings, currentUse
           </div>
           
           <div className="pl-6 border-l-4 border-sky-400/60 space-y-2 py-1">
-            <p className="text-xl font-bold tracking-wider drop-shadow-md">MENGABDI DENGAN INTEGRASI</p>
-            <p className="text-xl font-bold tracking-wider drop-shadow-md">MELAYANI DENGAN TEKNOLOGI</p>
+            <p className="text-xl font-bold tracking-wider drop-shadow-md uppercase">{siteSettings.loginTagline1 || 'MENGABDI DENGAN INTEGRITAS'}</p>
+            <p className="text-xl font-bold tracking-wider drop-shadow-md uppercase">{siteSettings.loginTagline2 || 'MELAYANI DENGAN TEKNOLOGI'}</p>
           </div>
         </div>
 

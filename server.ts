@@ -284,6 +284,31 @@ async function initializeDatabase() {
       )
     `);
 
+    // Table: Site Settings
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS site_settings (
+        id INTEGER PRIMARY KEY CHECK (id = 1),
+        name TEXT,
+        logo TEXT,
+        loginTitle TEXT,
+        loginSubtitle TEXT,
+        loginTagline1 TEXT,
+        loginTagline2 TEXT,
+        requestsTitle TEXT,
+        requestsSubtitle TEXT,
+        darkMode INTEGER DEFAULT 0
+      )
+    `);
+
+    // Initialize default settings if not exists
+    const [settingsRows] = await pool.query('SELECT * FROM site_settings WHERE id = 1');
+    if ((settingsRows as any[]).length === 0) {
+      await pool.query(`
+        INSERT INTO site_settings (id, name, logo, loginTitle, loginSubtitle, loginTagline1, loginTagline2, requestsTitle, requestsSubtitle, darkMode)
+        VALUES (1, 'Polda Jatim', '/img/BIDTIK.webp', 'Reset Password Email Polri', 'Bid Tik Polda Jatim', 'MENGABDI DENGAN INTEGRITAS', 'MELAYANI DENGAN TEKNOLOGI', 'Manajemen Reset Password', 'PANTAU DAN EKSEKUSI PERMOHONAN AKSES PERSONEL', 0)
+      `);
+    }
+
     // --- MIGRATION DATA FROM mock-data.ts ---
     const mockPersonnel = [
       { id: "SA1", nama: "AKBP Budiono", pangkat: "AKBP", nrp: "78010001", jabatan: "Kabid Tik", kesatuan: "Polda Jatim", email: "superadmin1@polri.go.id", role: "superadmin", password: "superadmin123", status: "Aktif" },
@@ -405,6 +430,46 @@ async function startServer() {
     } catch (error) {
       console.error('Failed to fetch units:', error);
       res.status(500).json({ success: false, message: 'Gagal mengambil data kesatuan' });
+    }
+  });
+
+  // --- SETTINGS ROUTES ---
+  app.get('/api/settings', async (req: any, res: any) => {
+    try {
+      const [rows] = await pool.query('SELECT * FROM site_settings WHERE id = 1');
+      const settings = (rows as any[])[0] || {};
+      res.json({
+        name: settings.name,
+        logo: settings.logo,
+        loginTitle: settings.loginTitle,
+        loginSubtitle: settings.loginSubtitle,
+        loginTagline1: settings.loginTagline1,
+        loginTagline2: settings.loginTagline2,
+        requestsTitle: settings.requestsTitle,
+        requestsSubtitle: settings.requestsSubtitle,
+        darkMode: settings.darkMode === 1
+      });
+    } catch (error) {
+      console.error('Error fetching settings:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  app.put('/api/settings', isAdmin, async (req: any, res: any) => {
+    if (req.user.role !== 'superadmin') {
+      return res.status(403).json({ error: 'Forbidden: Super Admin only' });
+    }
+    const { name, logo, loginTitle, loginSubtitle, loginTagline1, loginTagline2, requestsTitle, requestsSubtitle, darkMode } = req.body;
+    try {
+      await pool.query(`
+        UPDATE site_settings 
+        SET name = ?, logo = ?, loginTitle = ?, loginSubtitle = ?, loginTagline1 = ?, loginTagline2 = ?, requestsTitle = ?, requestsSubtitle = ?, darkMode = ?
+        WHERE id = 1
+      `, [name, logo, loginTitle, loginSubtitle, loginTagline1, loginTagline2, requestsTitle, requestsSubtitle, darkMode ? 1 : 0]);
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error updating settings:', error);
+      res.status(500).json({ error: 'Internal server error' });
     }
   });
 

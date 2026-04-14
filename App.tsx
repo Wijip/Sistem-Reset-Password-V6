@@ -53,6 +53,8 @@ const App: React.FC = () => {
       logo: '/img/BIDTIK.webp',
       loginTitle: 'Reset Password Email Polri',
       loginSubtitle: 'Bid Tik Polda Jatim',
+      loginTagline1: 'MENGABDI DENGAN INTEGRITAS',
+      loginTagline2: 'MELAYANI DENGAN TEKNOLOGI',
       requestsTitle: 'Manajemen Reset Password',
       requestsSubtitle: 'PANTAU DAN EKSEKUSI PERMOHONAN AKSES PERSONEL',
       darkMode: false
@@ -83,6 +85,22 @@ const App: React.FC = () => {
       }
     };
     checkSession();
+  }, []);
+
+  // Fetch site settings on mount
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const res = await fetch('/api/settings');
+        if (res.ok) {
+          const data = await res.json();
+          setSiteSettings(prev => ({ ...prev, ...data }));
+        }
+      } catch (error) {
+        console.error('Failed to fetch settings:', error);
+      }
+    };
+    fetchSettings();
   }, []);
 
   // Fetch initial data from API
