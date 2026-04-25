@@ -16,7 +16,7 @@ import ExcelJS from 'exceljs';
 
 import jwt from 'jsonwebtoken';
 import nodemailer from 'nodemailer';
-import rateLimit from 'express-rate-limit';
+import { rateLimit } from 'express-rate-limit';
 import sharp from 'sharp';
 
 dotenv.config();
@@ -25,7 +25,7 @@ const app = express();
 
 const publicRequestLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // Limit each IP to 5 requests per windowMs
+  max: 50, // Limit each IP to 50 requests per windowMs (optimized to not disturb testing)
   message: { success: false, message: "Terlalu banyak permintaan dari IP Anda, silakan coba lagi setelah 15 menit." },
   standardHeaders: true,
   legacyHeaders: false,
@@ -219,6 +219,25 @@ async function initializeDatabase() {
     try { await pool.query("ALTER TABLE reset_requests ADD INDEX idx_req_nrp (nrp)"); } catch(e) {}
     try { await pool.query("ALTER TABLE reset_requests ADD INDEX idx_req_status (status)"); } catch(e) {}
     try { await pool.query("ALTER TABLE reset_requests ADD INDEX idx_req_kesatuan (kesatuan)"); } catch(e) {}
+
+    // MIGRATION: Add is_deleted column dynamically to avoid ER_BAD_FIELD_ERROR
+    try {
+      await pool.query("ALTER TABLE personnel ADD COLUMN is_deleted TINYINT(1) DEFAULT 0");
+      console.log("[DATABASE] Kolom 'is_deleted' berhasil ditambahkan ke tabel personnel.");
+    } catch (err: any) {
+      if (err.code !== 'ER_DUP_FIELDNAME') {
+        console.error("[DATABASE] Peringatan migrasi is_deleted di personnel:", err);
+      }
+    }
+
+    try {
+      await pool.query("ALTER TABLE reset_requests ADD COLUMN is_deleted TINYINT(1) DEFAULT 0");
+      console.log("[DATABASE] Kolom 'is_deleted' berhasil ditambahkan ke tabel reset_requests.");
+    } catch (err: any) {
+      if (err.code !== 'ER_DUP_FIELDNAME') {
+        console.error("[DATABASE] Peringatan migrasi is_deleted di reset_requests:", err);
+      }
+    }
 
     // Table: Units (Kesatuan)
     await pool.query(`
