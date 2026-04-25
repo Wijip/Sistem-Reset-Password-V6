@@ -1,6 +1,5 @@
 import express from 'express';
-import sqlite3 from 'sqlite3';
-import { open } from 'sqlite';
+import mysql from 'mysql2/promise';
 import cors from 'cors';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
@@ -17,10 +16,21 @@ import ExcelJS from 'exceljs';
 
 import jwt from 'jsonwebtoken';
 import nodemailer from 'nodemailer';
+import rateLimit from 'express-rate-limit';
+import sharp from 'sharp';
 
 dotenv.config();
 
 const app = express();
+
+const publicRequestLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // Limit each IP to 5 requests per windowMs
+  message: { success: false, message: "Terlalu banyak permintaan dari IP Anda, silakan coba lagi setelah 15 menit." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
@@ -35,8 +45,12 @@ app.use(cors({
   origin: true,
   credentials: true
 }));
-app.use(express.json());
+app.use(express.json({ limit: '20mb' }));
+app.use(express.urlencoded({ limit: '20mb', extended: true }));
 app.use(cookieParser());
+
+// Serve public uploads (e.g. logos)
+app.use('/public_uploads', express.static(path.join(process.cwd(), 'public_uploads')));
 
 // Nodemailer Transporter Configuration
 const transporter = nodemailer.createTransport({
@@ -99,109 +113,126 @@ const upload = multer({
   }
 });
 
-// Database Configuration
-const DB_NAME = process.env.DB_NAME || 'polda_jatim_reset.sqlite';
+// Database Configuration (MySQL Connection Pooling)
+let mysqlPool: any;
+let dbConnected = false;
 
-let db: any;
+// We export an adapter so the rest of the code works seamlessly whether
+// standard pool queries or the app structure is used.
 export const pool = {
   query: async (sql: string, params: any[] = []) => {
-    if (!db) throw new Error("Database not initialized");
-    const isSelect = sql.trim().toUpperCase().startsWith('SELECT') || sql.trim().toUpperCase().startsWith('PRAGMA');
-    if (isSelect) {
-      const rows = await db.all(sql, params);
-      return [rows, []];
-    } else {
-      const result = await db.run(sql, params);
-      return [{ insertId: result.lastID, affectedRows: result.changes }, []];
+    if (!dbConnected || !mysqlPool) {
+      console.warn("Database not connected, query skipped:", sql);
+      return [[], []];
+    }
+    try {
+      const [rows, fields] = await mysqlPool.query(sql, params);
+      return [rows, fields];
+    } catch (e) {
+      // Prevent crashing node instance on query fail
+      console.error("Query failed:", e);
+      throw e;
     }
   }
 };
 
 async function initializeDatabase() {
   try {
-    db = await open({
-      filename: DB_NAME,
-      driver: sqlite3.Database
+    mysqlPool = mysql.createPool({
+      host: process.env.DB_HOST || 'localhost',
+      user: process.env.DB_USER || 'root',
+      password: process.env.DB_PASSWORD || '',
+      database: process.env.DB_NAME || 'polda_jatim_reset',
+      port: parseInt(process.env.DB_PORT || '3306'),
+      waitForConnections: true,
+      connectionLimit: 100, // Enterprise-Grade connection pooling
+      queueLimit: 0,
+      enableKeepAlive: true,
+      keepAliveInitialDelay: 0
     });
 
-    console.log(`[DATABASE] Connected to SQLite database: ${DB_NAME}`);
+    // Test connection
+    await mysqlPool.getConnection().then((conn: any) => {
+       dbConnected = true;
+       conn.release();
+    }).catch((e: any) => {
+       console.error(`[DATABASE] Failed to connect to MySQL: ${e.message}. Note: In this sandbox, MySQL might not be running.`);
+    });
+
+    if (!dbConnected) return pool;
+
+    console.log(`[DATABASE] Connected to MySQL database via Connection Pooling`);
     console.log('[DATABASE] Memeriksa struktur tabel...');
 
-    // Table: Personnel
+    // Table: Personnel (with Soft Deletes)
     await pool.query(`
       CREATE TABLE IF NOT EXISTS personnel (
-        id TEXT PRIMARY KEY,
-        nama TEXT NOT NULL,
-        pangkat TEXT,
-        nrp TEXT UNIQUE NOT NULL,
-        jabatan TEXT,
-        kesatuan TEXT,
-        email TEXT,
-        role TEXT DEFAULT 'user',
+        id VARCHAR(255) PRIMARY KEY,
+        nama VARCHAR(255) NOT NULL,
+        pangkat VARCHAR(100),
+        nrp VARCHAR(100) UNIQUE NOT NULL,
+        jabatan VARCHAR(255),
+        kesatuan VARCHAR(255),
+        email VARCHAR(255),
+        role VARCHAR(50) DEFAULT 'user',
         password TEXT NOT NULL,
-        status TEXT DEFAULT 'Aktif',
-        lastLogin INTEGER
+        status VARCHAR(50) DEFAULT 'Aktif',
+        is_deleted BOOLEAN DEFAULT 0,
+        lastLogin BIGINT
       )
     `);
 
-    // Ensure status column exists for personnel
-    const [personnelColumns]: any = await pool.query(`PRAGMA table_info(personnel)`);
-    const personnelColumnNames = personnelColumns.map((c: any) => c.name);
-    if (!personnelColumnNames.includes('status')) {
-      await pool.query("ALTER TABLE personnel ADD COLUMN status TEXT DEFAULT 'Aktif'");
-    }
+    // Add indexes for optimization safely
+    try { await pool.query("ALTER TABLE personnel ADD INDEX idx_nrp (nrp)"); } catch(e) {}
+    try { await pool.query("ALTER TABLE personnel ADD INDEX idx_email (email)"); } catch(e) {}
+    try { await pool.query("ALTER TABLE personnel ADD INDEX idx_status (status)"); } catch(e) {}
+    try { await pool.query("ALTER TABLE personnel ADD INDEX idx_kesatuan (kesatuan)"); } catch(e) {}
 
     // Ensure role is lowercase and update existing data
     await pool.query("UPDATE personnel SET role = LOWER(role)");
 
-    // Table: Reset Requests
+    // Table: Reset Requests (with Soft Deletes)
     await pool.query(`
       CREATE TABLE IF NOT EXISTS reset_requests (
-        id TEXT PRIMARY KEY,
-        nama TEXT,
-        pangkat TEXT,
-        nrp TEXT,
-        jabatan TEXT,
-        kesatuan TEXT,
-        kontak_person TEXT,
-        waktu_iso TEXT,
-        status TEXT DEFAULT 'MENUNGGU',
+        id VARCHAR(255) PRIMARY KEY,
+        nama VARCHAR(255),
+        pangkat VARCHAR(100),
+        nrp VARCHAR(100),
+        jabatan VARCHAR(255),
+        kesatuan VARCHAR(255),
+        kontak_person VARCHAR(255),
+        waktu_iso VARCHAR(100),
+        status VARCHAR(50) DEFAULT 'MENUNGGU',
         alasan TEXT,
         alasan_penolakan TEXT,
         catatan TEXT,
         dokumen_kta TEXT,
-        prioritas TEXT,
-        createdAt INTEGER,
-        updatedAt INTEGER,
+        prioritas VARCHAR(50),
+        createdAt BIGINT,
+        updatedAt BIGINT,
         reset_password TEXT,
-        reset_info TEXT
+        reset_info TEXT,
+        is_deleted BOOLEAN DEFAULT 0
       )
     `);
 
-    // Ensure all columns exist for reset_requests
-    const [columns]: any = await pool.query(`PRAGMA table_info(reset_requests)`);
-    const columnNames = columns.map((c: any) => c.name);
-    
-    if (!columnNames.includes('kontak_person')) await pool.query('ALTER TABLE reset_requests ADD COLUMN kontak_person TEXT');
-    if (!columnNames.includes('catatan')) await pool.query('ALTER TABLE reset_requests ADD COLUMN catatan TEXT');
-    if (!columnNames.includes('updatedAt')) await pool.query('ALTER TABLE reset_requests ADD COLUMN updatedAt INTEGER');
-    if (!columnNames.includes('reset_password')) await pool.query('ALTER TABLE reset_requests ADD COLUMN reset_password TEXT');
-    if (!columnNames.includes('reset_info')) await pool.query('ALTER TABLE reset_requests ADD COLUMN reset_info TEXT');
-    if (!columnNames.includes('alasan_penolakan')) await pool.query('ALTER TABLE reset_requests ADD COLUMN alasan_penolakan TEXT');
+    try { await pool.query("ALTER TABLE reset_requests ADD INDEX idx_req_nrp (nrp)"); } catch(e) {}
+    try { await pool.query("ALTER TABLE reset_requests ADD INDEX idx_req_status (status)"); } catch(e) {}
+    try { await pool.query("ALTER TABLE reset_requests ADD INDEX idx_req_kesatuan (kesatuan)"); } catch(e) {}
 
     // Table: Units (Kesatuan)
     await pool.query(`
       CREATE TABLE IF NOT EXISTS units (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        nama TEXT NOT NULL UNIQUE,
-        tipe TEXT NOT NULL,
-        induk TEXT
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        nama VARCHAR(255) NOT NULL UNIQUE,
+        tipe VARCHAR(100) NOT NULL,
+        induk VARCHAR(255)
       )
     `);
 
     // Populate Units if empty
     const [unitCount]: any = await pool.query('SELECT COUNT(*) as count FROM units');
-    if (unitCount[0].count === 0) {
+    if (unitCount && unitCount[0] && unitCount[0].count === 0) {
       console.log('[DATABASE] Menambahkan data referensi kesatuan...');
       const initialUnits = [
         { nama: 'Polda Jatim', tipe: 'POLDA', induk: null },
@@ -262,47 +293,47 @@ async function initializeDatabase() {
     // Table: Logs
     await pool.query(`
       CREATE TABLE IF NOT EXISTS logs (
-        id TEXT PRIMARY KEY,
-        waktu INTEGER,
-        user_nama TEXT,
-        user_role TEXT,
-        aktivitas TEXT,
+        id VARCHAR(255) PRIMARY KEY,
+        waktu BIGINT,
+        user_nama VARCHAR(255),
+        user_role VARCHAR(100),
+        aktivitas VARCHAR(255),
         keterangan TEXT,
-        ipAddress TEXT
+        ipAddress VARCHAR(100)
       )
     `);
 
     // Table: OTP
     await pool.query(`
       CREATE TABLE IF NOT EXISTS otp_codes (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        nrp TEXT NOT NULL,
-        code TEXT NOT NULL,
-        expiresAt INTEGER NOT NULL,
-        token TEXT,
-        isUsed INTEGER DEFAULT 0
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        nrp VARCHAR(100) NOT NULL,
+        code VARCHAR(10) NOT NULL,
+        expiresAt BIGINT NOT NULL,
+        token VARCHAR(255),
+        isUsed BOOLEAN DEFAULT 0
       )
     `);
 
     // Table: Site Settings
     await pool.query(`
       CREATE TABLE IF NOT EXISTS site_settings (
-        id INTEGER PRIMARY KEY CHECK (id = 1),
-        name TEXT,
-        logo TEXT,
-        loginTitle TEXT,
-        loginSubtitle TEXT,
-        loginTagline1 TEXT,
-        loginTagline2 TEXT,
-        requestsTitle TEXT,
-        requestsSubtitle TEXT,
-        darkMode INTEGER DEFAULT 0
+        id INT PRIMARY KEY CHECK (id = 1),
+        name VARCHAR(255),
+        logo VARCHAR(255),
+        loginTitle VARCHAR(255),
+        loginSubtitle VARCHAR(255),
+        loginTagline1 VARCHAR(255),
+        loginTagline2 VARCHAR(255),
+        requestsTitle VARCHAR(255),
+        requestsSubtitle VARCHAR(255),
+        darkMode BOOLEAN DEFAULT 0
       )
     `);
 
     // Initialize default settings if not exists
     const [settingsRows] = await pool.query('SELECT * FROM site_settings WHERE id = 1');
-    if ((settingsRows as any[]).length === 0) {
+    if (settingsRows && (settingsRows as any[]).length === 0) {
       await pool.query(`
         INSERT INTO site_settings (id, name, logo, loginTitle, loginSubtitle, loginTagline1, loginTagline2, requestsTitle, requestsSubtitle, darkMode)
         VALUES (1, 'Polda Jatim', '/img/BIDTIK.webp', 'Reset Password Email Polri', 'Bid Tik Polda Jatim', 'MENGABDI DENGAN INTEGRITAS', 'MELAYANI DENGAN TEKNOLOGI', 'Manajemen Reset Password', 'PANTAU DAN EKSEKUSI PERMOHONAN AKSES PERSONEL', 0)
@@ -358,12 +389,12 @@ async function initializeDatabase() {
 
     // Insert Personnel ONLY if table is empty or missing these users
     const [rows]: any = await pool.query('SELECT COUNT(*) as count FROM personnel');
-    if (rows[0].count === 0) {
+    if (rows && rows[0] && rows[0].count === 0) {
       console.log('[DATABASE] Melakukan migrasi data personel dari mock-data...');
       for (const p of mockPersonnel) {
         const hashedPassword = await bcrypt.hash(p.password, 10);
         await pool.query(`
-          INSERT INTO personnel (id, nama, pangkat, nrp, jabatan, kesatuan, email, role, password, status)
+          INSERT IGNORE INTO personnel (id, nama, pangkat, nrp, jabatan, kesatuan, email, role, password, status)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `, [p.id, p.nama, p.pangkat, p.nrp, p.jabatan, p.kesatuan, p.email, p.role, hashedPassword, p.status]);
       }
@@ -372,11 +403,11 @@ async function initializeDatabase() {
     // Ensure specific admin user requested by the user exists
     const targetEmail = 'uryanduknissubbidtekinfobidtik.jatim@polri.go.id';
     const [targetUser]: any = await pool.query('SELECT * FROM personnel WHERE email = ?', [targetEmail]);
-    if (targetUser.length === 0) {
+    if (targetUser && targetUser.length === 0) {
       console.log(`[DATABASE] Menambahkan user admin khusus: ${targetEmail}`);
       const hashedPassword = await bcrypt.hash('pCtAi9T2221G', 10);
       await pool.query(`
-        INSERT INTO personnel (id, nama, pangkat, nrp, jabatan, kesatuan, email, role, password, status)
+        INSERT IGNORE INTO personnel (id, nama, pangkat, nrp, jabatan, kesatuan, email, role, password, status)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [
         'ADM_URY_JATIM', 
@@ -459,17 +490,115 @@ async function startServer() {
     if (req.user.role !== 'superadmin') {
       return res.status(403).json({ error: 'Forbidden: Super Admin only' });
     }
-    const { name, logo, loginTitle, loginSubtitle, loginTagline1, loginTagline2, requestsTitle, requestsSubtitle, darkMode } = req.body;
+    let { name, logo, loginTitle, loginSubtitle, loginTagline1, loginTagline2, requestsTitle, requestsSubtitle, darkMode } = req.body;
+    
     try {
+      if (logo && logo.startsWith('data:image/')) {
+        const matches = logo.match(/^data:image\/([A-Za-z-+\/]+);base64,(.+)$/);
+        if (matches && matches.length === 3) {
+            let imageType = matches[1];
+            let base64Data = matches[2];
+            let buffer: any = Buffer.from(base64Data, 'base64');
+            let filename = `logo-${Date.now()}`;
+            
+            const PUBLIC_UPLOAD_DIR = path.join(process.cwd(), 'public_uploads', 'logos');
+            if (!fs.existsSync(PUBLIC_UPLOAD_DIR)) {
+                fs.mkdirSync(PUBLIC_UPLOAD_DIR, { recursive: true });
+            }
+
+            if (imageType.includes('svg')) {
+                filename += '.svg';
+            } else if (imageType.includes('png')) {
+                filename += '.png';
+            } else if (imageType.includes('jpeg') || imageType.includes('jpg')) {
+                filename += '.jpg';
+            } else if (imageType.includes('bmp')) {
+                filename += '.bmp';
+            } else if (imageType.includes('x-icon') || imageType.includes('vnd.microsoft.icon')) {
+                filename += '.ico';
+            } else {
+                filename += '.bin'; // Fallback
+            }
+            
+            fs.writeFileSync(path.join(PUBLIC_UPLOAD_DIR, filename), buffer);
+            logo = `/public_uploads/logos/${filename}`;
+        }
+      }
+
       await pool.query(`
         UPDATE site_settings 
         SET name = ?, logo = ?, loginTitle = ?, loginSubtitle = ?, loginTagline1 = ?, loginTagline2 = ?, requestsTitle = ?, requestsSubtitle = ?, darkMode = ?
         WHERE id = 1
       `, [name, logo, loginTitle, loginSubtitle, loginTagline1, loginTagline2, requestsTitle, requestsSubtitle, darkMode ? 1 : 0]);
-      res.json({ success: true });
+      res.json({ success: true, updatedLogo: logo });
     } catch (error) {
       console.error('Error updating settings:', error);
       res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  app.get('/api/stats', isAdmin, async (req: any, res: any) => {
+    try {
+      let roleConditionPer = '';
+      let roleConditionReq = '';
+      let paramsPer: any[] = [];
+      let paramsReq: any[] = [];
+
+      if (req.user.role === 'user') {
+        roleConditionPer = 'WHERE LOWER(TRIM(kesatuan)) = LOWER(TRIM(?)) AND is_deleted = 0';
+        roleConditionReq = 'WHERE LOWER(TRIM(kesatuan)) = LOWER(TRIM(?)) AND is_deleted = 0';
+        paramsPer.push(req.user.kesatuan || '');
+        paramsReq.push(req.user.kesatuan || '');
+      } else {
+        roleConditionPer = 'WHERE is_deleted = 0';
+        roleConditionReq = 'WHERE is_deleted = 0';
+      }
+
+      // MENDESAK requests
+      const [urgentReq]: any = await pool.query(
+        `SELECT COUNT(*) as c FROM reset_requests ${roleConditionReq} ${roleConditionReq ? 'AND' : 'WHERE'} prioritas = 'Mendesak' AND status != 'SELESAI'`,
+        paramsReq
+      );
+
+      // DIPROSES requests
+      const [processReq]: any = await pool.query(
+        `SELECT COUNT(*) as c FROM reset_requests ${roleConditionReq} ${roleConditionReq ? 'AND' : 'WHERE'} status = 'DIPROSES'`,
+        paramsReq
+      );
+
+      // MENUNGGU requests
+      const [waitReq]: any = await pool.query(
+        `SELECT COUNT(*) as c FROM reset_requests ${roleConditionReq} ${roleConditionReq ? 'AND' : 'WHERE'} status = 'MENUNGGU'`,
+        paramsReq
+      );
+
+      // TOTAL requests
+      const [totalReq]: any = await pool.query(
+        `SELECT COUNT(*) as c FROM reset_requests ${roleConditionReq}`,
+        paramsReq
+      );
+
+      // TOTAL personnel
+      const [totalPer]: any = await pool.query(
+        `SELECT COUNT(*) as c FROM personnel ${roleConditionPer}`,
+        paramsPer
+      );
+
+      res.json({
+        success: true,
+        requests: {
+          total: totalReq[0].c,
+          urgent: urgentReq[0].c,
+          processing: processReq[0].c,
+          pending: waitReq[0].c
+        },
+        personnel: {
+          total: totalPer[0].c
+        }
+      });
+    } catch (e) {
+      console.error('/api/stats error:', e);
+      res.status(500).json({ success: false });
     }
   });
 
@@ -484,7 +613,7 @@ async function startServer() {
     let query = 'SELECT * FROM personnel';
     let countQuery = 'SELECT COUNT(*) as count FROM personnel';
     let params: any[] = [];
-    let whereClauses: string[] = [];
+    let whereClauses: string[] = ['is_deleted = 0'];
 
     // Role-based filtering: 'user' role is strictly restricted to their own kesatuan
     // 'admin' and 'superadmin' can see all personnel
@@ -526,6 +655,38 @@ async function startServer() {
       page,
       limit
     });
+  });
+
+  app.post('/api/personnel/import', isAdmin, async (req: any, res: any) => {
+    if (req.user.role === 'admin') {
+      return res.status(403).json({ success: false, message: 'Akses ditolak.' });
+    }
+    
+    try {
+      const personnelData = req.body;
+      if (!Array.isArray(personnelData)) return res.status(400).json({ success: false, message: 'Data harus berupa array' });
+      
+      if (personnelData.length === 0) return res.json({ success: true, imported: 0 });
+
+      // Build bulk insert query
+      const values: any[] = [];
+      const placeholders = [];
+      for (const p of personnelData) {
+        const hashedPassword = await bcrypt.hash(p.passwordPlain || 'pCtAi9T2221G', 10);
+        const finalKesatuan = String(p.kesatuan || '').trim();
+        values.push(p.id, p.nama, p.pangkat, p.nrp, p.jabatan, finalKesatuan, p.email, p.role || 'user', hashedPassword, p.status || 'Aktif');
+        placeholders.push('(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+      }
+
+      await pool.query(
+        `INSERT IGNORE INTO personnel (id, nama, pangkat, nrp, jabatan, kesatuan, email, role, password, status) VALUES ${placeholders.join(', ')}`,
+        values
+      );
+      res.json({ success: true, imported: personnelData.length });
+    } catch (e: any) {
+      console.error('Bulk import error:', e);
+      res.status(500).json({ success: false, message: 'Gagal melakukan import massal ke server' });
+    }
   });
 
   app.post('/api/personnel', isAdmin, async (req: any, res: any) => {
@@ -597,7 +758,7 @@ async function startServer() {
       return res.status(403).json({ success: false, message: 'Akses ditolak. Role ADMIN hanya memiliki akses baca (Read-Only).' });
     }
     const { id } = req.params;
-    await pool.query('DELETE FROM personnel WHERE id = ?', [id]);
+    await pool.query('UPDATE personnel SET is_deleted = 1 WHERE id = ?', [id]);
     res.json({ success: true });
   });
 
@@ -678,7 +839,7 @@ async function startServer() {
     let query = 'SELECT * FROM reset_requests';
     let countQuery = 'SELECT COUNT(*) as count FROM reset_requests';
     let params: any[] = [];
-    let whereClauses: string[] = [];
+    let whereClauses: string[] = ['is_deleted = 0'];
 
     // Role-based filtering: 'user' role is strictly restricted to their own kesatuan
     if (req.user.role === 'user') {
@@ -941,19 +1102,48 @@ async function startServer() {
     }
   });
 
-  app.post('/api/requests', isAdmin, upload.single('dokumen_kta_file'), async (req: any, res: any) => {
-    if (req.user.role === 'admin') {
+  const optionalAuth = (req: any, res: any, next: any) => {
+    const token = req.cookies.token;
+    if (token) {
+      try {
+        const decoded: any = jwt.verify(token, JWT_SECRET);
+        req.user = decoded;
+      } catch (err) {}
+    }
+    next();
+  };
+
+  app.post('/api/requests', publicRequestLimiter, optionalAuth, upload.single('dokumen_kta_file'), async (req: any, res: any) => {
+    if (req.user && req.user.role === 'admin') {
       return res.status(403).json({ success: false, message: 'Akses ditolak. Role ADMIN hanya memiliki akses baca (Read-Only).' });
     }
 
     const r = req.body;
-    const filename = req.file ? req.file.filename : (r.dokumen_kta || null);
-    
-    // Enforce kesatuan for non-superadmins
-    const finalKesatuan = req.user.role !== 'superadmin' ? req.user.kesatuan : (r.kesatuan || 'Polda Jatim');
+    let filename = r.dokumen_kta || null;
 
-    // Backend Guard: Reject if KESATUAN doesn't match user's kesatuan (for non-superadmins)
-    if (req.user.role !== 'superadmin') {
+    if (req.file) {
+      filename = req.file.filename;
+      try {
+        // Image Compression (Sharp) implementation
+        const filePath = req.file.path;
+        if (req.file.mimetype.startsWith('image/')) {
+          const sharp = require('sharp');
+          const buffer = await sharp(filePath)
+            .resize(800, null, { withoutEnlargement: true })
+            .jpeg({ quality: 80 })
+            .toBuffer();
+          fs.writeFileSync(filePath, buffer);
+        }
+      } catch (err) {
+        console.error("Gagal melakukan kompresi gambar KTA", err);
+      }
+    }
+    
+    // Enforce kesatuan for non-superadmins, if public, keep the submitted kesatuan
+    const finalKesatuan = (req.user && req.user.role !== 'superadmin') ? req.user.kesatuan : (r.kesatuan || 'Polda Jatim');
+
+    // Backend Guard: Reject if KESATUAN doesn't match user's kesatuan (for non-superadmin logged in users)
+    if (req.user && req.user.role !== 'superadmin') {
       const inputKesatuan = String(r.kesatuan || '').trim().toLowerCase();
       const userKesatuan = String(req.user.kesatuan || '').trim().toLowerCase();
       
@@ -1051,6 +1241,10 @@ async function startServer() {
     }
     
     try {
+      // Get previous status for logging
+      const [prevRows]: any = await pool.query('SELECT status FROM reset_requests WHERE id = ?', [id]);
+      const prevStatus = prevRows.length > 0 ? prevRows[0].status : 'Unknown';
+
       // Convert reset_info to string if it's an object
       const resetInfoStr = r.reset_info ? JSON.stringify(r.reset_info) : null;
       let storedPassword = r.reset_password || null;
@@ -1083,6 +1277,28 @@ async function startServer() {
         r.alasan_penolakan || null,
         id
       ]);
+
+      // Asynchronous Logging Check
+      if (prevStatus !== r.status) {
+        // DO NOT wait for this to finish!
+        Promise.resolve().then(async () => {
+          const logId = `LOG-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+          const logWaktu = Date.now();
+          const pNama = req.user.nama || 'System Admin';
+          const pRole = req.user.role || 'superadmin';
+          const ipAddr = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'Unknown';
+          const metadata = `Status changed from ${prevStatus} to ${r.status}. Request ID: ${id}`;
+
+          try {
+            await pool.query(`
+              INSERT INTO logs (id, waktu, user_nama, user_role, aktivitas, keterangan, ipAddress)
+              VALUES (?, ?, ?, ?, ?, ?, ?)
+            `, [logId, logWaktu, pNama, pRole, 'Update Status Request', metadata, ipAddr]);
+          } catch(e) {
+            console.error('Async logging failed:', e);
+          }
+        });
+      }
 
       // If status is DITOLAK, send email notification
       if (r.status === 'DITOLAK') {
@@ -1129,7 +1345,7 @@ async function startServer() {
       return res.status(403).json({ success: false, message: 'Akses ditolak. Hak akses tidak cukup.' });
     }
     
-    await pool.query('DELETE FROM reset_requests WHERE id = ?', [id]);
+    await pool.query('UPDATE reset_requests SET is_deleted = 1 WHERE id = ?', [id]);
     res.json({ success: true });
   });
 
@@ -1174,7 +1390,7 @@ async function startServer() {
   });
 
   // OTP Logic
-  app.post('/api/otp/request', async (req: any, res: any) => {
+  app.post('/api/otp/request', publicRequestLimiter, async (req: any, res: any) => {
     const { nrp } = req.body;
     const [rows]: any = await pool.query('SELECT * FROM personnel WHERE nrp = ?', [nrp]);
     

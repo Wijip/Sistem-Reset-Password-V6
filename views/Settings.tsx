@@ -100,6 +100,11 @@ const Settings: React.FC<SettingsProps> = ({
       });
 
       if (res.ok) {
+        const data = await res.json();
+        if (data.updatedLogo) {
+          newSettings.logo = data.updatedLogo;
+          setSiteForm(prev => ({ ...prev, logo: data.updatedLogo }));
+        }
         setSiteSettings(newSettings);
         showToast('Identitas website berhasil diperbarui');
         addLog?.('Pengaturan', `Memperbarui identitas website: ${siteForm.name}`);
@@ -126,8 +131,17 @@ const Settings: React.FC<SettingsProps> = ({
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      const extension = file.name.split('.').pop()?.toLowerCase();
+      const validExtensions = ['jpg', 'jpeg', 'png', 'svg', 'ico', 'bmp'];
+      
+      if (!extension || !validExtensions.includes(extension)) {
+         showToast('Format tidak valid. Hanya JPG, JPEG, PNG, SVG, ICO, BMP.', 'error');
+         if (siteLogoRef.current) siteLogoRef.current.value = '';
+         return;
+      }
       if (file.size > 2 * 1024 * 1024) {
         showToast('Ukuran file terlalu besar (Maks 2MB)', 'error');
+        if (siteLogoRef.current) siteLogoRef.current.value = '';
         return;
       }
       const reader = new FileReader();
@@ -204,8 +218,8 @@ const Settings: React.FC<SettingsProps> = ({
                     <span className="text-[10px] font-black uppercase mt-1">Ganti Logo</span>
                   </button>
                 </div>
-                <input type="file" ref={siteLogoRef} className="hidden" accept="image/*" onChange={handleLogoChange} />
-                <p className="text-[10px] text-slate-400 font-bold text-center">Logo Website & Login<br/>(PNG/SVG)</p>
+                <input type="file" ref={siteLogoRef} className="hidden" accept=".jpg,.jpeg,.png,.svg,.ico,.bmp,image/jpeg,image/png,image/svg+xml,image/x-icon,image/bmp" onChange={handleLogoChange} />
+                <p className="text-[10px] text-slate-400 font-bold text-center">Logo Website & Login<br/>(PNG/SVG/JPG/BMP/ICO)</p>
               </div>
 
               <div className="flex-1 space-y-6 w-full">

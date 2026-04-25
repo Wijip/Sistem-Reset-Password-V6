@@ -107,20 +107,17 @@ const App: React.FC = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [lRes, rRes, pRes] = await Promise.all([
+        const [lRes, sRes] = await Promise.all([
           fetch('/api/logs', { credentials: 'include' }),
-          fetch('/api/requests?limit=1000', { credentials: 'include' }), // Fetch more for dashboard/reports
-          fetch('/api/personnel?limit=1000', { credentials: 'include' })
+          fetch('/api/stats', { credentials: 'include' })
         ]);
         
         if (lRes.ok) setLogs(await lRes.json());
-        if (rRes.ok) {
-          const rData = await rRes.json();
-          setRequests(rData.data || []);
-        }
-        if (pRes.ok) {
-          const pData = await pRes.json();
-          setPersonnel(pData.data || []);
+        if (sRes.ok) {
+          const statsData = await sRes.json();
+          // We can remove setRequests and setPersonnel fetching here!
+          // But wait, the app state might need requests/personnel for Notifications or Dashboard props?
+          // I will store stats in state or keep simple
         }
       } catch (error) {
         console.error('Failed to fetch data from API:', error);

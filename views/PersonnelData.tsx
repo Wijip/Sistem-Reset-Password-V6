@@ -223,18 +223,22 @@ const PersonnelData: React.FC<PersonnelDataProps> = ({ personnel, setPersonnel, 
         });
 
         if (newPersonnel.length > 0) {
-          // Save to API
-          Promise.all(newPersonnel.map(p => 
-            fetch('/api/personnel', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              credentials: 'include',
-              body: JSON.stringify(p)
-            })
-          )).then(() => {
-            setPersonnel(prev => [...prev, ...newPersonnel]);
-            showToast(`Berhasil mengimpor ${newPersonnel.length} data.${skippedCount > 0 ? ` (${skippedCount} data dilewati)` : ''}`);
-            addLog?.('Import Data', `Mengimpor ${newPersonnel.length} data personel via ${importType?.toUpperCase()}`);
+          // Save to API using Bulk Insert
+          fetch('/api/personnel/import', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify(newPersonnel)
+          }).then(async (res) => {
+            if (!res.ok) throw new Error('Bulk API failed');
+            const result = await res.json();
+            if (result.success) {
+              setPersonnel(prev => [...prev, ...newPersonnel]);
+              showToast(`Berhasil mengimpor ${newPersonnel.length} data.${skippedCount > 0 ? ` (${skippedCount} data dilewati)` : ''}`);
+              addLog?.('Import Data', `Mengimpor ${newPersonnel.length} data personel via ${importType?.toUpperCase()}`);
+            } else {
+              throw new Error(result.message || 'Gagal import');
+            }
           }).catch(err => {
             console.error('Failed to import personnel:', err);
             showToast('Gagal menyimpan data ke server', 'error');
