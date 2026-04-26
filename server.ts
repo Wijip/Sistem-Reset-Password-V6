@@ -18,6 +18,8 @@ import jwt from 'jsonwebtoken';
 import nodemailer from 'nodemailer';
 import { rateLimit } from 'express-rate-limit';
 import sharp from 'sharp';
+import sqlite3 from 'sqlite3';
+import { open as openSqlite } from 'sqlite';
 
 dotenv.config();
 
@@ -113,18 +115,48 @@ const upload = multer({
   }
 });
 
-// Database Configuration (MySQL Connection Pooling)
+// Database Configuration (MySQL Connection Pooling with SQLite Fallback)
 let mysqlPool: any;
+let sqliteDb: any;
+let isUsingSqlite = false;
 let dbConnected = false;
 
 // We export an adapter so the rest of the code works seamlessly whether
 // standard pool queries or the app structure is used.
 export const pool = {
   query: async (sql: string, params: any[] = []) => {
-    if (!dbConnected || !mysqlPool) {
+    if (!dbConnected) {
       console.warn("Database not connected, query skipped:", sql);
       return [[], []];
     }
+    
+    if (isUsingSqlite) {
+      try {
+        let sqliteSql = sql.replace(/AUTO_INCREMENT/gi, 'AUTOINCREMENT');
+        sqliteSql = sqliteSql.replace(/INSERT IGNORE INTO/gi, 'INSERT OR IGNORE INTO');
+        sqliteSql = sqliteSql.replace(/ALTER TABLE (.*?) ADD INDEX (.*?) \((.*?)\)/gi, 'CREATE INDEX IF NOT EXISTS $2 ON $1($3)');
+        sqliteSql = sqliteSql.replace(/CHECK \(id = 1\)/gi, 'CHECK(id = 1)');
+        
+        const statementType = sqliteSql.trim().toUpperCase().split(' ')[0];
+        if (['SELECT', 'SHOW', 'DESCRIBE'].includes(statementType)) {
+            const rows = await sqliteDb.all(sqliteSql, params);
+            return [rows, []];
+        } else {
+            // For CREATE and ALTER, just run it
+            if (['CREATE', 'ALTER', 'UPDATE', 'DELETE', 'INSERT', 'DROP'].includes(statementType)) {
+               const result = await sqliteDb.run(sqliteSql, params);
+               return [{ insertId: result.lastID, affectedRows: result.changes }, []];
+            } else {
+               const result = await sqliteDb.run(sqliteSql, params);
+               return [{ insertId: result.lastID, affectedRows: result.changes }, []];
+            }
+        }
+      } catch (e) {
+        console.error("SQLite Query failed:", e);
+        throw e;
+      }
+    }
+
     try {
       const [rows, fields] = await mysqlPool.query(sql, params);
       return [rows, fields];
@@ -152,16 +184,25 @@ async function initializeDatabase() {
     });
 
     // Test connection
-    await mysqlPool.getConnection().then((conn: any) => {
+    try {
+       const conn = await mysqlPool.getConnection();
        dbConnected = true;
        conn.release();
-    }).catch((e: any) => {
-       console.error(`[DATABASE] Failed to connect to MySQL: ${e.message}. Note: In this sandbox, MySQL might not be running.`);
-    });
+       console.log(`[DATABASE] Connected to MySQL database via Connection Pooling`);
+    } catch (e: any) {
+       console.warn(`[DATABASE] Failed to connect to MySQL: ${e.message}. Note: In this sandbox, MySQL might not be running.`);
+       console.log(`[DATABASE] Using SQLite fallback database in memory/local file...`);
+       
+       sqliteDb = await openSqlite({
+         filename: './database.sqlite',
+         driver: sqlite3.Database
+       });
+       
+       dbConnected = true;
+       isUsingSqlite = true;
+    }
 
     if (!dbConnected) return pool;
-
-    console.log(`[DATABASE] Connected to MySQL database via Connection Pooling`);
     console.log('[DATABASE] Memeriksa struktur tabel...');
 
     // Table: Personnel (with Soft Deletes)
