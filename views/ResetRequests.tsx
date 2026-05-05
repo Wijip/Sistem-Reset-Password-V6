@@ -394,7 +394,7 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
             catatan = String(item['KETERANGAN'] || '').trim();
           } else {
             nrp = String(item.NRP || item.nrp || item.Nrp || item['NRP/NIP'] || '').trim();
-            nama = String(item.Nama || item.nama || item.NAMA || '').trim();
+            nama = String(item['Nama Lengkap'] || item.Nama || item.nama || item.NAMA || '').trim();
             pangkat = String(item.Pangkat || item.pangkat || item.PANGKAT || '-').trim();
             jabatan = String(item.Jabatan || item.jabatan || item.JABATAN || '-').trim();
             kesatuan = String(item.Kesatuan || item.kesatuan || item.KESATUAN || (isAdminPolres ? currentUser.kesatuan : 'Polda Jatim')).trim();

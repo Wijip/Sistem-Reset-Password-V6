@@ -1022,10 +1022,10 @@ async function startServer() {
       } else {
         worksheet.columns = [
           { header: 'No', key: 'no', width: 5 },
-          { header: 'Waktu Request', key: 'waktu', width: 25 },
-          { header: 'Personel (Nama/NRP)', key: 'personel', width: 35 },
+          { header: 'Nama Lengkap', key: 'nama', width: 30 },
+          { header: 'Jabatan', key: 'jabatan', width: 30 },
+          { header: 'NRP', key: 'nrp', width: 20 },
           { header: 'Kesatuan', key: 'kesatuan', width: 25 },
-          { header: 'Status', key: 'status', width: 15 },
           { header: 'Prioritas', key: 'prioritas', width: 15 }
         ];
         filename = 'template_reset_password.xlsx';
@@ -1225,15 +1225,16 @@ async function startServer() {
 
     try {
       const requestId = r.id || `REQ-${Math.floor(1000 + Math.random() * 9000)}`;
-      const waktuIso = r.waktu_iso || new Date().toISOString();
-      const status = r.status || 'MENUNGGU';
+      // Override explicitly from server for both single and mass inputs
+      const waktuIso = new Date().toISOString();
+      const status = 'MENUNGGU';
       
       let prioritas = r.prioritas || 'Normal';
       // Map Excel values if sent raw
       if (prioritas === 'Bukan Prioritas') prioritas = 'Normal';
       if (prioritas === 'Prioritas Mendesak') prioritas = 'Mendesak';
       
-      const createdAt = r.createdAt ? parseInt(r.createdAt) : Date.now();
+      const createdAt = Date.now();
 
       await pool.query(`
         INSERT INTO reset_requests (
