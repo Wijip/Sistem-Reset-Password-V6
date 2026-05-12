@@ -1,6 +1,8 @@
 
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { motion, AnimatePresence } from 'motion/react';
 import { useDebounce } from '../src/hooks/useDebounce';
 import { ResetRequest, RequestStatus, LogEntry, SiteSettings, UserRole, Personnel, RequestPriority } from '../types';
@@ -279,6 +281,72 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
       showToast('Gagal memperbarui status ke server', 'error');
     } finally {
       setIsBulkProcessing(false);
+    }
+  };
+
+  const exportPDF = async () => {
+    try {
+      showToast('Menyiapkan file PDF...', 'success');
+      
+      const params = new URLSearchParams({
+        page: '1',
+        limit: '100000',
+        search: appliedFilters.search,
+        status: appliedFilters.status,
+        priority: appliedFilters.priority
+      });
+      
+      const res = await fetch(`/api/requests?${params.toString()}`, { credentials: 'include' });
+      if (!res.ok) throw new Error('Gagal memuat data');
+      const result = await res.json();
+      const exportData = result.data || [];
+
+      // Create PDF in landscape
+      const doc = new jsPDF('landscape');
+      
+      doc.setFontSize(14);
+      doc.text('Laporan Data Permintaan Reset Password', 14, 15);
+      
+      const tableData = exportData.map((req: any, index: number) => {
+        const waktuStr = req.createdAt ? new Date(req.createdAt).toLocaleString('id-ID') : '-';
+        return [
+          index + 1,
+          waktuStr,
+          req.nama || '-',
+          req.pangkat || '-',
+          req.nrp || '-',
+          req.kesatuan || '-',
+          req.jabatan || '-',
+          req.status || '-',
+          req.reset_password || '-'
+        ];
+      });
+
+      autoTable(doc, {
+        head: [['No', 'Waktu Request', 'Nama', 'Pangkat', 'NRP/NIP', 'Kesatuan', 'Jabatan', 'Status', 'Password Baru']],
+        body: tableData,
+        startY: 20,
+        styles: { fontSize: 8, cellPadding: 2, overflow: 'linebreak' },
+        headStyles: { fillColor: [41, 128, 185], textColor: 255, halign: 'center', fontStyle: 'bold' },
+        columnStyles: {
+          0: { cellWidth: 10, halign: 'center' },
+          1: { cellWidth: 35 },
+          2: { cellWidth: 35 },
+          3: { cellWidth: 20 },
+          4: { cellWidth: 25 },
+          5: { cellWidth: 40 },
+          6: { cellWidth: 50 },
+          7: { cellWidth: 25 },
+          8: { cellWidth: 30 }
+        },
+        alternateRowStyles: { fillColor: [245, 247, 250] },
+      });
+
+      doc.save(`Laporan_Reset_Password_${Date.now()}.pdf`);
+      showToast('PDF berhasil diunduh', 'success');
+    } catch (error) {
+      console.error('PDF export failed:', error);
+      showToast('Gagal mengekspor PDF', 'error');
     }
   };
 
@@ -766,9 +834,9 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
               <span className="material-symbols-outlined text-xl text-emerald-500">table_view</span>
             </button>
             <button 
-              onClick={() => window.print()} 
+              onClick={exportPDF} 
               className={`flex items-center justify-center w-10 h-10 rounded-xl transition-all hover:scale-110 ${isDarkMode ? 'text-slate-400 hover:text-white hover:bg-slate-800' : 'text-slate-500 hover:text-slate-900 hover:bg-white'}`}
-              title="Cetak PDF"
+              title="Unduh PDF"
             >
               <span className="material-symbols-outlined text-xl text-rose-500">picture_as_pdf</span>
             </button>
